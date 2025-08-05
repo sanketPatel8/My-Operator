@@ -61,7 +61,7 @@ export async function GET(req) {
     // ✅ MySQL insert/update
     const db = await connectDB(); // ⬅️ Connect MySQL
     const [result] = await db.execute(
-      `INSERT INTO shopify (shop, access_token)
+      `INSERT INTO shops (shop, access_token)
    VALUES (?, ?)
    ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), installed_at = NOW()`,
       [shop, accessToken]
@@ -71,7 +71,7 @@ export async function GET(req) {
     const insertId = result.insertId;
 
     // Always fetch the final inserted/updated row
-    const [rows] = await db.execute(`SELECT * FROM shopify WHERE shop = ?`, [
+    const [rows] = await db.execute(`SELECT * FROM shops WHERE shop = ?`, [
       shop,
     ]);
 
