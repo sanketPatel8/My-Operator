@@ -11,6 +11,8 @@ export async function GET(req) {
     const code = searchParams.get("code");
     const hmac = searchParams.get("hmac");
 
+    console.log(shop, code, hmac, "shop , code , hmac");
+
     if (!shop || !code || !hmac) {
       return new Response("❌ Missing parameters", { status: 400 });
     }
