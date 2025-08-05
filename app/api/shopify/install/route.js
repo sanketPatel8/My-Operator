@@ -9,7 +9,7 @@ export async function GET(req) {
   }
 
   const clientId = process.env.SHOPIFY_API_KEY;
-  const redirectUri = `https://my-operator.vercel.app/api/shopify/callback`;
+  const redirectUri = `https://imd-latest.vercel.app/api/shopify/callback`;
   const scopes = "read_products,write_orders,read_customers";
   const state = "secure123"; // Optional: ideally generate a dynamic state and store in DB/session
 
