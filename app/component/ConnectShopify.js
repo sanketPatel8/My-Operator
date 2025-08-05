@@ -3,17 +3,16 @@
 export default function ConnectShopify() {
   const handleClick = () => {
     const shop = prompt(
-      "Enter your shop domain (e.g. sanket-store01.myshopify.com)"
+      "Enter your Shopify domain (e.g. sanket-store01.myshopify.com)"
     );
+
     if (!shop) return;
 
     const trimmedShop = shop.trim().toLowerCase();
     const isValid = /^[a-z0-9-]+\.myshopify\.com$/.test(trimmedShop);
 
     if (!isValid) {
-      alert(
-        "Invalid shop domain. Please enter like sanket-store01.myshopify.com"
-      );
+      alert("⚠️ Invalid shop domain. Use format: sanket-store01.myshopify.com");
       return;
     }
 
@@ -28,6 +27,8 @@ export default function ConnectShopify() {
         fontSize: "16px",
         backgroundColor: "white",
         color: "black",
+        border: "1px solid #000",
+        cursor: "pointer",
       }}
     >
       Connect Shopify Store

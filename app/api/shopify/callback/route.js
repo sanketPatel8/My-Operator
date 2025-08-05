@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { connectDB } from "@/lib/db"; // ✅ updated import
+import { connectDB } from "@/lib/db";
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
@@ -7,7 +7,6 @@ const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-
     const shop = searchParams.get("shop");
     const code = searchParams.get("code");
     const hmac = searchParams.get("hmac");
@@ -16,7 +15,7 @@ export async function GET(req) {
       return new Response("❌ Missing parameters", { status: 400 });
     }
 
-    // 🔐 HMAC verification
+    // HMAC Verification
     const params = Object.fromEntries(searchParams);
     const message = Object.keys(params)
       .filter((key) => key !== "hmac" && key !== "signature")
@@ -36,7 +35,7 @@ export async function GET(req) {
       return new Response("❌ HMAC validation failed", { status: 403 });
     }
 
-    // 🔄 Exchange code for access token
+    // Exchange code for token
     const tokenRes = await fetch(`https://${shop}/admin/oauth/access_token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -50,7 +49,7 @@ export async function GET(req) {
     const tokenData = await tokenRes.json();
 
     if (!tokenRes.ok || !tokenData.access_token) {
-      console.error("Token Error:", tokenData);
+      console.error("❌ Token error:", tokenData);
       return new Response("❌ Failed to retrieve access token", {
         status: 500,
       });
@@ -58,30 +57,26 @@ export async function GET(req) {
 
     const accessToken = tokenData.access_token;
 
-    // ✅ MySQL insert/update
-    const db = await connectDB(); // ⬅️ Connect MySQL
+    // Save to DB
+    const db = await connectDB();
     const [result] = await db.execute(
       `INSERT INTO shops (shop, access_token)
-   VALUES (?, ?)
-   ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), installed_at = NOW()`,
+       VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), installed_at = NOW()`,
       [shop, accessToken]
     );
 
-    // Optional: insertId only applies to fresh inserts (not updates)
-    const insertId = result.insertId;
-
-    // Always fetch the final inserted/updated row
-    const [rows] = await db.execute(`SELECT * FROM shops WHERE shop = ?`, [
+    const [rows] = await db.execute("SELECT * FROM shops WHERE shop = ?", [
       shop,
     ]);
 
     const insertedShop = rows[0];
 
-    console.log("✅ Saved to DB:", shop);
+    console.log("✅ Shop saved:", shop);
 
     return new Response(
       JSON.stringify({
-        message: `✅ App installed successfully: ${shop}`,
+        message: "✅ App installed successfully",
         data: insertedShop,
       }),
       {
@@ -91,8 +86,8 @@ export async function GET(req) {
         },
       }
     );
-  } catch (err) {
-    console.error("Callback error:", err);
-    return new Response("❌ Internal Server Error", { status: 500 });
+  } catch (error) {
+    console.error("❌ Callback Error:", error);
+    return new Response("❌ Internal server error", { status: 500 });
   }
 }
