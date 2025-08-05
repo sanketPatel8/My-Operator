@@ -15,5 +15,6 @@ export async function GET(req) {
 
   const installUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${redirectUri}&state=${state}`;
 
+  // console.log(installUrl, "installUrl");
   return Response.redirect(installUrl, 302);
 }

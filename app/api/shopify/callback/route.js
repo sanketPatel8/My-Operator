@@ -48,6 +48,8 @@ export async function GET(req) {
       }),
     });
 
+    console.log(tokenData, "tokenData");
+
     const tokenData = await tokenRes.json();
 
     if (!tokenRes.ok || !tokenData.access_token) {
