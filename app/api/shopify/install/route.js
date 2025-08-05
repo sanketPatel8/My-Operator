@@ -7,6 +7,7 @@ export async function GET(req) {
   if (!shop) {
     return new Response("❌ Missing shop parameter", { status: 400 });
   }
+  
 
   const clientId = process.env.SHOPIFY_API_KEY;
   const redirectUri = `https://my-operator.vercel.app/api/shopify/callback`;
