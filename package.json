@@ -10,7 +10,12 @@
   },
   "dependencies": {
     "@shopify/shopify-api": "^11.14.1",
+    "@shopify/shopify-app-express": "^5.0.20",
+    "@shopify/shopify-app-session-storage-memory": "^4.0.20",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "mysql2": "^3.14.3",
     "next": "15.4.5",
     "react": "19.1.0",
     "react-dom": "19.1.0"
