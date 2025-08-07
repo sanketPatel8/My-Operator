@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
