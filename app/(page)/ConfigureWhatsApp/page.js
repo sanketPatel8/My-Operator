@@ -1,9 +1,26 @@
-import Image from 'next/image'
-import Link from 'next/link'
-import React from 'react'
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import React, { useState } from "react";
 
 function ConfigureWhatsApp() {
+  const searchParams = useSearchParams();
+  const [shop, setShop] = useState(null);
+  const [token, setToken] = useState(null);
 
+  useEffect(() => {
+    const shopParam = searchParams.get("shop");
+    const tokenParam = searchParams.get("token");
+
+    if (shopParam && tokenParam) {
+      setShop(shopParam);
+      setToken(tokenParam);
+    }
+  }, [searchParams]);
+
+  console.log(shop, token, "api installation data");
 
   return (
     <div className="font-source-sans min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
@@ -12,7 +29,8 @@ function ConfigureWhatsApp() {
           Configure WhatsApp API details
         </h2>
         <p className="text-center text-[#333333] text-[14px]  mb-6">
-          Enter your WhatsApp Business API configuration details to establish the connection.
+          Enter your WhatsApp Business API configuration details to establish
+          the connection.
         </p>
 
         <div className="space-y-4 mt-8">
@@ -43,15 +61,18 @@ function ConfigureWhatsApp() {
           {/* Help Info Box */}
           <div className="bg-blue-50 p-3 rounded-md text-[14px] text-[#4275D6] flex items-start md:items-center">
             <Image
-            src="/assets/question-circle.svg" 
-            alt='question mark'
-            height={100}
-            width={100}
-            className='h-[14px] w-[14px] mr-1'
+              src="/assets/question-circle.svg"
+              alt="question mark"
+              height={100}
+              width={100}
+              className="h-[14px] w-[14px] mr-1"
             />
-            <span className='text-[14px]'>
+            <span className="text-[14px]">
               Need help finding your Company ID?&nbsp;
-              <Link href="/component/ConnectShopify" className="text-[#4275D6] text-[14px] font-semibold underline">
+              <Link
+                href="/component/ConnectShopify"
+                className="text-[#4275D6] text-[14px] font-semibold underline"
+              >
                 Click here
               </Link>{" "}
               to know how
@@ -70,7 +91,7 @@ function ConfigureWhatsApp() {
         </div>
       </div>
     </div>
-  )
+  );
 }
 
-export default ConfigureWhatsApp
+export default ConfigureWhatsApp;
