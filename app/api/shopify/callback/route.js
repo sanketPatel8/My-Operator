@@ -166,6 +166,8 @@ export async function GET(req) {
 
     const db = await connectDB(); // ⬅️ Connect MySQL
 
+    let insertedShop = null;
+
     try {
       const [result] = await db.execute(
         `INSERT INTO stores (shop, access_token)
@@ -173,6 +175,14 @@ export async function GET(req) {
      ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), installed_at = NOW()`,
         [shop, accessToken]
       );
+
+      // Always fetch the final inserted/updated row
+      const [rows] = await db.execute(`SELECT * FROM shopify WHERE shop = ?`, [
+        shop,
+      ]);
+
+      insertedShop = rows[0];
+
       console.log("✅ DB Insert Result:", result);
     } catch (dbErr) {
       console.error("❌ DB Insert Error:", dbErr);
@@ -184,9 +194,7 @@ export async function GET(req) {
       JSON.stringify({
         status: 200,
         message: "✅ App installed successfully",
-        shop,
-        code,
-        Token: tokenData.access_token,
+        dbData: insertedShop,
       }),
       {
         status: 200,
