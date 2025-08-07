@@ -11,14 +11,31 @@ function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
   const [shop, setShop] = useState("");
   const [token, setToken] = useState("");
+  const [CreatedCompanyID, setCreatedCompanyID] = useState("");
 
   // Get query params on page load
+  // useEffect(() => {
+  //   const shopParam = searchParams.get("shop");
+  //   const tokenParam = searchParams.get("token");
+
+  //   if (shopParam) setShop(shopParam);
+  //   if (tokenParam) setToken(tokenParam);
+  // }, [searchParams]);
+
   useEffect(() => {
     const shopParam = searchParams.get("shop");
     const tokenParam = searchParams.get("token");
 
     if (shopParam) setShop(shopParam);
-    if (tokenParam) setToken(tokenParam);
+
+    if (tokenParam) {
+      try {
+        const decoded = btoa(tokenParam); // Decode token
+        setToken(decoded);
+      } catch (error) {
+        console.error("Invalid token format");
+      }
+    }
   }, [searchParams]);
 
   // For debugging (can remove later)
@@ -43,8 +60,8 @@ function ConfigureWhatsApp() {
             </label>
             <input
               type="text"
-              value={shop}
-              onChange={(e) => setShop(e.target.value)}
+              value={CreatedCompanyID}
+              onChange={(e) => setCreatedCompanyID(e.target.value)}
               placeholder="Enter your MyOperator company ID"
               className="mt-1 block w-full text-black border border-gray-300 rounded-md shadow-sm px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

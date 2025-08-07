@@ -84,8 +84,9 @@ export async function GET(req) {
       const redirectUrl = new URL(
         "http://my-operator.vercel.app/ConfigureWhatsApp"
       );
+      const decodedToken = atob(accessToken);
       redirectUrl.searchParams.set("shop", shop);
-      redirectUrl.searchParams.set("token", accessToken);
+      redirectUrl.searchParams.set("token", decodedToken);
 
       return Response.redirect(redirectUrl.toString(), 302);
 
