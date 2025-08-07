@@ -2,16 +2,38 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
 import { Suspense } from "react";
+import axios from "axios";
 
 function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
   const [shop, setShop] = useState("");
   const [token, setToken] = useState("");
   const [CreatedCompanyID, setCreatedCompanyID] = useState("");
+  const router = useRouter();
+
+  const VerifyCo = async (accessToken, company_id) => {
+    try {
+      const response = await axios.post("/api/verify-store-id", {
+        accessToken,
+        company_id,
+      });
+
+      console.log("✅ Success:", response.data);
+      setTimeout(() => {
+        router.push("/ConnectWhatsApp");
+      }, 5000);
+    } catch (error) {
+      if (error.response) {
+        console.error("❌ Error:", error.response.data.message);
+      } else {
+        console.error("❌ Unexpected error:", error.message);
+      }
+    }
+  };
 
   // Get query params on page load
   useEffect(() => {
@@ -21,6 +43,12 @@ function ConfigureWhatsApp() {
     if (shopParam) setShop(shopParam);
     if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
+
+  const handleVerify = () => {
+    if (token && CreatedCompanyID) {
+      VerifyCo(token, CreatedCompanyID);
+    }
+  };
 
   // For debugging (can remove later)
   console.log("Shop:", shop, "Token:", token);
@@ -96,10 +124,7 @@ function ConfigureWhatsApp() {
             </button>
             <button
               className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
-              onClick={() => {
-                console.log("Submitted Data:", { shop, token });
-                // Add form submission logic here
-              }}
+              onClick={handleVerify}
             >
               Verify & Continue
             </button>

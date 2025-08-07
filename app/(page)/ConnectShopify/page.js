@@ -12,23 +12,6 @@ export default function ConnectShopify() {
     router.push("/app/component/ConfigureWhatsApp");
   };
 
-  // const handleClick = () => {
-  //   const input = document.getElementById("storeUrl");
-  //   const shop = input?.value;
-
-  //   if (!shop) return;
-
-  //   const trimmedShop = shop.trim().toLowerCase();
-  //   const isValid = /^[a-z0-9-]+\.myshopify\.com$/.test(trimmedShop);
-
-  //   if (!isValid) {
-  //     alert("⚠️ Invalid shop domain. Use format: your-store.myshopify.com");
-  //     return;
-  //   }
-
-  //   window.location.href = `/api/shopify/install?shop=${trimmedShop}`;
-  // };
-
   const handleClick = () => {
     // const shop = prompt(
     //   "Enter your shop domain (e.g. sanket-store01.myshopify.com)"
