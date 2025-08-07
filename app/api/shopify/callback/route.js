@@ -166,8 +166,6 @@ export async function GET(req) {
 
     const db = await connectDB(); // ⬅️ Connect MySQL
 
-    let insertedShop = null;
-
     try {
       const [result] = await db.execute(
         `INSERT INTO stores (shop, access_token)
@@ -181,7 +179,21 @@ export async function GET(req) {
         shop,
       ]);
 
-      insertedShop = rows[0];
+      const insertedShop = rows[0];
+
+      return new Response(
+        JSON.stringify({
+          status: 200,
+          message: "✅ App installed successfully",
+          dbData: insertedShop,
+        }),
+        {
+          status: 200,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
       console.log("✅ DB Insert Result:", result);
     } catch (dbErr) {
@@ -189,20 +201,6 @@ export async function GET(req) {
     }
 
     console.log("✅ App installed successfully for shop:", shop);
-
-    return new Response(
-      JSON.stringify({
-        status: 200,
-        message: "✅ App installed successfully",
-        dbData: insertedShop,
-      }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
   } catch (err) {
     console.error("❌ Internal Server Error in callback:", err);
     return new Response("❌ Internal Server Error", { status: 500 });
