@@ -169,6 +169,7 @@ export async function GET(req) {
         message: "✅ App installed successfully",
         shop,
         code,
+        Token: tokenData.access_token,
       }),
       {
         status: 200,
