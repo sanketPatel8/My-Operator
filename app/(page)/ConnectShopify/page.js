@@ -2,25 +2,46 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function ConnectShopify() {
   const router = useRouter();
+  const [StoreName, setStoreName] = useState("");
 
   const handleNavigation = () => {
     router.push("/app/component/ConfigureWhatsApp");
   };
 
+  // const handleClick = () => {
+  //   const input = document.getElementById("storeUrl");
+  //   const shop = input?.value;
+
+  //   if (!shop) return;
+
+  //   const trimmedShop = shop.trim().toLowerCase();
+  //   const isValid = /^[a-z0-9-]+\.myshopify\.com$/.test(trimmedShop);
+
+  //   if (!isValid) {
+  //     alert("⚠️ Invalid shop domain. Use format: your-store.myshopify.com");
+  //     return;
+  //   }
+
+  //   window.location.href = `/api/shopify/install?shop=${trimmedShop}`;
+  // };
+
   const handleClick = () => {
-    const input = document.getElementById("storeUrl");
-    const shop = input?.value;
+    // const shop = prompt(
+    //   "Enter your shop domain (e.g. sanket-store01.myshopify.com)"
+    // );
+    if (!StoreName) return;
 
-    if (!shop) return;
-
-    const trimmedShop = shop.trim().toLowerCase();
+    const trimmedShop = StoreName.trim().toLowerCase();
     const isValid = /^[a-z0-9-]+\.myshopify\.com$/.test(trimmedShop);
 
     if (!isValid) {
-      alert("⚠️ Invalid shop domain. Use format: your-store.myshopify.com");
+      alert(
+        "Invalid shop domain. Please enter like sanket-store01.myshopify.com"
+      );
       return;
     }
 
@@ -176,6 +197,10 @@ export default function ConnectShopify() {
               <input
                 id="storeUrl"
                 type="text"
+                value={StoreName}
+                onChange={(e) => {
+                  setStoreName(e.target.value);
+                }}
                 placeholder="your_store.shopify.com"
                 className="w-full px-4 py-2 border pl-8 border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -185,7 +210,7 @@ export default function ConnectShopify() {
 
               <button
                 type="button"
-                onClick={handleNavigation}
+                onClick={handleClick}
                 className="w-full bg-[#343E55] mt-3 text-white py-2 rounded-md hover:bg-gray-800 transition text-sm"
               >
                 Connect Store
