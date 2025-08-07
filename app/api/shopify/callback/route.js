@@ -98,6 +98,7 @@
 // }
 
 import crypto from "crypto";
+import { connectDB } from "@/lib/db";
 
 const SHOPIFY_API_KEY = "af007a7bfe55c54e1fdf9274dc677bad";
 const SHOPIFY_API_SECRET = "88b7113c9858014114151fd304f1f649";
@@ -159,6 +160,22 @@ export async function GET(req) {
       return new Response("❌ Failed to retrieve access token", {
         status: 500,
       });
+    }
+
+    const accessToken = tokenData.access_token;
+
+    const db = await connectDB(); // ⬅️ Connect MySQL
+
+    try {
+      const [result] = await db.execute(
+        `INSERT INTO stores (shop, access_token)
+     VALUES (?, ?)
+     ON DUPLICATE KEY UPDATE access_token = VALUES(access_token), installed_at = NOW()`,
+        [shop, accessToken]
+      );
+      console.log("✅ DB Insert Result:", result);
+    } catch (dbErr) {
+      console.error("❌ DB Insert Error:", dbErr);
     }
 
     console.log("✅ App installed successfully for shop:", shop);
