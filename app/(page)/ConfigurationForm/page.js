@@ -1,13 +1,14 @@
 "use client";
+import DashboardHeaader from "@/component/DashboardHeaader";
 import Image from "next/image";
 // components/ConfigurationForm.js
 import { useState,useRef, useEffect } from "react";
 import { FiChevronDown } from "react-icons/fi";
-import { FaPhoneAlt } from "react-icons/fa";
-import { PiStorefrontBold } from "react-icons/pi";
+import Sidebar from "../sidebar/page";
 
 export default function ConfigurationForm() {
   const [edit, setEdit] = useState(false);
+  const [activeTab, setActiveTab] = useState("/ConfigurationForm");
   const [formData, setFormData] = useState({
     brandName: "Brand name here",
     publicUrl: "https://www.arcmold3d.com/",
@@ -55,9 +56,31 @@ export default function ConfigurationForm() {
   };
 
   return (
+    <div className="font-source-sans flex flex-col min-h-screen">
+      {/* Header */}
+      <DashboardHeaader />
+ 
+      {/* Main layout wrapper */}
+      <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
+        {/* Sidebar */}
+        <Sidebar active={activeTab} onChange={setActiveTab} />
+ 
+        {/* Main Content */}
+        <main className="flex-1 bg-white border-l border-[#E9E9E9]">
+          <div className="py-[14px] pl-[32px] border-b border-[#E9E9E9]">
+            <h2 className="text-[18px] font-semibold text-[#1A1A1A]">
+              Configuration
+            </h2>
+            <p className="text-[14px] text-[#999999]">
+              Configure automation settings.
+            </p>
+          </div>
+ 
+          <div className="max-w-[757px]">
+            
     <div className="w-full font-source-sans">
       {/* Connection Info */}
-      <div className=" ml-[32px] mt-[20px] p-[16px] bg-[#FFFFFF] border border-[#E3E7EB] rounded-[6px] flex flex-col md:flex-row items-center justify-between gap-[20px]">
+      <div className=" md:ml-[32px] md:mt-[20px] p-[16px] bg-[#FFFFFF] border border-[#E3E7EB] rounded-[6px] flex flex-col md:flex-row items-center justify-between gap-[20px]">
       
       {/* Business Phone */}
       <div className="flex flex-1 items-center justify-between  w-full">
@@ -115,7 +138,7 @@ export default function ConfigurationForm() {
     </div>
 
       {/* Account Information */}
-      <div className="bg-white border rounded-[6px]  p-[16px] ml-[32px] mt-[20px]">
+      <div className="bg-white border rounded-[6px]  p-[16px] md:ml-[32px] md:mt-[20px]">
         <h3 className="text-[16px] font-semibold text-[#1A1A1A] mb-[20px]">
           Account Information
         </h3>
@@ -207,7 +230,7 @@ export default function ConfigurationForm() {
         </div>
 
         {/* Buttons */}
-        <div className="mt-[28px] flex justify-end">
+        <div className="mt-[28px] flex justify-center sm:justify-end">
           {edit ? (
             <>
               <button
@@ -226,13 +249,18 @@ export default function ConfigurationForm() {
           ) : (
             <button
               onClick={() => setEdit(true)}
-              className="px-[24px] py-[10px] text-[14px] font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px]"
+              className="px-[24px] py-[10px] text-[14px]  font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px]"
             >
               Edit information
             </button>
           )}
         </div>
-      
+        </div>
+        </div>
+        </main>
+      </div>
     </div>
+      
+    
   );
 }

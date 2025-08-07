@@ -8,7 +8,7 @@ const DashboardHeaader = () => {
     
 
 
-    <header className="bg-[#171C2B] pl-[27px] pr-[20px] px-[7px] h-[53px] flex items-center justify-between  shadow-sm">
+    <header className="bg-[#171C2B] pl-[27px] pr-[68px] md:pr-[20px] px-[7px] h-[53px] flex items-center justify-between  shadow-sm">
       {/* Left: Logo and Title */}
       <div className="flex items-center gap-2">
         <Image
@@ -22,27 +22,27 @@ const DashboardHeaader = () => {
       </div>
 
       {/* Right: Icons */}
-      <div className="flex items-center gap-[28px] px-[18px] text-white text-lg">
+      <div className="flex items-center gap-[28px] py-[18px] text-white text-lg">
         <Image
         src="/assets/question-circle-white.svg"
-        alt="wp icon"
+        alt="question circle white"
         height={100}
         width={100}
         className="max-w-[17px] max-h-[17px]"
          />
          <Image
         src="/assets/notification.svg"
-        alt="wp icon"
+        alt="notification"
         height={100}
         width={100}
         className="max-w-[17px] max-h-[17px]"
          />
          <Image
         src="/assets/settings.svg"
-        alt="wp icon"
+        alt="settings"
         height={100}
         width={100}
-        className="max-w-[17px] max-h-[17px]"
+        className="max-w-[17px] max-h-[17px] "
          />
       </div>
     </header>
