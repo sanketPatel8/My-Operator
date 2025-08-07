@@ -1,8 +1,8 @@
+"use client";
 // components/ConfigurationForm.js
-import { useState } from 'react';
-import { FaPhoneAlt } from 'react-icons/fa';
-import { PiStorefrontBold } from 'react-icons/pi';
-
+import { useState } from "react";
+import { FaPhoneAlt } from "react-icons/fa";
+import { PiStorefrontBold } from "react-icons/pi";
 
 export default function ConfigurationForm() {
   const [edit, setEdit] = useState(false);
@@ -10,11 +10,11 @@ export default function ConfigurationForm() {
     brandName: "Brand name here",
     publicUrl: "https://www.arcmold3d.com/",
     shopUrl: "https://c1jaip-y0.myshopify.com",
-    whatsapp: "+91 63563 63563"
+    whatsapp: "+91 63563 63563",
   });
 
   const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   return (
@@ -33,10 +33,14 @@ export default function ConfigurationForm() {
             <FaPhoneAlt />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-800">Business phone number</h3>
+            <h3 className="text-sm font-semibold text-gray-800">
+              Business phone number
+            </h3>
             <p className="text-sm text-gray-500">+1 (555) 123-4567</p>
           </div>
-          <span className="ml-4 bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium">Connected</span>
+          <span className="ml-4 bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium">
+            Connected
+          </span>
         </div>
 
         {/* Shopify */}
@@ -45,20 +49,28 @@ export default function ConfigurationForm() {
             <PiStorefrontBold size={18} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-800">Shopify Store</h3>
+            <h3 className="text-sm font-semibold text-gray-800">
+              Shopify Store
+            </h3>
             <p className="text-sm text-gray-500">your-store.myshopify.com</p>
           </div>
-          <span className="ml-4 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-medium">Verified</span>
+          <span className="ml-4 bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-medium">
+            Verified
+          </span>
         </div>
       </div>
 
       {/* Account Information */}
       <div className="bg-white border rounded-lg p-6 shadow-sm">
-        <h3 className="text-base font-semibold text-gray-800 mb-4">Account Information</h3>
+        <h3 className="text-base font-semibold text-gray-800 mb-4">
+          Account Information
+        </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Brand name</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Brand name
+            </label>
             <input
               name="brandName"
               disabled={!edit}
@@ -70,7 +82,9 @@ export default function ConfigurationForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Public shop Url</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Public shop Url
+            </label>
             <input
               name="publicUrl"
               disabled={!edit}
@@ -82,7 +96,9 @@ export default function ConfigurationForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">Shop Url</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              Shop Url
+            </label>
             <input
               name="shopUrl"
               disabled={!edit}
@@ -94,7 +110,9 @@ export default function ConfigurationForm() {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 block mb-1">WhatsApp number</label>
+            <label className="text-sm font-medium text-gray-700 block mb-1">
+              WhatsApp number
+            </label>
             <input
               name="whatsapp"
               disabled={!edit}

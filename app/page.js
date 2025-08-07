@@ -2,20 +2,18 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import ConnectShopify from "./component/ConnectShopify/page";
-import ConfigureWhatsApp from "./component/ConfigureWhatsApp/page";
-import ConnectWhatsApp from "./component/ConnectWhatsApp/page";
-import Sidebar from "./component/sidebar/page";
-import ConfigurationForm from "./component/ConfigurationForm/page";
-import WorkflowList from "./component/workflowlist/page";
+import ConnectShopify from "./(page)/ConnectShopify/page";
+import ConfigureWhatsApp from "./(page)/ConfigureWhatsApp/page";
+import ConnectWhatsApp from "./(page)/ConnectWhatsApp/page";
+import Sidebar from "./(page)/sidebar/page";
+import ConfigurationForm from "./(page)/ConfigurationForm/page";
+import WorkflowList from "./(page)/workflowlist/page";
 
 export default function Home() {
   return (
-    
-      
-        // <ConnectShopify />
-        // <ConfigureWhatsApp />
-        <ConnectWhatsApp />
+    <ConnectShopify />
+    // <ConfigureWhatsApp />
+    // <ConnectWhatsApp />
 
     //     <div className="flex bg-white ">
     //   <Sidebar active="config" />
@@ -31,7 +29,5 @@ export default function Home() {
     //     <WorkflowList />
     //   </main>
     // </div>
-     
-   
   );
 }
