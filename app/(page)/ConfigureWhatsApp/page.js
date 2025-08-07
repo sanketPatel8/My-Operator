@@ -5,22 +5,24 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
+import { Suspense } from "react";
+
 function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
-  const [shop, setShop] = useState(null);
-  const [token, setToken] = useState(null);
+  const [shop, setShop] = useState("");
+  const [token, setToken] = useState("");
 
+  // Get query params on page load
   useEffect(() => {
     const shopParam = searchParams.get("shop");
     const tokenParam = searchParams.get("token");
 
-    if (shopParam && tokenParam) {
-      setShop(shopParam);
-      setToken(tokenParam);
-    }
+    if (shopParam) setShop(shopParam);
+    if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
 
-  console.log(shop, token, "api installation data");
+  // For debugging (can remove later)
+  console.log("Shop:", shop, "Token:", token);
 
   return (
     <div className="font-source-sans min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
@@ -28,7 +30,7 @@ function ConfigureWhatsApp() {
         <h2 className="text-xl md:text-[24px] text-[#1A1A1A] font-semibold text-center mb-2">
           Configure WhatsApp API details
         </h2>
-        <p className="text-center text-[#333333] text-[14px]  mb-6">
+        <p className="text-center text-[#333333] text-[14px] mb-6">
           Enter your WhatsApp Business API configuration details to establish
           the connection.
         </p>
@@ -41,6 +43,8 @@ function ConfigureWhatsApp() {
             </label>
             <input
               type="text"
+              value={shop}
+              onChange={(e) => setShop(e.target.value)}
               placeholder="Enter your MyOperator company ID"
               className="mt-1 block w-full text-black border border-gray-300 rounded-md shadow-sm px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -53,6 +57,8 @@ function ConfigureWhatsApp() {
             </label>
             <input
               type="text"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
               placeholder="Enter your access token"
               className="mt-1 block w-full text-black border border-gray-300 rounded-md shadow-sm px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
@@ -81,10 +87,19 @@ function ConfigureWhatsApp() {
 
           {/* Buttons */}
           <div className="flex flex-col sm:flex-row justify-between gap-3 mt-10">
-            <button className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100">
+            <button
+              className="w-full sm:w-auto px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
+              onClick={() => window.history.back()}
+            >
               Back
             </button>
-            <button className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700">
+            <button
+              className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
+              onClick={() => {
+                console.log("Submitted Data:", { shop, token });
+                // Add form submission logic here
+              }}
+            >
               Verify & Continue
             </button>
           </div>
@@ -94,4 +109,10 @@ function ConfigureWhatsApp() {
   );
 }
 
-export default ConfigureWhatsApp;
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConfigureWhatsApp />
+    </Suspense>
+  );
+}
