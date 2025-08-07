@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 
-export default function Sidebar({ active }) {
+export default function Sidebar({ active, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -14,17 +13,18 @@ export default function Sidebar({ active }) {
       {isOpen && (
         <div
           onClick={toggleMenu}
-          className="fixed inset-0 bg-white opacity-50 z-10 md:hidden"
+          className="bg-white opacity-50 z-10 md:hidden"
         />
       )}
 
-      {/* Sidebar (desktop and mobile) */}
       <div
-        className={`fixed md:relative md:w-64 w-full h-screen bg-white p-4 md:p-6 z-20 transition-all duration-300 ${
+        className={`fixed md:relative md:w-64 w-full bg-white z-20 transition-all duration-300 ${
           isOpen ? "-left-64" : "left-0"
         }`}
       >
-        <h2 className="text-xl text-black font-bold mb-6">Ecomm+</h2>
+        <h2 className="text-[21px] text-[#343E55] border-b border-[#E9E9E9] py-[22px] pl-[28px] text-black font-bold">
+          Ecomm+
+        </h2>
 
         {/* Mobile Hamburger */}
         <div className="md:hidden mb-4">
@@ -35,21 +35,27 @@ export default function Sidebar({ active }) {
 
         <ul>
           <li
-            className={`mb-4 text-black ${
-              active === "config" ? "font-semibold" : ""
+            onClick={() => onChange("config")}
+            className={`cursor-pointer overflow-hidden ${
+              active === "config"
+                ? "bg-blue-50 text-[14px] py-[10px] pl-[24px] border-l-[4px] border-blue-600 text-[#333333]"
+                : "text-[14px] py-[10px] pl-[24px] border-b border-[#E9E9E9] text-[#333333]"
             }`}
           >
-            <Link href="/">Configuration</Link>
+            Configuration
           </li>
           <li
-            className={`mb-4 ${active === "workflow" ? "font-semibold" : ""}`}
+            onClick={() => onChange("workflow")}
+            className={`cursor-pointer overflow-hidden ${
+              active === "workflow"
+                ? "bg-blue-50 text-[14px] py-[10px] pl-[24px] border-l-[4px] border-blue-600 text-[#333333]"
+                : "text-[14px] py-[10px] pl-[24px] border-b border-[#E9E9E9] text-[#333333]"
+            }`}
           >
-            <Link href="/workflow">Workflow</Link>
+            Workflow
           </li>
         </ul>
       </div>
-
-      {/* Content area */}
     </>
   );
 }
