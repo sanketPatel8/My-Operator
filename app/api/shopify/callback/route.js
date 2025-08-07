@@ -1,8 +1,8 @@
 import crypto from "crypto";
 import { connectDB } from "@/lib/db"; // ✅ updated import
 
-const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
-const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;
+const SHOPIFY_API_KEY = "af007a7bfe55c54e1fdf9274dc677bad";
+const SHOPIFY_API_SECRET = "88b7113c9858014114151fd304f1f649";
 
 export async function GET(req) {
   try {
