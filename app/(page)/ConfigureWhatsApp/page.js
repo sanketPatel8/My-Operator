@@ -14,28 +14,12 @@ function ConfigureWhatsApp() {
   const [CreatedCompanyID, setCreatedCompanyID] = useState("");
 
   // Get query params on page load
-  // useEffect(() => {
-  //   const shopParam = searchParams.get("shop");
-  //   const tokenParam = searchParams.get("token");
-
-  //   if (shopParam) setShop(shopParam);
-  //   if (tokenParam) setToken(tokenParam);
-  // }, [searchParams]);
-
   useEffect(() => {
     const shopParam = searchParams.get("shop");
     const tokenParam = searchParams.get("token");
 
     if (shopParam) setShop(shopParam);
-
-    if (tokenParam) {
-      try {
-        const decoded = btoa(tokenParam); // Decode token
-        setToken(decoded);
-      } catch (error) {
-        console.error("Invalid token format");
-      }
-    }
+    if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
 
   // For debugging (can remove later)
