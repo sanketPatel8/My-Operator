@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { connectDB } from "@/app/component/lib/db"; // ✅ updated import
+import { connectDB } from "@/lib/db"; // ✅ updated import
 
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY;
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET;

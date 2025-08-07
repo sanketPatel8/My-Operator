@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import Link from "next/link";
 
@@ -7,7 +9,7 @@ export default function Sidebar({ active }) {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   return (
-   <>
+    <>
       {/* Backdrop for mobile */}
       {isOpen && (
         <div
@@ -33,7 +35,9 @@ export default function Sidebar({ active }) {
 
         <ul>
           <li
-            className={`mb-4 text-black ${active === "config" ? "font-semibold" : ""}`}
+            className={`mb-4 text-black ${
+              active === "config" ? "font-semibold" : ""
+            }`}
           >
             <Link href="/">Configuration</Link>
           </li>
@@ -46,7 +50,6 @@ export default function Sidebar({ active }) {
       </div>
 
       {/* Content area */}
-     
     </>
   );
 }
