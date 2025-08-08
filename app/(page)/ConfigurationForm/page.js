@@ -230,7 +230,7 @@ export default function ConfigurationForm() {
         </div>
 
         {/* Buttons */}
-        <div className="mt-[28px] flex justify-center sm:justify-end">
+        <div className="mt-[28px] flex justify-center lg:justify-end">
           {edit ? (
             <>
               <button

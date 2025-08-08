@@ -34,7 +34,7 @@ useClickOutside({ current: menuRefs.current[openMenuId] }, () => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="font-source-sans border border-[#E9E9E9] rounded-[4px] mx-[10px] md:mx-[32px] bg-[#FFFFFF] shadow-sm">
+    <div className="font-source-sans border border-[#E9E9E9] rounded-[4px] mx-[10px] md:mx-[32px] bg-[#FFFFFF] ">
       {/* Header */}
       <div>
       <div
@@ -98,9 +98,9 @@ useClickOutside({ current: menuRefs.current[openMenuId] }, () => {
       {/* Chevron always on the far right */}
       <div className="cursor-pointer">
         {isOpen ? (
-          <FiChevronDown className="text-xl text-[#999999]" />
+          <FiChevronDown size={20} className="my-[10px] text-[#999999]" />
         ) : (
-          <FiChevronRight className="text-xl text-[#999999]" />
+          <FiChevronRight size={20} className="my-[10px] text-[#999999]" />
         )}
       </div>
     </div>
