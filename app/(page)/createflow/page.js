@@ -106,7 +106,9 @@ function createflow() {
                 
               </div>
               <div className="flex justify-end gap-[16px] mt-[32px]">
-                <button className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100">
+                <button 
+                onClick={() => router.push("/workflowlist")}
+                className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100">
                   Cancel
                 </button>
                 <button className="bg-[#343E55] px-[24px] py-[10px] text-[#FFFFFF] font-semibold rounded-[4px] text-[14px] hover:bg-[#1f2a44]">
