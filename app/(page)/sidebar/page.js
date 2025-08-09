@@ -44,9 +44,9 @@ export default function Sidebar({ active, onChange }) {
 
     <ul>
       <li
-        onClick={() => router.push("/ConfigurationForm")}
+        onClick={() => router.push("/configurationform")}
         className={`cursor-pointer overflow-hidden ${
-          isActive("/ConfigurationForm")
+          isActive("/configurationform")
             ? "bg-blue-50 text-[14px] py-[10px] pl-[24px] border-l-[4px] border-blue-600 text-[#333333]"
             : "text-[14px] py-[10px] pl-[24px] border-b border-[#E9E9E9] text-[#333333]"
         }`}
