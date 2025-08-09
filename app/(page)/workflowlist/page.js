@@ -3,10 +3,12 @@ import DashboardHeaader from "@/component/DashboardHeaader";
 import Sidebar from "../sidebar/page";
 import { useState } from "react";
 import DropDown from "@/component/DropDown";
+import { useRouter } from "next/navigation";
 import { FiEye, FiMoreVertical } from 'react-icons/fi';
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
+  const router = useRouter();
   const [reminders, setReminders] = useState([
     {
       id: 1,
@@ -144,7 +146,7 @@ export default function WorkflowList() {
                 onEditFlow={(reminder) => console.log("Edit:", reminder)}
                 onDeleteFlow={(reminder) => console.log("Delete:", reminder)}
                 buttonText="Create flow"
-                onClickButton={() => console.log("Create flow clicked")}
+                onClickButton={() => router.push("/createflow")}
               />
             </div>
 

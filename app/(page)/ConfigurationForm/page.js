@@ -8,7 +8,7 @@ import Sidebar from "../sidebar/page";
 
 export default function ConfigurationForm() {
   const [edit, setEdit] = useState(false);
-  const [activeTab, setActiveTab] = useState("/ConfigurationForm");
+  const [activeTab, setActiveTab] = useState("/configurationform");
   const [formData, setFormData] = useState({
     brandName: "Brand name here",
     publicUrl: "https://www.arcmold3d.com/",
@@ -235,13 +235,13 @@ export default function ConfigurationForm() {
             <>
               <button
                 onClick={() => setEdit(false)}
-                className="px-[24px] py-[10px] font-semibold text-sm text-[#343E55] border border-[#E4E4E4] rounded-[4px] mr-[16px]"
+                className="px-[24px] py-[10px] font-semibold text-sm text-[#343E55] cursor-pointer border border-[#E4E4E4] rounded-[4px] mr-[16px]"
               >
                 Cancel
               </button>
               <button
                 onClick={() => setEdit(false)}
-                className="px-[24px] py-[10px] text-[14px] font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px]"
+                className="px-[24px] py-[10px] text-[14px] font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
               >
                 Save changes
               </button>
@@ -249,7 +249,7 @@ export default function ConfigurationForm() {
           ) : (
             <button
               onClick={() => setEdit(true)}
-              className="px-[24px] py-[10px] text-[14px]  font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px]"
+              className="px-[24px] py-[10px] text-[14px]  font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
             >
               Edit information
             </button>

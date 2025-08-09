@@ -1,3 +1,4 @@
+"use client";
 import React from "react";
 import { FiHelpCircle, FiBell, FiSettings } from "react-icons/fi";
 import { FaPhoneAlt } from "react-icons/fa";
