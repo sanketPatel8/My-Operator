@@ -5,6 +5,7 @@ import { CiEdit } from "react-icons/ci";
 import { MdDeleteOutline } from "react-icons/md";
 import Image from 'next/image';
 import { useClickOutside } from '@/Hook/useClickOutside';
+import { useRouter } from 'next/navigation';
 
 
 export default function DropDown({
@@ -25,6 +26,7 @@ export default function DropDown({
     // Inside the component
 const [openMenuId, setOpenMenuId] = useState(null);
 const menuRefs = useRef({});
+const router = useRouter();
 
 useClickOutside({ current: menuRefs.current[openMenuId] }, () => {
   if (openMenuId !== null) setOpenMenuId(null);
@@ -187,6 +189,7 @@ useClickOutside({ current: menuRefs.current[openMenuId] }, () => {
           className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:bg-[#F5F5F5] space-x-[8px]"
           onClick={() => {
             onEditFlow(reminder);
+            router.push("/editflow");
             setOpenMenuId(null);
           }}
         >
