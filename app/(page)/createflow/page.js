@@ -31,7 +31,7 @@ function createflow() {
       <DashboardHeaader />
  
       {/* Main layout wrapper */}
-      <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
+      <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9] ">
         {/* Sidebar */}
         <Sidebar active={activeTab} onChange={setActiveTab} />
  
@@ -130,8 +130,8 @@ function createflow() {
               </div>
             </div>
             {/* Chat Preview */}
-                <div className="w-1/3 flex justify-end px-[32px] py-[20px] bg-[#E8F1FC]">
-                  <div className="w-[317px] h-[571px]  rounded-[20px] shadow-md overflow-hidden flex flex-col border border-[#E4E4E4]">
+                <div className="flex w-1/3 justify-center items-start bg-[#E8F1FC] px-[32px] py-[20px] min-w-[calc(100vh-380px)] min-h-[calc(100vh-158px)]">
+                  <div className=" h-full flex-shrink-0 rounded-[20px]  overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
                     {/* Chat Header */}
                     <div className="bg-[#2A2F4F] flex items-center px-4 py-3 text-white">
                       <Image
@@ -150,16 +150,13 @@ function createflow() {
                       />
                       <h1 className="font-semibold text-[#FFFFFF] text-[18px]">MyOperator</h1>
                       <div className="ml-auto">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="white"
-                          viewBox="0 0 24 24"
-                          strokeWidth="2"
-                          stroke="currentColor"
-                          className="w-6 h-6"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h.01M12 12h.01M18 12h.01" />
-                        </svg>
+                        <Image
+                        src="/assets/more_info.svg"
+                        alt='more info'
+                        height={100}
+                        width={100}
+                        className='max-h-[15px] max-w-[4px]' 
+                        />
                       </div>
                     </div>
 
@@ -169,7 +166,7 @@ function createflow() {
                     </div>
 
                     {/* Chat Input */}
-                    <div className="flex items-center px-4 py-2 ">
+                    <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px] ">
                       <Image
                       src="/assets/Emoji.svg"
                       alt='wp emoji'
@@ -180,32 +177,33 @@ function createflow() {
                       <input
                         type="text"
                         placeholder="Message"
-                        className="flex-1 px-4 py-2 text-[#8798A0] pr-[60px] pl-[38px] rounded-full border border-[#E4E4E4] outline-none text-sm"
+                        className="flex-1 py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
                       />
                       <Image
                       src="/assets/wp_upload.svg"
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[21px] max-w-[21px] z-20 absolute ml-[191px]' 
+                      className='max-h-[21px] max-w-[21px] z-20 absolute ml-[180px]' 
                       />
                       <Image
                       src="/assets/wp_camera.svg"
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[16px] max-w-[16px]  z-20 absolute ml-[224px]' 
+                      className='max-h-[16px] max-w-[16px]  z-20 absolute ml-[210px]' 
                       />
                       <Image
                       src="/assets/mic.svg"
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[24px] max-w-[22px] bg-[#343E55] ' 
+                      className='max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full' 
                       />
                       
                     </div>
                   </div>
+                  
                 </div>
 
             
