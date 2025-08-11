@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export default function ConnectShopify() {
+export default function ConnectShopif() {
   const router = useRouter();
   const [StoreName, setStoreName] = useState("");
 
