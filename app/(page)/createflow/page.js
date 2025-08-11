@@ -52,8 +52,8 @@ function createflow() {
           </div>
 
  
-          <div className="max-w-[702px]">
-           <div className="max-w-[702px] mx-[32px] mt-[24px]">
+          <div className=" flex flex-1">
+           <div className="w-2/3 mx-[32px] mt-[24px]">
               <div className="flex flex-col md:flex-row gap-[24px]">
                 {/* Custom Event */}
                 <div className="flex-1">
@@ -129,7 +129,88 @@ function createflow() {
                 </button>
               </div>
             </div>
+            {/* Chat Preview */}
+                <div className="w-1/3 flex justify-end px-[32px] py-[20px] bg-[#E8F1FC]">
+                  <div className="w-[317px] h-[571px]  rounded-[20px] shadow-md overflow-hidden flex flex-col border border-[#E4E4E4]">
+                    {/* Chat Header */}
+                    <div className="bg-[#2A2F4F] flex items-center px-4 py-3 text-white">
+                      <Image
+                      src="/assets/back.svg"
+                      alt='back btn'
+                      height={100}
+                      width={100}
+                      className='max-h-[14px] max-w-[14px] invert brightness-200 mr-[10px] '
+                      />
+                      <Image
+                      src="/assets/wp_icon.svg"
+                      alt='wp icon'
+                      height={100}
+                      width={100}
+                      className='max-h-[21px] max-w-[21px] mr-[4px]' 
+                      />
+                      <h1 className="font-semibold text-[#FFFFFF] text-[18px]">MyOperator</h1>
+                      <div className="ml-auto">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="white"
+                          viewBox="0 0 24 24"
+                          strokeWidth="2"
+                          stroke="currentColor"
+                          className="w-6 h-6"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h.01M12 12h.01M18 12h.01" />
+                        </svg>
+                      </div>
+                    </div>
+
+                    {/* Chat Body */}
+                    <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat p-4 overflow-y-hidden">
+                      {/* Chat messages go here */}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="flex items-center px-4 py-2 ">
+                      <Image
+                      src="/assets/Emoji.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[16px] max-w-[16px] absolute ml-[12px]' 
+                      />
+                      <input
+                        type="text"
+                        placeholder="Message"
+                        className="flex-1 px-4 py-2 text-[#8798A0] pr-[60px] pl-[38px] rounded-full border border-[#E4E4E4] outline-none text-sm"
+                      />
+                      <Image
+                      src="/assets/wp_upload.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[21px] max-w-[21px] z-20 absolute ml-[191px]' 
+                      />
+                      <Image
+                      src="/assets/wp_camera.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[16px] max-w-[16px]  z-20 absolute ml-[224px]' 
+                      />
+                      <Image
+                      src="/assets/mic.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[24px] max-w-[22px] bg-[#343E55] ' 
+                      />
+                      
+                    </div>
+                  </div>
+                </div>
+
+            
             </div>
+            
             </main>
             </div>
             </div>
