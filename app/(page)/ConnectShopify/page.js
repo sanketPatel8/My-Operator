@@ -8,10 +8,6 @@ export default function ConnectShopify() {
   const router = useRouter();
   const [StoreName, setStoreName] = useState("");
 
-  const handleNavigation = () => {
-    router.push("/app/component/ConfigureWhatsApp");
-  };
-
   const handleClick = () => {
     // const shop = prompt(
     //   "Enter your shop domain (e.g. sanket-store01.myshopify.com)"
