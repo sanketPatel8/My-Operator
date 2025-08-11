@@ -1,8 +1,467 @@
+"use client";
+import DashboardHeaader from '@/component/DashboardHeaader'
 import React from 'react'
+import Sidebar from '../sidebar/page'
+import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { FiChevronDown } from "react-icons/fi";
+import { Listbox } from '@headlessui/react';
 
 function editflow() {
+
+  const [selectedDelay, setSelectedDelay] = useState('1 hour');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [activePart, setActivePart] = useState("template");
+  const [activeselect1, setActiveselect1] = useState("Name");
+  const [activeselect2, setActiveselect2] = useState("Name");
+  const [activeselect3, setActiveselect3] = useState("Name");
+  const [activeselect4, setActiveselect4] = useState("Name");
+  const [openUp, setOpenUp] = useState(false);
+  const selectRef = useRef(null);
+
+  const checkDropdownPosition = () => {
+    if (selectRef.current) {
+      const rect = selectRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      setOpenUp(spaceBelow < 200); 
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("resize", checkDropdownPosition);
+    checkDropdownPosition();
+    return () => window.removeEventListener("resize", checkDropdownPosition);
+  }, []);
+
+
+
+  const delayOptions = ['Immediate', '15 minutes', '30 minutes', '1 hour', '6 hours', '12 hours', '24 hours']
+  const templateOptions = ['Order placed confirmation', 'Shipping update', 'COD confirmation request', 'Order delivery', 'Abandoned cart reminder']
+
+ 
+
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("/workflowlist");
+
+  const dropdownOptions = [
+    "Name",
+    "Phone number",
+    "Service number",
+    "Order id",
+  ];
+
+
+
+
   return (
-    <div>editflow</div>
+    <>
+    <div className="font-source-sans flex flex-col min-h-screen">
+      {/* Header */}
+      <DashboardHeaader />
+
+      {/* Layout */}
+      <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
+        {/* Sidebar */}
+        <Sidebar active={activeTab} onChange={setActiveTab} />
+
+        {/* Main Content */}
+        <main className="flex-1 bg-white border-l border-[#E9E9E9]">
+          {/* Top Bar */}
+          <div className="py-[24px] pl-[32px] border-b border-[#E9E9E9] flex items-center gap-[12px]">
+            <Image
+              src="/assets/back.svg"
+              alt="back"
+              height={24}
+              width={24}
+              className="max-h-[24px] max-w-[24px] cursor-pointer"
+              onClick={() => router.push("/workflowlist")}
+            />
+            <h2 className="text-[16px] font-semibold text-[#353535]">
+              Edit workflow
+            </h2>
+          </div>
+
+          {/* Content Section */}
+          <div className="flex flex-col lg:flex-row">
+            {/* Form Section */}
+            <div className="md:w-full lg:w-2/3 mx-[10px] md:mx-[32px] mt-[24px]">
+              <div className="flex flex-col md:flex-row gap-[24px]">
+                {/* Custom Event */}
+                <div className="flex-1">
+                  <label className="block text-[12px] text-[#555555] mb-[4px]">Delay</label>
+                  <Listbox value={selectedDelay} onChange={setSelectedDelay}>
+                    <div className="relative">
+                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                        {selectedDelay}
+                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <FiChevronDown className="h-5 w-5 text-gray-400" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                        {delayOptions.map((delay, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            className={({ active }) =>
+                              `cursor-default select-none py-2 pl-4 pr-4 ${active ? 'bg-gray-100' : ''}`
+                            }
+                            value={delay}
+                          >
+                            {delay}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                </div>
+
+                {/* WhatsApp Template */}
+                <div className="flex-1">
+                  <label className="block text-[12px] text-[#555555] mb-[4px]">Select WhatsApp template</label>
+                  <Listbox value={selectedTemplate} onChange={setSelectedTemplate}>
+                    <div className="relative">
+                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                        {selectedTemplate || "Select a template"}
+                        <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
+                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <FiChevronDown className="h-5 w-5 text-gray-400" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                        {templateOptions.map((template, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            className={({ active }) =>
+                              `cursor-default select-none py-2 pl-4 pr-4 ${active ? 'bg-gray-100' : ''}`
+                            }
+                            value={template}
+                          >
+                            {template}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex mt-[32px]">
+                <div className="w-full">
+                  <h2 className="text-[16px] font-semibold text-[#333333] mb-[20px]">
+                    Mapping template variables & upload media
+                  </h2>
+
+                  {/* Tabs */}
+                  <div className="flex space-x-[32px] ">
+                    <button
+                      onClick={() => setActivePart("template")}
+                      className={`text-[14px] text-[#343E55] cursor-pointer font-medium pb-[4px] ${
+                        activePart === "template"
+                          ? "border-b-2 border-[#343E55]"
+                          : "text-[#999999]"
+                      }`}
+                    >
+                      Template variables
+                    </button>
+                    <button
+                      onClick={() => setActivePart("media")}
+                      className={`text-[14px] text-[#343E55] cursor-pointer font-medium pb-[4px] ${
+                        activePart === "media"
+                          ? "border-b-2 border-[#343E55]"
+                          : "text-[#999999]"
+                      }`}
+                    >
+                      Media
+                    </button>
+                  </div>
+
+                  {/* Template Variables Tab */}
+                  {activePart === "template" && (
+                    <div className='mt-[32px]'>
+                      {/* Header */}
+                      <div className="mb-[24px]">
+                        <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">Header</h3>
+                        <div className="flex items-center space-x-[20px]">
+                          <span className=" text-[#333333] text-[14px] w-36 ">
+                            {"{{Value}}"}
+                          </span>
+                      
+                            <Listbox value={activeselect1} onChange={setActiveselect1}>
+                              <div className="relative">
+                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                                  {activeselect1 || "Select a template"}
+                                  
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                  </span>
+                                </Listbox.Button>
+                                <Listbox.Options className="absolute  w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                                  {dropdownOptions.map((option, idx) => (
+                                    <Listbox.Option
+                                      key={idx}
+                                      className={({ active }) =>
+                                        `cursor-default select-none py-2 pl-4 pr-4 ${active ? 'bg-gray-100' : ''}`
+                                      }
+                                      value={option}
+                                    >
+                                      {option}
+                                    </Listbox.Option>
+                                  ))}
+                                </Listbox.Options>
+                              </div>
+                            </Listbox>
+                          <input
+                            type="text"
+                            placeholder="Fallback value"
+                            className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Body Variables */}
+                      <div>
+                        <h3 className="text-[14px] font-semibold text-[#999999] mb-[6px] ">Body variables</h3>
+
+                        <div className="flex items-center space-x-[20px] mb-[16px]">
+                          <span className=" text-[#333333] text-[14px] w-36 ">
+                            {"{{Value}}"}
+                          </span>
+                      
+                            <Listbox value={activeselect2} onChange={setActiveselect2}>
+                              <div className="relative">
+                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                                  {activeselect2 || "Select a template"}
+                                  
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                  </span>
+                                </Listbox.Button>
+                                <Listbox.Options className="absolute  w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                                  {dropdownOptions.map((option, idx) => (
+                                    <Listbox.Option
+                                      key={idx}
+                                      className={({ active }) =>
+                                        `cursor-default select-none py-2 pl-4 pr-4 ${active ? 'bg-gray-100' : ''}`
+                                      }
+                                      value={option}
+                                    >
+                                      {option}
+                                    </Listbox.Option>
+                                  ))}
+                                </Listbox.Options>
+                              </div>
+                            </Listbox>
+                          <input
+                            type="text"
+                            placeholder="Fallback value"
+                            className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
+                          />
+                        </div>
+                        <div
+                            className="flex items-center space-x-[20px] mb-[16px] overflow-visible" 
+                          >
+                            <span className="text-[#333333] text-[14px] w-36">
+                              {"{{Value}}"}
+                            </span>
+
+                            <Listbox value={activeselect3} onChange={setActiveselect3}>
+                              <div ref={selectRef} className="relative">
+                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                                  {activeselect3 || "Select a template"}
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                  </span>
+                                </Listbox.Button>
+
+                                <Listbox.Options
+                                  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50 
+                                    ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}
+                                  style={{
+                                    maxHeight: "200px", // prevent huge overflow
+                                  }}
+                                >
+                                  {dropdownOptions.map((option, idx) => (
+                                    <Listbox.Option
+                                      key={idx}
+                                      className={({ active }) =>
+                                        `cursor-default select-none py-2 pl-4 pr-4 ${active ? "bg-gray-100" : ""}`
+                                      }
+                                      value={option}
+                                    >
+                                      {option}
+                                    </Listbox.Option>
+                                  ))}
+                                </Listbox.Options>
+                              </div>
+                            </Listbox>
+
+                            <input
+                              type="text"
+                              placeholder="Fallback value"
+                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
+                            />
+                          </div>
+                        <div
+                            className="flex items-center space-x-[20px]  overflow-visible" 
+                          >
+                            <span className="text-[#333333] text-[14px] w-36">
+                              {"{{Value}}"}
+                            </span>
+
+                            <Listbox value={activeselect4} onChange={setActiveselect4}>
+                              <div ref={selectRef} className="relative">
+                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                                  {activeselect4 || "Select a template"}
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                  </span>
+                                </Listbox.Button>
+
+                                <Listbox.Options
+                                  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50 
+                                    ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}
+                                  style={{
+                                    maxHeight: "200px", // prevent huge overflow
+                                  }}
+                                >
+                                  {dropdownOptions.map((option, idx) => (
+                                    <Listbox.Option
+                                      key={idx}
+                                      className={({ active }) =>
+                                        `cursor-default select-none py-2 pl-4 pr-4 ${active ? "bg-gray-100" : ""}`
+                                      }
+                                      value={option}
+                                    >
+                                      {option}
+                                    </Listbox.Option>
+                                  ))}
+                                </Listbox.Options>
+                              </div>
+                            </Listbox>
+
+                            <input
+                              type="text"
+                              placeholder="Fallback value"
+                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
+                            />
+                          </div>
+
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Media Tab */}
+                  {activePart === "media" && (
+                    <div className='mt-[20px]'>
+                      <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[32px] text-center text-gray-500">
+                        <button className="px-[24px] mb-[8px] py-[10px] text-[#343E55] text-[14px] font-semibold bg-[#FFFFFF] border border-[#E4E4E4] rounded-[4px] ">
+                          Upload from device
+                        </button>
+                        <p className="text-[12px] text-[#555555] mb-[6px]">
+                          Or drag and drop file here 
+                        </p>
+                        <p className='text-[12px] text-[#999999]'>
+                          Supported file types: .JPG, .JPEG, .PNG within 5MB
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Buttons */}
+                  <div className="flex justify-end space-x-[16px] mt-[32px] mb-[20px]">
+                    <button className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold">Cancel</button>
+                    <button className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold">
+                      Update workflow
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Chat Preview */}
+                <div className="flex w-1/3 justify-center items-start bg-[#E8F1FC]  md:py-[20px] md:min-w-[calc(100vh-380px)] md:min-h-[calc(100vh-158px)] min-w-[calc(100vh-535px)] min-h-[calc(100vh-430px)]">
+                  <div className=" mt-[20px] md:mt-[0px] h-[450px] md:h-full flex-shrink-0 rounded-[20px]  overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
+                    {/* Chat Header */}
+                    <div className="bg-[#2A2F4F] flex items-center py-[16px] px-[20px] text-white">
+                      <Image
+                      src="/assets/back.svg"
+                      alt='back btn'
+                      height={100}
+                      width={100}
+                      className='max-h-[14px] max-w-[14px] invert brightness-200 mr-[10px] cursor-pointer '
+                      />
+                      <Image
+                      src="/assets/wp_icon.svg"
+                      alt='wp icon'
+                      height={100}
+                      width={100}
+                      className='max-h-[21px] max-w-[21px] mr-[4px]' 
+                      />
+                      <h1 className="font-semibold text-[#FFFFFF] text-[18px]">MyOperator</h1>
+                      <div className="ml-auto">
+                        <Image
+                        src="/assets/more_info.svg"
+                        alt='more info'
+                        height={100}
+                        width={100}
+                        className='max-h-[15px] max-w-[4px] cursor-pointer' 
+                        />
+                      </div>
+                    </div>
+
+                    {/* Chat Body */}
+                    <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat p-4 overflow-y-hidden">
+                      {/* Chat messages go here */}
+                    </div>
+
+                    {/* Chat Input */}
+                    <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px] ">
+                      <Image
+                      src="/assets/Emoji.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[16px] max-w-[16px] absolute ml-[12px] cursor-pointer' 
+                      />
+                      <input
+                        type="text"
+                        placeholder="Message"
+                        className="flex-1 py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
+                      />
+                      <Image
+                      src="/assets/wp_upload.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[21px] max-w-[21px] z-20 absolute ml-[180px] cursor-pointer' 
+                      />
+                      <Image
+                      src="/assets/wp_camera.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[16px] max-w-[16px]  z-20 absolute ml-[210px] cursor-pointer' 
+                      />
+                      <Image
+                      src="/assets/mic.svg"
+                      alt='wp emoji'
+                      height={100}
+                      width={100}
+                      className='max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full cursor-pointer' 
+                      />
+                      
+                    </div>
+                  </div>
+                  
+                </div>
+
+            
+            </div>
+            
+            </main>
+            </div>
+            </div>
+    </>
   )
 }
 
