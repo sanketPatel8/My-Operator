@@ -29,14 +29,15 @@ function createflow() {
     <div className="font-source-sans flex flex-col min-h-screen">
       {/* Header */}
       <DashboardHeaader />
- 
-      {/* Main layout wrapper */}
-      <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9] ">
+
+      {/* Layout */}
+      <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
         {/* Sidebar */}
         <Sidebar active={activeTab} onChange={setActiveTab} />
- 
+
         {/* Main Content */}
         <main className="flex-1 bg-white border-l border-[#E9E9E9]">
+          {/* Top Bar */}
           <div className="py-[24px] pl-[32px] border-b border-[#E9E9E9] flex items-center gap-[12px]">
             <Image
               src="/assets/back.svg"
@@ -51,16 +52,17 @@ function createflow() {
             </h2>
           </div>
 
- 
-          <div className=" flex flex-1">
-           <div className="w-2/3 mx-[32px] mt-[24px]">
+          {/* Content Section */}
+          <div className="flex flex-col lg:flex-row">
+            {/* Form Section */}
+            <div className="md:w-full lg:w-2/3 mx-[10px] md:mx-[32px] mt-[24px]">
               <div className="flex flex-col md:flex-row gap-[24px]">
                 {/* Custom Event */}
                 <div className="flex-1">
                   <label className="block text-[12px] text-[#555555] mb-[4px]">Custom Event</label>
                   <Listbox value={selectedEvent} onChange={setSelectedEvent}>
                     <div className="relative">
-                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333]  focus:outline-none">
+                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                         {selectedEvent || "Select event"}
                         <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -72,9 +74,7 @@ function createflow() {
                           <Listbox.Option
                             key={idx}
                             className={({ active }) =>
-                              `cursor-default select-none py-2 pl-4 pr-4 ${
-                                active ? 'bg-gray-100' : ''
-                              }`
+                              `cursor-default select-none py-2 pl-4 pr-4 ${active ? 'bg-gray-100' : ''}`
                             }
                             value={event}
                           >
@@ -91,7 +91,7 @@ function createflow() {
                   <label className="block text-[12px] text-[#555555] mb-[4px]">Select WhatsApp template</label>
                   <Listbox value={selectedTemplate} onChange={setSelectedTemplate}>
                     <div className="relative">
-                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333]  focus:outline-none">
+                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                         {selectedTemplate || "Select a template"}
                         <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
                         <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
@@ -103,9 +103,7 @@ function createflow() {
                           <Listbox.Option
                             key={idx}
                             className={({ active }) =>
-                              `cursor-default select-none py-2 pl-4 pr-4 ${
-                                active ? 'bg-gray-100' : ''
-                              }`
+                              `cursor-default select-none py-2 pl-4 pr-4 ${active ? 'bg-gray-100' : ''}`
                             }
                             value={template}
                           >
@@ -116,12 +114,13 @@ function createflow() {
                     </div>
                   </Listbox>
                 </div>
-                
               </div>
-              <div className="flex justify-end gap-[16px] mt-[32px]">
-                <button 
-                onClick={() => router.push("/workflowlist")}
-                className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100">
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-[16px] mt-[32px] md:mb-[0px] mb-[20px]">
+                <button
+                  onClick={() => router.push("/workflowlist")}
+                  className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100">
                   Cancel
                 </button>
                 <button className="bg-[#343E55] px-[24px] py-[10px] text-[#FFFFFF] font-semibold rounded-[4px] text-[14px] hover:bg-[#1f2a44]">
@@ -130,10 +129,10 @@ function createflow() {
               </div>
             </div>
             {/* Chat Preview */}
-                <div className="flex w-1/3 justify-center items-start bg-[#E8F1FC] px-[32px] py-[20px] min-w-[calc(100vh-380px)] min-h-[calc(100vh-158px)]">
-                  <div className=" h-full flex-shrink-0 rounded-[20px]  overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
+                <div className="flex w-1/3 justify-center items-start bg-[#E8F1FC]  md:py-[20px] md:min-w-[calc(100vh-380px)] md:min-h-[calc(100vh-158px)] min-w-[calc(100vh-535px)] min-h-[calc(100vh-430px)]">
+                  <div className=" mt-[20px] md:mt-[0px] h-[450px] md:h-full flex-shrink-0 rounded-[20px]  overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
                     {/* Chat Header */}
-                    <div className="bg-[#2A2F4F] flex items-center px-4 py-3 text-white">
+                    <div className="bg-[#2A2F4F] flex items-center py-[16px] px-[20px] text-white">
                       <Image
                       src="/assets/back.svg"
                       alt='back btn'
