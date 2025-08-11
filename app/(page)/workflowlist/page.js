@@ -71,7 +71,7 @@ export default function WorkflowList() {
             </p>
           </div>
 
-          <div className="w-full max-w-[1084px] mb-[15px]">
+          <div className="w-full  mb-[15px]">
             <div className="mt-[24px]">
               <DropDown
                 title="Abandoned Cart Recovery"

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { FiChevronDown } from "react-icons/fi";
+import { Listbox } from '@headlessui/react';
 
 function createflow() {
 
@@ -57,51 +58,63 @@ function createflow() {
                 {/* Custom Event */}
                 <div className="flex-1">
                   <label className="block text-[12px] text-[#555555] mb-[4px]">Custom Event</label>
-                  <div className="relative w-full">
-                    <select
-                      value={selectedEvent}
-                      onChange={(e) => setSelectedEvent(e.target.value)}
-                      className="appearance-none w-full border border-[#E9E9E9] rounded-[4px] py-[10px] px-[16px]  text-[14px] text-[#333333]  focus:outline-none"
-                    >
-                      <option value="">Select event</option>
-                      {eventOptions.map((event, index) => (
-                        <option key={index} value={event}>
-                          {event}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Vertical line */}
-                    <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
-
-                    {/* Chevron Icon */}
-                    <FiChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <Listbox value={selectedEvent} onChange={setSelectedEvent}>
+                    <div className="relative">
+                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333]  focus:outline-none">
+                        {selectedEvent || "Select event"}
+                        <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
+                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <FiChevronDown className="h-5 w-5 text-gray-400" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                        {eventOptions.map((event, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            className={({ active }) =>
+                              `cursor-default select-none py-2 pl-4 pr-4 ${
+                                active ? 'bg-gray-100' : ''
+                              }`
+                            }
+                            value={event}
+                          >
+                            {event}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
                 </div>
 
                 {/* WhatsApp Template */}
                 <div className="flex-1">
                   <label className="block text-[12px] text-[#555555] mb-[4px]">Select WhatsApp template</label>
-                  <div className="relative w-full">
-                    <select
-                      value={selectedTemplate}
-                      onChange={(e) => setSelectedTemplate(e.target.value)}
-                      className="appearance-none w-full border border-[#E9E9E9] rounded-[4px] py-[10px] px-[16px]  text-[14px] text-[#333333]  focus:outline-none"
-                    >
-                      <option value="">Select a template</option>
-                      {templateOptions.map((template, index) => (
-                        <option key={index} value={template}>
-                          {template}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Vertical line */}
-                    <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
-
-                    {/* Chevron Icon */}
-                    <FiChevronDown className="w-4 h-4 text-gray-500 absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none" />
-                  </div>
+                  <Listbox value={selectedTemplate} onChange={setSelectedTemplate}>
+                    <div className="relative">
+                      <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333]  focus:outline-none">
+                        {selectedTemplate || "Select a template"}
+                        <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
+                        <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <FiChevronDown className="h-5 w-5 text-gray-400" />
+                        </span>
+                      </Listbox.Button>
+                      <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                        {templateOptions.map((template, idx) => (
+                          <Listbox.Option
+                            key={idx}
+                            className={({ active }) =>
+                              `cursor-default select-none py-2 pl-4 pr-4 ${
+                                active ? 'bg-gray-100' : ''
+                              }`
+                            }
+                            value={template}
+                          >
+                            {template}
+                          </Listbox.Option>
+                        ))}
+                      </Listbox.Options>
+                    </div>
+                  </Listbox>
                 </div>
                 
               </div>

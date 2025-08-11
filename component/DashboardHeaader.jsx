@@ -9,7 +9,7 @@ const DashboardHeaader = () => {
     
 
 
-    <header className="bg-[#171C2B] pl-[27px] pr-[68px] md:pr-[20px] px-[7px] h-[53px] flex items-center justify-between  shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#171C2B] pl-[27px] pr-[68px] md:pr-[20px] px-[7px] h-[53px] flex items-center justify-between  shadow-sm">
       {/* Left: Logo and Title */}
       <div className="flex items-center gap-2">
         <Image
