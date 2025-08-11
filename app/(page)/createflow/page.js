@@ -139,7 +139,7 @@ function createflow() {
                       alt='back btn'
                       height={100}
                       width={100}
-                      className='max-h-[14px] max-w-[14px] invert brightness-200 mr-[10px] '
+                      className='max-h-[14px] max-w-[14px] invert brightness-200 mr-[10px] cursor-pointer '
                       />
                       <Image
                       src="/assets/wp_icon.svg"
@@ -155,7 +155,7 @@ function createflow() {
                         alt='more info'
                         height={100}
                         width={100}
-                        className='max-h-[15px] max-w-[4px]' 
+                        className='max-h-[15px] max-w-[4px] cursor-pointer' 
                         />
                       </div>
                     </div>
@@ -172,7 +172,7 @@ function createflow() {
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[16px] max-w-[16px] absolute ml-[12px]' 
+                      className='max-h-[16px] max-w-[16px] absolute ml-[12px] cursor-pointer' 
                       />
                       <input
                         type="text"
@@ -184,21 +184,21 @@ function createflow() {
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[21px] max-w-[21px] z-20 absolute ml-[180px]' 
+                      className='max-h-[21px] max-w-[21px] z-20 absolute ml-[180px] cursor-pointer' 
                       />
                       <Image
                       src="/assets/wp_camera.svg"
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[16px] max-w-[16px]  z-20 absolute ml-[210px]' 
+                      className='max-h-[16px] max-w-[16px]  z-20 absolute ml-[210px] cursor-pointer' 
                       />
                       <Image
                       src="/assets/mic.svg"
                       alt='wp emoji'
                       height={100}
                       width={100}
-                      className='max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full' 
+                      className='max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full cursor-pointer' 
                       />
                       
                     </div>
