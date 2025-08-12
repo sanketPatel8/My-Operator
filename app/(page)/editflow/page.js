@@ -255,7 +255,7 @@ function Editflow() {
                           <div className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px] overflow-visible">
                             {/* Label */}
                             <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                              {"{{Value}}"}
+                              {"{{Shopify_name}}"}
                             </span>
 
                             {/* Dropdown */}
@@ -296,7 +296,7 @@ function Editflow() {
                           <div className="flex flex-wrap items-center gap-3 mb-[16px] sm:gap-[20px] overflow-visible">
                             {/* Label */}
                             <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                              {"{{Value}}"}
+                              {"{{Shopify_orderid}}"}
                             </span>
 
                             {/* Dropdown */}
@@ -342,7 +342,7 @@ function Editflow() {
                           <div className="flex flex-wrap items-center gap-3 mb-[16px] sm:gap-[20px] overflow-visible">
                             {/* Label */}
                             <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                              {"{{Value}}"}
+                              {"{{Shopify_value}}"}
                             </span>
 
                             {/* Dropdown */}
