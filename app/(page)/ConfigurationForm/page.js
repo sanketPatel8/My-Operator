@@ -1,7 +1,6 @@
 "use client";
 import DashboardHeaader from "@/component/DashboardHeaader";
 import Image from "next/image";
-// components/ConfigurationForm.js
 import { useState,useRef, useEffect } from "react";
 import { FiChevronDown } from "react-icons/fi";
 import Sidebar from "../sidebar/page";
