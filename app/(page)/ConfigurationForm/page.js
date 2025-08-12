@@ -7,7 +7,7 @@ import Sidebar from "../sidebar/page";
 
 export default function ConfigurationForm() {
   const [edit, setEdit] = useState(false);
-  const [activeTab, setActiveTab] = useState("/configurationform");
+  const [activeTab, setActiveTab] = useState("/ConfigurationForm");
   const [formData, setFormData] = useState({
     brandName: "Brand name here",
     publicUrl: "https://www.arcmold3d.com/",
