@@ -138,7 +138,7 @@ function Editflow() {
                       <div className="relative">
                         <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                           {selectedTemplate || "Select a template"}
-                          <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
+                          
                           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                             <FiChevronDown className="h-5 w-5 text-gray-400" />
                           </span>
@@ -196,33 +196,79 @@ function Editflow() {
 
                     {/* Template Variables Tab */}
                     {activePart === "template" && (
-                      <div className="mt-8">
-                        {/* Header */}
-                        <div className="mb-6">
-                          <h3 className="text-sm font-semibold text-[#848688] mb-1.5">
-                            Header
+                      <div className="mt-[20px]">
+                    {/* Header */}
+                    <div className="mb-[24px]">
+                      <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
+                        Header
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-3 sm:gap-[20px]">
+                        {/* Label */}
+                        <span className="text-[#333333] text-[14px] w-full sm:w-36">
+                          {"{{Value}}"}
+                        </span>
+
+                        {/* Dropdown */}
+                        <Listbox value={activeselect1} onChange={setActiveselect1}>
+                          <div className="relative w-full sm:w-48">
+                            <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                              {activeselect1 || "Select a template"}
+                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+                                <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
+                              </span>
+                            </Listbox.Button>
+
+                            <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                              {dropdownOptions.map((option, idx) => (
+                                <Listbox.Option
+                                  key={idx}
+                                  className={({ active }) =>
+                                    `cursor-default select-none py-2 pl-4 pr-4 ${
+                                      active ? "bg-gray-100" : ""
+                                    }`
+                                  }
+                                  value={option}
+                                >
+                                  {option}
+                                </Listbox.Option>
+                              ))}
+                            </Listbox.Options>
+                          </div>
+                        </Listbox>
+
+                        {/* Input */}
+                        <input
+                          type="text"
+                          placeholder="Fallback value"
+                          className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
+                        />
+                      </div>
+                    </div>
+
+                        {/* Body Variables */}
+                        <div>
+                          <h3 className="text-[14px] font-semibold text-[#999999] mb-[6px] ">
+                            Body variables
                           </h3>
 
-                          <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+                          <div className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px] overflow-visible">
                             {/* Label */}
-                            <span className="text-[#333333] text-sm w-full sm:w-36">
+                            <span className="text-[#333333] text-[14px] w-full sm:w-36">
                               {"{{Value}}"}
                             </span>
 
                             {/* Dropdown */}
-                            <Listbox
-                              value={activeselect1}
-                              onChange={setActiveselect1}
-                            >
+                            <Listbox value={activeselect2} onChange={setActiveselect2}>
                               <div className="relative w-full sm:w-48">
-                                <Listbox.Button className="relative w-full cursor-default rounded-md border border-[#E9E9E9] bg-white py-2.5 px-4 text-left text-sm text-[#333333] focus:outline-none">
-                                  {activeselect1 || "Select a template"}
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                                  {activeselect2 || "Select a template"}
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+                                    <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
                                   </span>
                                 </Listbox.Button>
 
-                                <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                                <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
                                   {dropdownOptions.map((option, idx) => (
                                     <Listbox.Option
                                       key={idx}
@@ -244,83 +290,29 @@ function Editflow() {
                             <input
                               type="text"
                               placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-md px-4 py-2.5 text-sm text-[#999999] w-full sm:flex-1"
+                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
                             />
                           </div>
-                        </div>
-
-                        {/* Body Variables */}
-                        <div>
-                          <h3 className="text-[14px] font-semibold text-[#999999] mb-[6px] ">
-                            Body variables
-                          </h3>
-
-                          <div className="flex items-center space-x-[20px] mb-[16px]">
-                            <span className=" text-[#333333] text-[14px] w-36 ">
+                          <div className="flex flex-wrap items-center gap-3 mb-[16px] sm:gap-[20px] overflow-visible">
+                            {/* Label */}
+                            <span className="text-[#333333] text-[14px] w-full sm:w-36">
                               {"{{Value}}"}
                             </span>
 
-                            <Listbox
-                              value={activeselect2}
-                              onChange={setActiveselect2}
-                            >
-                              <div className="relative">
-                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                                  {activeselect2 || "Select a template"}
-
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
-                                  </span>
-                                </Listbox.Button>
-                                <Listbox.Options className="absolute  w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                                  {dropdownOptions.map((option, idx) => (
-                                    <Listbox.Option
-                                      key={idx}
-                                      className={({ active }) =>
-                                        `cursor-default select-none py-2 pl-4 pr-4 ${
-                                          active ? "bg-gray-100" : ""
-                                        }`
-                                      }
-                                      value={option}
-                                    >
-                                      {option}
-                                    </Listbox.Option>
-                                  ))}
-                                </Listbox.Options>
-                              </div>
-                            </Listbox>
-                            <input
-                              type="text"
-                              placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
-                            />
-                          </div>
-                          <div className="flex items-center space-x-[20px] mb-[16px] overflow-visible">
-                            <span className="text-[#333333] text-[14px] w-36">
-                              {"{{Value}}"}
-                            </span>
-
-                            <Listbox
-                              value={activeselect3}
-                              onChange={setActiveselect3}
-                            >
-                              <div ref={selectRef} className="relative">
-                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                            {/* Dropdown */}
+                            <Listbox value={activeselect3} onChange={setActiveselect3}>
+                              <div className="relative w-full sm:w-48 " ref={selectRef}>
+                                <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                                   {activeselect3 || "Select a template"}
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+                                    <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
                                   </span>
                                 </Listbox.Button>
 
-                                <Listbox.Options
-                                  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50 
-                                    ${
-                                      openUp
-                                        ? "bottom-full mb-1"
-                                        : "top-full mt-1"
-                                    }`}
+                                <Listbox.Options  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50
+                                    ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}
                                   style={{
-                                    maxHeight: "200px", // prevent huge overflow
+                                    maxHeight: "200px",
                                   }}
                                 >
                                   {dropdownOptions.map((option, idx) => (
@@ -340,38 +332,33 @@ function Editflow() {
                               </div>
                             </Listbox>
 
+                            {/* Input */}
                             <input
                               type="text"
                               placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
+                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
                             />
                           </div>
-                          <div className="flex items-center space-x-[20px]  overflow-visible">
-                            <span className="text-[#333333] text-[14px] w-36">
+                          <div className="flex flex-wrap items-center gap-3 mb-[16px] sm:gap-[20px] overflow-visible">
+                            {/* Label */}
+                            <span className="text-[#333333] text-[14px] w-full sm:w-36">
                               {"{{Value}}"}
                             </span>
 
-                            <Listbox
-                              value={activeselect4}
-                              onChange={setActiveselect4}
-                            >
-                              <div ref={selectRef} className="relative">
-                                <Listbox.Button className="relative w-48 cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                            {/* Dropdown */}
+                            <Listbox value={activeselect4} onChange={setActiveselect4}>
+                              <div className="relative w-full sm:w-48 " ref={selectRef}>
+                                <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                                   {activeselect4 || "Select a template"}
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                                    <FiChevronDown className="h-5 w-5 text-gray-400" />
+                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+                                    <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
                                   </span>
                                 </Listbox.Button>
 
-                                <Listbox.Options
-                                  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50 
-                                    ${
-                                      openUp
-                                        ? "bottom-full mb-1"
-                                        : "top-full mt-1"
-                                    }`}
+                                <Listbox.Options  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50
+                                    ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}
                                   style={{
-                                    maxHeight: "200px", // prevent huge overflow
+                                    maxHeight: "200px",
                                   }}
                                 >
                                   {dropdownOptions.map((option, idx) => (
@@ -391,10 +378,11 @@ function Editflow() {
                               </div>
                             </Listbox>
 
+                            {/* Input */}
                             <input
                               type="text"
                               placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] flex-1"
+                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
                             />
                           </div>
                         </div>
