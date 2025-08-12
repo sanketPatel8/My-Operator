@@ -356,7 +356,7 @@ function Editflow() {
                                 </Listbox.Button>
 
                                 <Listbox.Options  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50
-                                    ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}
+                                    ${openUp ? "bottom-full mb-1" : "md:top-full md:mt-1"}`}
                                   style={{
                                     maxHeight: "200px",
                                   }}
@@ -419,8 +419,8 @@ function Editflow() {
                 </div>
               </div>
               {/* Chat Preview */}
-              <div className="flex w-1/3 justify-center items-start bg-[#E8F1FC]  md:py-[20px] md:min-w-[calc(100vh-380px)] md:min-h-[calc(100vh-158px)] min-w-[calc(100vh-535px)] min-h-[calc(100vh-430px)]">
-                <div className=" mt-[20px] md:mt-[0px] h-[450px] md:h-full flex-shrink-0 rounded-[20px]  overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
+              <div className="flex justify-center items-center flex-grow bg-[#E8F1FC] min-h-[83.65vh]">
+                <div className="h-[571px] w-[317px] my-[20px] mx-[32px] flex-shrink-0 rounded-[20px] overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
                   {/* Chat Header */}
                   <div className="bg-[#2A2F4F] flex items-center py-[16px] px-[20px] text-white">
                     <Image

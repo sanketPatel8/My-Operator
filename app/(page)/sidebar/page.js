@@ -15,10 +15,10 @@ export default function Sidebar({ active, onChange }) {
   return (
     <>
   {/* Hamburger Icon for Mobile */}
-  <div className="md:hidden fixed top-3 right-[20px] z-60">
+  <div className="md:hidden fixed top-3 right-[20px] z-70">
     <button
   onClick={toggleMenu}
-  className={`text-2xl cursor-pointer ${isOpen ? "text-black" : "text-white"}`}
+  className={`text-2xl  cursor-pointer ${isOpen ? "text-black" : "text-white"}`}
 >
   {isOpen ? "✕" : "☰"}
 </button>
@@ -34,7 +34,7 @@ export default function Sidebar({ active, onChange }) {
 
   {/* Sidebar */}
   <div
-    className={`fixed top-0 right-0 h-full md:relative md:top-auto md:left-auto md:h-auto md:w-64 w-64 bg-white z-20 transition-transform duration-300 transform ${
+    className={`fixed top-0 right-0 h-full md:relative md:top-auto md:left-auto md:h-auto md:w-64 w-64 bg-white z-60 transition-transform duration-300 transform ${
       isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
     }`}
   >
