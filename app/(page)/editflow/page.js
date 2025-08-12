@@ -475,14 +475,14 @@ function Editflow() {
                       alt="wp emoji"
                       height={100}
                       width={100}
-                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[180px] cursor-pointer"
+                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[195px] md:ml-[180px] cursor-pointer"
                     />
                     <Image
                       src="/assets/wp_camera.svg"
                       alt="wp emoji"
                       height={100}
                       width={100}
-                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[210px] cursor-pointer"
+                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
                     />
                     <Image
                       src="/assets/mic.svg"

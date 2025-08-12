@@ -149,8 +149,8 @@ function CreateFlow() {
                 </div>
               </div>
               {/* Chat Preview */}
-              <div className="flex w-1/3 justify-center items-start bg-[#E8F1FC]  md:py-[20px] md:min-w-[calc(100vh-380px)] md:min-h-[calc(100vh-158px)] min-w-[calc(100vh-535px)] min-h-[calc(100vh-430px)]">
-                <div className=" mt-[20px] md:mt-[0px] h-[450px] md:h-full flex-shrink-0 rounded-[20px]  overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
+              <div className="flex justify-center items-center flex-grow bg-[#E8F1FC] min-h-[83.65vh]">
+                <div className="h-[571px] w-[317px] my-[20px] mx-[32px] flex-shrink-0 rounded-[20px] overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
                   {/* Chat Header */}
                   <div className="bg-[#2A2F4F] flex items-center py-[16px] px-[20px] text-white">
                     <Image
@@ -205,14 +205,14 @@ function CreateFlow() {
                       alt="wp emoji"
                       height={100}
                       width={100}
-                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[180px] cursor-pointer"
+                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[195px] md:ml-[180px] cursor-pointer"
                     />
                     <Image
                       src="/assets/wp_camera.svg"
                       alt="wp emoji"
                       height={100}
                       width={100}
-                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[210px] cursor-pointer"
+                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
                     />
                     <Image
                       src="/assets/mic.svg"

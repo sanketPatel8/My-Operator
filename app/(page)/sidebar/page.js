@@ -15,10 +15,10 @@ export default function Sidebar({ active, onChange }) {
   return (
     <>
   {/* Hamburger Icon for Mobile */}
-  <div className="md:hidden fixed top-3 right-[20px] z-70">
+  <div className="md:hidden fixed top-3 right-[20px] z-60">
     <button
   onClick={toggleMenu}
-  className={`text-2xl  cursor-pointer ${isOpen ? "text-black" : "text-white"}`}
+  className={`text-2xl cursor-pointer ${isOpen ? "text-white" : "text-white"}`}
 >
   {isOpen ? "✕" : "☰"}
 </button>
@@ -28,14 +28,14 @@ export default function Sidebar({ active, onChange }) {
   {isOpen && (
     <div
       onClick={toggleMenu}
-      className="fixed inset-0 bg-black opacity-30 z-10 md:hidden"
+      className="fixed inset-0  bg-black opacity-30 z-10 md:hidden"
     />
   )}
 
   {/* Sidebar */}
   <div
-    className={`fixed top-0 right-0 h-full md:relative md:top-auto md:left-auto md:h-auto md:w-64 w-64 bg-white z-60 transition-transform duration-300 transform ${
-      isOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
+    className={`fixed top-0 right-0 h-full md:relative md:top-auto md:left-auto md:h-auto md:w-64 w-64 bg-white z-30 transition-transform duration-300 transform ${
+      isOpen ? "translate-x-0 mt-[53px]" : "translate-x-full md:translate-x-0"
     }`}
   >
     <h2 className="text-[21px] text-[#343E55] border-b border-[#E9E9E9] py-[22px] pl-[28px] text-black font-bold">
