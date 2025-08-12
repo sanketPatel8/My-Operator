@@ -452,8 +452,42 @@ function Editflow() {
                   </div>
 
                   {/* Chat Body */}
-                  <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat p-4 overflow-y-hidden">
+                  <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat px-[15px] pt-[15px] overflow-y-hidden">
                     {/* Chat messages go here */}
+                    {/* Message bubble with placeholders */}
+                        <div className="bg-white rounded-[4px] px-[16px] pt-[16px]  text-[14px]  text-[#1A1A1A]">
+                          <p>Hi <strong>{`{{name}}`}</strong> !</p>
+
+                          <p className="mt-3">
+                            Greetings from <strong>{`{{Shopifyname}}`}</strong>. We thank you for liking our product and placing an order for it.
+                          </p>
+
+                          <p className="mt-3">🛒 ✈️ 🚛</p>
+
+                          <p className="mt-3">
+                            Your order, with ID: <strong>{`{{Shopify_orderid}}`}</strong> for a value <strong>{`{{Shopify_value}}`}</strong> has been placed successfully & should get delivered soon.
+                          </p>
+
+                          <p className="">
+                            Now all you need to do is sit back & relax. <br />We shall update you on the shipment details shortly.
+                          </p>
+
+                          <p className="mt-[10px] text-[#999999] text-[14px]">
+                            Reply “STOP” to unsubscribe
+                          </p>
+                          </div>
+
+                          {/* Timestamp */}
+                            <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
+
+                            {/* Link Button */}
+                            <div className="text-center bg-white py-[10px] border-t border-[#E9E9E9]">
+                              <button className="text-[#4275D6] text-[14px] font-medium ">
+                                🔗 Track your order
+                              </button>
+                            </div>
+                        
+
                   </div>
 
                   {/* Chat Input */}
