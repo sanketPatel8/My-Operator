@@ -2,6 +2,7 @@
 import React from 'react'
 import { useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 const accounts = [
   {
@@ -22,6 +23,8 @@ const accounts = [
 ];
 
 function ConnectWhatsApp() {
+
+  const router = useRouter();
 
     const [selectedAccount, setSelectedAccount] = useState(accounts[0].id);
 
@@ -95,7 +98,9 @@ function ConnectWhatsApp() {
             <button className="px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100 w-full sm:w-auto">
               ⟳ Sync
             </button>
-            <button className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto">
+            <button
+            onClick={() => router.push("/ConfigurationForm")}
+             className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto">
               Verify & Continue
             </button>
           </div>

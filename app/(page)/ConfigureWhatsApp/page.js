@@ -124,7 +124,7 @@ function ConfigureWhatsApp() {
             </button>
             <button
               className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
-              onClick={handleVerify}
+              onClick={() => router.push("/ConnectWhatsApp")}
             >
               Verify & Continue
             </button>
