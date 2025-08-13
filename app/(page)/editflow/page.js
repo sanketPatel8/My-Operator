@@ -408,10 +408,12 @@ function Editflow() {
 
                     {/* Buttons */}
                     <div className="flex justify-end space-x-[16px] mt-[32px] mb-[20px]">
-                      <button className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold">
+                      <button
+                      onClick={() => router.push("/workflowlist")} 
+                      className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100">
                         Cancel
                       </button>
-                      <button className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold">
+                      <button className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]">
                         Update workflow
                       </button>
                     </div>
