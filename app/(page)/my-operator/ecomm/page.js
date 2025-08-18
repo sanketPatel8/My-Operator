@@ -7,6 +7,7 @@ import { SidebarItem } from "@/component/SideBarItem";
 import { SidebarDropdown } from "@/component/SidebarDropdown";
 import { FaChevronRight, FaChevronLeft, FaPowerOff, FaSearch   } from "react-icons/fa";
 import { SidebarSubItem } from "@/component/SideBarSubItem";
+import ToggleSwitch from "@/component/ToggleSwitch";
 
 export default function ConfigurationForm() {
   const [edit, setEdit] = useState(false);
@@ -69,20 +70,17 @@ export default function ConfigurationForm() {
 
         {showProfilePopup && (
     <div className="profile-popup absolute border border-gray-300 right-0 top-[53px] mt-2 w-[280px] bg-white border border-gray-200 rounded  z-[100]">
-      <div className="p-4 border-b border-gray-200">
-        <p className="text-[18px] text-[#333333] ">+91 9510304905 <span className="font-semibold text-[14px] text-[#333333]">(Administrator)</span></p>
-        <p className="text-[14px] text-[#333333]">deval@xceptive.com</p>
-        <p className="text-[16px] text-black font-medium mt-4">BLUE BERRY E-SERVICES</p>
-        <button className="mt-4 text-[14px] bg-[#8DC027]   text-white px-4 py-1.5 ">Account usage</button>
+      <div className="p-[14px] border-b border-gray-200">
+        <p className="text-[16px] text-[#333333] ">+91 9510304905 <strong>(Administrator)</strong></p>
+        <p className="text-[14px] text-[#333333] mb-[10px]">deval@xceptive.com</p>
+        <p className="text-[16px] text-black font-medium mb-[10px]">BLUE BERRY E-SERVICES</p>
+        <button className=" text-[13px] bg-[#8DC027]   text-white px-[12px] py-[6px] ">Account usage</button>
       </div>
 
-      <div className="px-4 py-2 bg-[#F6F6F6]">
-        <div className="flex items-center border-b border-gray-200 pb-3 justify-between text-[#333333] text-sm">
+      <div className="px-[14px] pt-[14px] pb-[4px] bg-[#F6F6F6]">
+        <div className="flex items-center border-b border-gray-200 pb-2 justify-between text-[#333333] text-sm">
           <span>Call availability</span>
-          <label className="inline-flex relative items-center  cursor-pointer">
-            <input type="checkbox" checked readOnly className="sr-only peer" />
-            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[#7AC943] after:content-[''] after:absolute after:left-[4px] after:top-[3px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></div>
-          </label>
+          <ToggleSwitch />
         </div>
         </div>
 
