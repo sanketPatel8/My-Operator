@@ -182,15 +182,15 @@ export default function ConfigurationForm() {
         {/* WhatsApp (Dropdown) */}
         <SidebarDropdown
           label="Whatsapp"
-          icon="\assets\whatsapp.svg"
+          icon="/assets/whatsapp.svg"
           isOpen={openDropdown === "Whatsapp"}
           sidebarOpen={isOpen}
           onClick={() => toggleDropdown("Whatsapp")}
-          children={[
-            <SidebarSubItem key="wa1" label="Templates" isOpen={isOpen}/>,
-            <SidebarSubItem key="wa2" label="Settings" isOpen={isOpen}/>,
-          ]}
-        />
+        >
+          <SidebarSubItem key="wa1" label="Templates" isOpen={isOpen} />
+          <SidebarSubItem key="wa2" label="Settings" isOpen={isOpen} />
+        </SidebarDropdown>
+
 
         {/* Call */}
         <SidebarItem
@@ -258,16 +258,16 @@ export default function ConfigurationForm() {
 
         {/* Manage (Dropdown) */}
         <SidebarDropdown
-          label="Manage"
-          icon="/assets/Manage.svg"
+          label="Whatsapp"
+          icon="/assets/whatsapp.svg"
+          isOpen={openDropdown === "Whatsapp"}
           sidebarOpen={isOpen}
-          isOpen={isOpen}
-          onClick={() => toggleDropdown("Manage")}
-          children={[
-            <SidebarSubItem key="m1" label="Users" isOpen={isOpen}/>,
-            <SidebarSubItem key="m2" label="Roles" isOpen={isOpen}/>,
-          ]}
-        />
+          onClick={() => toggleDropdown("Whatsapp")}
+        >
+          <SidebarSubItem key="wa1" label="Templates" isOpen={isOpen} />
+          <SidebarSubItem key="wa2" label="Settings" isOpen={isOpen} />
+        </SidebarDropdown>
+
 
         {/* Billing */}
         <SidebarItem
