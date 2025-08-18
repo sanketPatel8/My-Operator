@@ -36,3 +36,13 @@ body {
 .font-source-sans {
   font-family: 'SourceSansPro', sans-serif;
 }
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0px;
+  background: transparent; /* Optional: just in case */
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;     /* Firefox */
+}
