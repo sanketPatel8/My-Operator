@@ -6,7 +6,7 @@ export function SidebarDropdown({ label, icon, isOpen, onClick, children, sideba
   return (
     <div className={`font-source-sans ${isOpen ? "bg-[#1A1F2E] rounded-[20px]" : ""}`}>
       <div
-        className={`py-[8px] px-[10px] flex items-center justify-between gap-[10px] text-[14px] hover:rounded-[46px] hover:text-[#FFFFFF] 
+        className={`py-[8px] px-[10px] flex items-center justify-between  text-[14px] hover:rounded-[46px] hover:text-[#FFFFFF] 
           cursor-pointer hover:bg-[#1A1F2E] text-[#878EAA]`}
         onClick={onClick}
       >

@@ -109,10 +109,11 @@ export default function ConfigurationForm() {
       </header>
 
       {/* Sidebar */}
+      <div className="bg-[#0B0F1F]">
       <div
-            className={`hidden md:flex flex-col ${
+            className={`hidden md:flex flex-col pt-[11px]  ${
                 isOpen ? "w-[60px]" : "w-[186px]"
-            } transition-all duration-300 h-screen overflow-y-auto no-scrollbar bg-[#0B0F1F] text-white pt-[11px] fixed top-0 left-0 z-50`}
+            } transition-all duration-300 h-screen overflow-y-auto no-scrollbar bg-[#0B0F1F] text-white  fixed top-0 left-0 z-90`}
             >
 
 
@@ -144,7 +145,7 @@ export default function ConfigurationForm() {
         </div>
 
         {/* Sidebar Menu */}
-        <nav className={`flex flex-col gap-[8px]  ${
+        <nav className={`flex flex-col gap-[8px] mb-3 ${
                 isOpen ? "px-[5px]" : "px-[15px]"
             }`}>
         {/* Home */}
@@ -187,18 +188,34 @@ export default function ConfigurationForm() {
           sidebarOpen={isOpen}
           onClick={() => toggleDropdown("Whatsapp")}
         >
-          <SidebarSubItem key="wa1" label="Templates" isOpen={isOpen} />
-          <SidebarSubItem key="wa2" label="Settings" isOpen={isOpen} />
+          <SidebarSubItem key="wa1" label="Campaigns" isOpen={isOpen} />
+          <SidebarSubItem key="wa2" label="Templates" isOpen={isOpen} />
+          <SidebarSubItem key="wa3" label="Accounts" isOpen={isOpen} />
+          <SidebarSubItem key="wa4" label="Chat widget & QR code" isOpen={isOpen} />
+          <SidebarSubItem key="wa5" label="Ads" isOpen={isOpen} />
         </SidebarDropdown>
 
 
         {/* Call */}
-        <SidebarItem
+        <SidebarDropdown
           label="Call"
           icon="/assets/Call.svg"
-          active={isActive("call")}
-          isOpen={isOpen}
-        />
+          isOpen={openDropdown === "Call"}
+          sidebarOpen={isOpen}
+          onClick={() => toggleDropdown("Call")}
+        >
+          <SidebarSubItem key="cl1" label="Outgoing" isOpen={isOpen} />
+          <SidebarSubItem key="cl2" label="Follow up" isOpen={isOpen} />
+          <SidebarSubItem key="cl3" label="Webcall" isOpen={isOpen} />
+          <SidebarSubItem key="cl4" label="Design Call Flow" isOpen={isOpen} />
+          <SidebarSubItem key="cl5" label="Follow up Settings" isOpen={isOpen} />
+          <SidebarSubItem key="cl6" label="Block List" isOpen={isOpen} />
+          <SidebarSubItem key="cl7" label="Disposition" isOpen={isOpen} />
+          <SidebarSubItem key="cl8" label="Aftercall SMS" isOpen={isOpen} />
+          <SidebarSubItem key="cl9" label="Breaktime" isOpen={isOpen} />
+
+
+        </SidebarDropdown>
 
         {/* Bots */}
         <SidebarItem
@@ -217,12 +234,16 @@ export default function ConfigurationForm() {
         />
 
         {/* Reports */}
-        <SidebarItem
-          label="Reports"
+        <SidebarDropdown
+          label="Report"
           icon="/assets/Reports.svg"
-          active={isActive("reports")}
-          isOpen={isOpen}
-        />
+          isOpen={openDropdown === "Report"}
+          sidebarOpen={isOpen}
+          onClick={() => toggleDropdown("Report")}
+        >
+          <SidebarSubItem key="re1" label="Call Reports" isOpen={isOpen} />
+          <SidebarSubItem key="re2" label="Export" isOpen={isOpen} />
+        </SidebarDropdown>
 
         {/* APIs & Webhook */}
         <SidebarItem
@@ -258,25 +279,32 @@ export default function ConfigurationForm() {
 
         {/* Manage (Dropdown) */}
         <SidebarDropdown
-          label="Whatsapp"
-          icon="/assets/whatsapp.svg"
-          isOpen={openDropdown === "Whatsapp"}
+          label="Manage"
+          icon="/assets/Manage.svg"
+          isOpen={openDropdown === "manage"}
           sidebarOpen={isOpen}
-          onClick={() => toggleDropdown("Whatsapp")}
+          onClick={() => toggleDropdown("manage")}
         >
-          <SidebarSubItem key="wa1" label="Templates" isOpen={isOpen} />
-          <SidebarSubItem key="wa2" label="Settings" isOpen={isOpen} />
+          <SidebarSubItem key="ma1" label="Users" isOpen={isOpen} />
+          <SidebarSubItem key="ma2" label="Department" isOpen={isOpen} />
+          <SidebarSubItem key="ma3" label="DID's" isOpen={isOpen} />
         </SidebarDropdown>
 
 
         {/* Billing */}
-        <SidebarItem
+        <SidebarDropdown
           label="Billing"
           icon="/assets/Billing.svg"
-          active={isActive("billing")}
-          isOpen={isOpen}
-        />
+          isOpen={openDropdown === "Billing"}
+          sidebarOpen={isOpen}
+          onClick={() => toggleDropdown("Billing")}
+        >
+          <SidebarSubItem key="bi1" label="Billing" isOpen={isOpen} />
+          <SidebarSubItem key="bi2" label="Business info" isOpen={isOpen} />
+          <SidebarSubItem key="bi3" label="Preferences" isOpen={isOpen} />
+        </SidebarDropdown>
       </nav>
+      </div>
       </div>
 
       {/* Main Content Layout */}
