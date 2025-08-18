@@ -126,7 +126,7 @@ export default function ConfigurationForm() {
 
 
         {/* Logo & Phone */}
-        <div className="sticky top-0 bg-[#0B0F1F] z-10 flex items-center gap-[5px] pt-[11px] pb-[20px] pl-[16px] mb-[21px]">
+        <div className="sticky top-0 bg-[#0B0F1F] z-10 flex items-center gap-[5px] pt-[11px] pb-[20px] pl-[16px] ">
           <div className=" flex items-center justify-center">
             <Image
             src="\assets\wp_icon.svg"
@@ -188,7 +188,7 @@ export default function ConfigurationForm() {
         >
           <SidebarSubItem key="wa1" label="Campaigns" isOpen={isOpen} />
           <SidebarSubItem key="wa2" label="Templates" isOpen={isOpen} />
-          <hr className="mr-4 text-[#5B6178]" />
+          <hr className="mr-2 text-[#5B6178]" />
           <SidebarSubItem key="wa3" label="Accounts" isOpen={isOpen} />
           <SidebarSubItem key="wa4" label="Chat widget & QR code" isOpen={isOpen} />
           <SidebarSubItem key="wa5" label="Ads" isOpen={isOpen} />
@@ -206,7 +206,7 @@ export default function ConfigurationForm() {
           <SidebarSubItem key="cl1" label="Outgoing" isOpen={isOpen} />
           <SidebarSubItem key="cl2" label="Follow up" isOpen={isOpen} />
           <SidebarSubItem key="cl3" label="Webcall" isOpen={isOpen} />
-          <hr className="mr-4 text-[#5B6178]" />
+          <hr className="mr-2 text-[#5B6178]" />
           <SidebarSubItem key="cl4" label="Design Call Flow" isOpen={isOpen} />
           <SidebarSubItem key="cl5" label="Follow up Settings" isOpen={isOpen} />
           <SidebarSubItem key="cl6" label="Block List" isOpen={isOpen} />
