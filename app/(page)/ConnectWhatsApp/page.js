@@ -1,37 +1,282 @@
 'use client';
-import React from 'react'
-import { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-const accounts = [
-  {
-    id: 'account1',
-    name: 'My Store WhatsApp',
-    phone: '+1234567890',
-    status: 'Live',
+// API service functions
+const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
+  const maxRetries = 3;
+  
+  try {
+    // Use Next.js API route to avoid CORS issues
+    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account`;
+    console.log('Fetching from:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      // Add timeout for client-side request
+      signal: AbortSignal.timeout(30000)
+    });
+
+    console.log('Response status:', response.status);
+
+    if (!response.ok) {
+      let errorData = null;
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          errorData = await response.json();
+        } else {
+          errorData = { message: await response.text() };
+        }
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
+        errorData = { message: `HTTP error! status: ${response.status}` };
+      }
+      
+      console.error('Error response:', errorData);
+      throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Success response:', data);
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format received');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching WhatsApp numbers:', error);
+    
+    // Retry logic for network errors
+    if (retryCount < maxRetries && (error.name === 'AbortError' || error.message.includes('fetch'))) {
+      console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+      return fetchWhatsAppNumbers(limit, offset, retryCount + 1);
+    }
+    
+    throw error;
+  }
+};
+
+// Transform API data to match component format
+const transformApiDataToAccounts = (apiData) => {
+  if (!apiData) {
+    console.warn('No API data received');
+    return [];
+  }
+
+  let results = [];
+
+  // ✅ Correctly handle `data.results`
+  if (apiData.data && Array.isArray(apiData.data.results)) {
+    results = apiData.data.results;
+  } else if (apiData.results && Array.isArray(apiData.results)) {
+    results = apiData.results;
+  } else if (Array.isArray(apiData.data)) {
+    results = apiData.data;
+  } else if (Array.isArray(apiData)) {
+    results = apiData;
+  } else {
+    console.warn('Unexpected API response format:', apiData);
+    return [];
+  }
+
+  return results.map((item, index) => ({
+    id: item.id || `account_${index}`,
+    name: item.display_name || item.name || `WhatsApp Business ${index + 1}`,
+    phone: item.phone_number || item.phone || 'N/A',
+    status: item.phone_number_status === 'connected' || item.status === 'active' ? 'Live' : 'Inactive',
     image: '/assets/profile.svg',
-  },
-  {
-    id: 'account2',
-    name: 'Business Account',
-    phone: '+1234567890',
-    status: 'Live',
-    image: '/assets/profile.svg',
-  },
-  // You can add more accounts here...
-];
+    onboardingStatus: item.onboarding_status || 'unknown',
+    accountStatus: item.status || 'unknown',
+    countryCode: item.country_code || '',
+    shortCode: item.short_code || '',
+    phoneNumberId: item.phone_number_id || item.id,
+    created: item.created || '',
+    modified: item.modified || '',
+    wabaAccount: item.waba_account ? {
+      id: item.waba_account.id,
+      name: item.waba_account.waba_name || item.waba_account.name,
+      wabaId: item.waba_account.waba_id,
+      metaBusinessId: item.waba_account.meta_business_id,
+      businessVerificationStatus: item.waba_account.business_verification_status || 'unverified',
+      wabaReviewStatus: item.waba_account.waba_review_status || 'pending',
+      created: item.waba_account.created || '',
+      modified: item.waba_account.modified || ''
+    } : null
+  }));
+};
+
 
 function ConnectWhatsApp() {
-
   const router = useRouter();
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [pagination, setPagination] = useState({
+    hasNext: false,
+    hasPrevious: false,
+    currentOffset: 0,
+    limit: 10
+  });
 
-    const [selectedAccount, setSelectedAccount] = useState(accounts[0].id);
+  // Memoized load function to prevent unnecessary re-renders
+  const loadWhatsAppNumbers = useCallback(async (offset = 0, showLoading = true) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      setIsRetrying(true);
+      setError(null);
+      
+      const data = await fetchWhatsAppNumbers(pagination.limit, offset);
+      const transformedAccounts = transformApiDataToAccounts(data);
+      
+      setAccounts(transformedAccounts);
+      
+      // Set first account as selected if none selected and accounts exist
+      if (transformedAccounts.length > 0 && !selectedAccount) {
+        setSelectedAccount(transformedAccounts[0].id);
+      }
+      
+      // Update pagination info
+      setPagination(prev => ({
+        ...prev,
+        hasNext: data.next !== null && data.next !== undefined,
+        hasPrevious: data.previous !== null && data.previous !== undefined,
+        currentOffset: offset
+      }));
+      
+    } catch (err) {
+      console.error('Error loading WhatsApp numbers:', err);
+      let errorMessage = 'Failed to load WhatsApp accounts. Please try again.';
+      
+      // Provide more specific error messages
+      if (err.name === 'AbortError') {
+        errorMessage = 'Request timeout. Please check your connection and try again.';
+      } else if (err.message.includes('500')) {
+        errorMessage = 'Server error. Please try again in a few moments.';
+      } else if (err.message.includes('403')) {
+        errorMessage = 'Access denied. Please check your API credentials.';
+      } else if (err.message.includes('404')) {
+        errorMessage = 'API endpoint not found. Please contact support.';
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+      setIsRetrying(false);
+    }
+  }, [pagination.limit, selectedAccount]);
 
+  // Fetch WhatsApp numbers on component mount
+  useEffect(() => {
+    loadWhatsAppNumbers();
+  }, [loadWhatsAppNumbers]);
+
+  const handleSync = useCallback(() => {
+    loadWhatsAppNumbers(pagination.currentOffset, false);
+  }, [loadWhatsAppNumbers, pagination.currentOffset]);
+
+  // const handleNextPage = useCallback(() => {
+  //   if (pagination.hasNext) {
+  //     loadWhatsAppNumbers(pagination.currentOffset + pagination.limit);
+  //   }
+  // }, [loadWhatsAppNumbers, pagination.hasNext, pagination.currentOffset, pagination.limit]);
+
+  // const handlePreviousPage = useCallback(() => {
+  //   if (pagination.hasPrevious) {
+  //     loadWhatsAppNumbers(Math.max(0, pagination.currentOffset - pagination.limit));
+  //   }
+  // }, [loadWhatsAppNumbers, pagination.hasPrevious, pagination.currentOffset, pagination.limit]);
+
+  // const handleAccountSelect = useCallback((accountId) => {
+  //   setSelectedAccount(accountId);
+  // }, []);
+
+  // const handleContinue = useCallback(() => {
+  //   if (selectedAccount) {
+  //     router.push("/ConfigurationForm");
+  //   }
+  // }, [router, selectedAccount]);
+
+  const handleContinue = async () => {
+  const selected = accounts.find(a => a.id === selectedAccount);
+  if (!selected) return;
+
+  try {
+    const response = await fetch('/api/update-store', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        access_token: 'shpua_6983afa24c78e5bb4a75d7ba394d8f8e', // You may want to pass this dynamically
+        phonenumber: selected.phone,
+        phone_number_id: selected.phoneNumberId,
+        waba_id: selected?.wabaAccount?.wabaId || null,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update store.');
+    }
+
+    
+    router.push('/ConfigurationForm');
+  } catch (err) {
+    console.error('Error updating store:', err);
+    alert('Failed to update store. Please try again.');
+  }
+};
+
+
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'live':
+        return 'text-[#00965C]';
+      case 'inactive':
+        return 'text-red-500';
+      default:
+        return 'text-gray-500';
+    }
+  };
+
+  const getVerificationBadge = (account) => {
+    if (account.wabaAccount?.businessVerificationStatus === 'verified') {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+          ✓ Verified
+        </span>
+      );
+    }
+    return null;
+  };
+
+  if (loading && !isRetrying) {
+    return (
+      <div className="font-source-sans min-h-screen flex items-center justify-center bg-[#F9FBFF]">
+        <div className="bg-white shadow rounded-lg p-8 max-w-md w-full text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading WhatsApp accounts...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-source-sans min-h-screen flex items-start justify-center bg-[#F9FBFF] px-4 sm:px-6 lg:px-8">
-      <div className="bg-white shadow rounded-lg p-6 mt-5 sm:p-8 lg:p-10 w-full max-w-md sm:max-w-lg lg:max-w-2xl">
+      <div className="bg-white shadow rounded-lg p-6 my-5 sm:p-8 lg:p-10 w-full max-w-md sm:max-w-lg lg:max-w-2xl">
         {/* Header */}
         <h2 className="text-xl sm:text-[24px] text-[#1A1A1A] font-semibold text-center mb-2">
           Connect WhatsApp Business API
@@ -70,9 +315,9 @@ function ConnectWhatsApp() {
               </div>
               <div className="flex-1">
                 <p className="text-[12px] text-[#333333] ">{account.name}</p>
-                <p className="text-[14px] text-[#333333] ">{account.phone}</p>
+                <p className="text-[14px] text-[#333333] ">+{account.countryCode}{account.phone}</p>
               </div>
-              <div className="text-green-500 text-sm font-medium sm:ml-auto">
+              <div className={`text-[14px]  font-semibold ${getStatusColor(account.status)} sm:ml-auto`}>
                 {account.status}
               </div>
             </label>
@@ -99,7 +344,7 @@ function ConnectWhatsApp() {
               ⟳ Sync
             </button>
             <button
-            onClick={() => router.push("/ConfigurationForm")}
+            onClick={handleContinue}
              className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto">
               Verify & Continue
             </button>
@@ -110,4 +355,4 @@ function ConnectWhatsApp() {
   )
 }
 
-export default ConnectWhatsApp
+export default ConnectWhatsApp;
