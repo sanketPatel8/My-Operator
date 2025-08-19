@@ -13,6 +13,7 @@ function ConfigurationForm({ searchParams }) {
   
   const [edit, setEdit] = useState(false);
   const [activeTab, setActiveTab] = useState("/ConfigurationForm");
+  
 
   const [formData, setFormData] = useState({
     brandName: "Brand name here",
@@ -27,6 +28,7 @@ function ConfigurationForm({ searchParams }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef(null);
+  const [shopUrl, setShopUrl] = useState("");
 
   const filteredNumbers = whatsappNumbers.filter(({ countryCode, number }) =>
   `${countryCode} ${number}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -190,15 +192,23 @@ useEffect(() => {
         console.log("💾 Database response:", data);
         
         // Updated to match your API response structure
+        const countryCode = data.countrycode || "91"; // example default or from data
         const storedPhone = data.phonenumber;
+        const shopurl = data.shop;
+
+        console.log("shop url:::", shopurl);
+        setShopUrl(shopurl);
         
+
         if (storedPhone) {
-          console.log("✅ Found stored phone number:", storedPhone);
-          setFormData((f) => ({ ...f, whatsapp: storedPhone }));
-          setSelectedNumber(storedPhone);
-        } else {
-          console.log("📭 No phone number in database response");
+          const fullNumber = `${countryCode} ${storedPhone.startsWith(countryCode) ? storedPhone.replace(countryCode, '').trim() : storedPhone}`;
+          console.log("✅ Found stored phone number with country code:", fullNumber);
+          setFormData((f) => ({ ...f, whatsapp: fullNumber }));
+          setSelectedNumber(fullNumber);
         }
+          else {
+            console.log("📭 No phone number in database response");
+          }
         
       } catch (err) {
         console.error("❌ Error fetching stored phone:", err);
@@ -235,27 +245,28 @@ useEffect(() => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchStoreDetailsById = async () => {
-      const id = 11; // ✅ Manually hardcoded here
+  const fetchStoreDetailsById = async () => {
+    const id = 11; // hardcoded ID
 
-      try {
-        const res = await fetch(`/api/store-phone?id=${id}`); // ✅ appends ?id=11
-        const data = await res.json();
+    try {
+      const res = await fetch(`/api/store-phone?id=${id}`); // <-- ✅ this is correct
+      const data = await res.json();
 
-        if (!res.ok) {
-          throw new Error(data.message || 'Failed to fetch store');
-        }
-
-        console.log('✅ Fetched Store Data:', data);
-        setStoreData(data);
-      } catch (err) {
-        console.error('❌ Fetch Error:', err.message);
-        setError(err.message);
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to fetch store');
       }
-    };
 
-    fetchStoreDetailsById(); // 🔁 Runs on component mount
-  }, []);
+      console.log('✅ Fetched Store Data:', data);
+      setStoreData(data);
+    } catch (err) {
+      console.error('❌ Fetch Error:', err.message);
+      setError(err.message);
+    }
+  };
+
+  fetchStoreDetailsById();
+}, []);
+
 
 
 
@@ -265,32 +276,7 @@ useEffect(() => {
     setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  const handleSave = async () => {
-    try {
-      console.log("💾 Saving form data:", formData);
-      
-      // Add your save API call here
-      const response = await fetch('/api/store-phone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          shop: shop,
-          phonenumber: selectedNumber 
-        })
-      });
-
-      if (response.ok) {
-        console.log("✅ Configuration saved successfully");
-      } else {
-        console.error("❌ Failed to save configuration");
-      }
-      
-      setEdit(false);
-      
-    } catch (error) {
-      console.error("❌ Error saving configuration:", error);
-    }
-  };
+  
 
   if (loading) {
     return (
@@ -433,7 +419,7 @@ useEffect(() => {
             <input
               name="shopUrl"
               disabled={!edit}
-              value={formData.shopUrl}
+              value={shopUrl}
               onChange={handleChange}
               className="w-full border border-[#E9E9E9] rounded-[4px] bg-[#F3F5F6] px-[16px] py-[10px] text-[#1A1A1A] text-[14px]"
               placeholder="Shop URL"
