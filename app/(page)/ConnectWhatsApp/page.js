@@ -220,7 +220,8 @@ function ConnectWhatsApp() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        access_token: 'shpua_6983afa24c78e5bb4a75d7ba394d8f8e', // You may want to pass this dynamically
+        access_token: 'shpua_6983afa24c78e5bb4a75d7ba394d8f8e',
+        countrycode: selected.countryCode, // You may want to pass this dynamically
         phonenumber: selected.phone,
         phone_number_id: selected.phoneNumberId,
         waba_id: selected?.wabaAccount?.wabaId || null,

@@ -5,7 +5,7 @@ import mysql from 'mysql2/promise';
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { access_token, phonenumber, phone_number_id, waba_id } = body;
+    const { access_token, countrycode, phonenumber, phone_number_id, waba_id } = body;
 
     // Connect to DB
     const connection = await mysql.createConnection({
@@ -17,8 +17,8 @@ export async function POST(req) {
 
     // Update the record
     const [result] = await connection.execute(
-      `UPDATE stores SET phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE access_token = ?`,
-      [phonenumber, phone_number_id, waba_id, access_token]
+      `UPDATE stores SET countrycode = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE access_token = ?`,
+      [countrycode, phonenumber, phone_number_id, waba_id, access_token]
     );
 
     await connection.end();
