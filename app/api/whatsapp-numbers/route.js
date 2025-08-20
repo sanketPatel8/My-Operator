@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 
 export async function GET(request) {
-  const apiUrl = 'https://publicapi.myoperator.co/chat/phonenumbers?limit=10&offset=0&expand=waba_account';
+  const apiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/phonenumbers?limit=10&offset=0&expand=waba_account`;
   try {
     const response = await fetch(apiUrl, {
       method: 'GET',

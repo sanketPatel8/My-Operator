@@ -209,37 +209,46 @@ function ConnectWhatsApp() {
   //   }
   // }, [router, selectedAccount]);
 
-  const handleContinue = async () => {
-  const selected = accounts.find(a => a.id === selectedAccount);
-  if (!selected) return;
+  
 
-  try {
-    const response = await fetch('/api/update-store', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        access_token: 'shpua_6983afa24c78e5bb4a75d7ba394d8f8e',
-        countrycode: selected.countryCode, // You may want to pass this dynamically
-        phonenumber: selected.phone,
-        phone_number_id: selected.phoneNumberId,
-        waba_id: selected?.wabaAccount?.wabaId || null,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to update store.');
+   const handleContinue = async () => {
+    const selected = accounts.find(a => a.id === selectedAccount);
+    if (!selected) {
+      alert('Please select an account.');
+      return;
     }
 
-    
-    router.push('/ConfigurationForm');
-  } catch (err) {
-    console.error('Error updating store:', err);
-    alert('Failed to update store. Please try again.');
-  }
-};
+    try {
+      const response = await fetch('/api/update-store', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: "11",
+          countrycode: selected.countryCode,
+          phonenumber: selected.phone,
+          phone_number_id: selected.phoneNumberId,
+          waba_id: selected?.wabaAccount?.wabaId || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update store.');
+      }
+
+      const data = await response.json();
+      console.log('Selected WABA ID:', selected?.wabaAccount?.wabaId);
+
+
+      // ✅ Navigate after success
+      router.push('/ConfigurationForm');
+    } catch (err) {
+      console.error('Error updating store:', err);
+      alert('Failed to update store. Please try again.');
+    }
+  };
 
 
   const getStatusColor = (status) => {

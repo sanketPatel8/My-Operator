@@ -11,6 +11,7 @@ import { useToastContext } from "@/component/Toast"; // Import the toast hook
 function ConfigurationForm({ searchParams }) {
   // Get shop from URL params
   const shop = searchParams?.shop || "default-store";
+
   
   const [edit, setEdit] = useState(false);
   const [activeTab, setActiveTab] = useState("/ConfigurationForm");
@@ -328,7 +329,7 @@ function ConfigurationForm({ searchParams }) {
       console.log("🔍 Matched account:", matchedAccount);
 
       const payload = {
-        access_token: 'shpua_6983afa24c78e5bb4a75d7ba394d8f8e',
+        id: "11",
         countrycode: selectedNumber.countryCode,
         phonenumber: selectedNumber.number,
         phone_number_id: selectedNumber.phone_number_id || matchedAccount?.phoneNumberId || "",
@@ -351,46 +352,18 @@ function ConfigurationForm({ searchParams }) {
         error(`Update failed: ${result.message}`);
         return;
       }
-
-      console.log("✅ Store updated successfully");
-      // ✅ Show success toast instead of alert
       success("Account information updated.");
       setEdit(false);
+
+      
+      
     } catch (err) {
       console.error("❌ Error updating store:", err);
       // ✅ Show error toast instead of alert
       error("Error updating store");
     }
   };
-
-  const [storeData, setStoreData] = useState(null);
-  const [errorState, setErrorState] = useState(null);
-
-  useEffect(() => {
-    const fetchStoreDetailsById = async () => {
-      const id = 11;
-
-      try {
-        const res = await fetch(`/api/store-phone?id=${id}`);
-        const data = await res.json();
-
-        if (!res.ok) {
-          throw new Error(data.message || 'Failed to fetch store');
-        }
-
-        console.log('✅ Fetched Store Data:', data);
-        setStoreData(data);
-      } catch (err) {
-        console.error('❌ Fetch Error:', err.message);
-        setErrorState(err.message);
-        // ✅ Show error toast
-        error("Failed to fetch store details");
-      }
-    };
-
-    fetchStoreDetailsById();
-  }, []);
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((p) => ({ ...p, [name]: value }));

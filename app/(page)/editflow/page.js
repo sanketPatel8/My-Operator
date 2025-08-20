@@ -17,6 +17,9 @@ function Editflow() {
   const [activeselect2, setActiveselect2] = useState("Name");
   const [activeselect3, setActiveselect3] = useState("Name");
   const [activeselect4, setActiveselect4] = useState("Name");
+  const [templateMessage, setTemplateMessage] = useState('');
+  const [allTemplatesData, setAllTemplatesData] = useState([]);
+  const [templateOptions, setTemplateOptions] = useState([]);
   const [openUp, setOpenUp] = useState(false);
   const selectRef = useRef(null);
 
@@ -28,11 +31,85 @@ function Editflow() {
     }
   };
 
+  async function fetchTemplateOptions(storeId) {
+    try {
+      const response = await fetch(`/api/template-data?store_id=${storeId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch template options');
+      }
+
+      const templates = await response.json();
+
+      // Extract template names from the API response
+      const templateOptions = templates.map(template => template.template_name);
+
+      return templateOptions;
+    } catch (error) {
+      console.error('Error fetching template options:', error);
+      return [];
+    }
+  }
+
+  useEffect(() => {
+    const storeId = '11'; // dynamically provide this
+    fetchTemplateOptions(storeId).then(setTemplateOptions);
+  }, []);
+
+
+  async function fetchTemplateData(storeId) {
+    const res = await fetch(`/api/template-data?store_id=${storeId}`);
+    if (!res.ok) throw new Error('Failed to fetch template');
+    const data = await res.json();
+    return data;
+  }
+
+
+  useEffect(() => {
+    async function loadTemplate() {
+      try {
+        const storeId = '11';
+        const templates = await fetchTemplateData(storeId);
+        setAllTemplatesData(templates);
+
+        console.log("whole data:::", templates);
+        
+        // Automatically select the first template if none is selected
+        if (!selectedTemplate && templates.length > 0) {
+          const firstTemplate = templates[0];
+          setSelectedTemplate(firstTemplate.template_name); // 👈 this is key
+        }
+      } catch (error) {
+        console.error('Failed to load template', error);
+      }
+    }
+
+    loadTemplate();
+  }, []);
+
+
+
   useEffect(() => {
     window.addEventListener("resize", checkDropdownPosition);
     checkDropdownPosition();
     return () => window.removeEventListener("resize", checkDropdownPosition);
   }, []);
+
+  useEffect(() => {
+    if (!selectedTemplate || allTemplatesData.length === 0) return;
+
+    const selectedTemplateObj = allTemplatesData.find(
+      (template) => template.template_name === selectedTemplate
+    );
+
+    const contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
+    const bodyBlock = contentBlocks.find((block) => block.type === "BODY");
+
+    const message = bodyBlock?.text || '';
+    setTemplateMessage(message);
+  }, [selectedTemplate, allTemplatesData]);
+
+
+
 
   const delayOptions = [
     "Immediate",
@@ -43,13 +120,7 @@ function Editflow() {
     "12 hours",
     "24 hours",
   ];
-  const templateOptions = [
-    "Order placed confirmation",
-    "Shipping update",
-    "COD confirmation request",
-    "Order delivery",
-    "Abandoned cart reminder",
-  ];
+  
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("/workflowlist");
@@ -454,40 +525,28 @@ function Editflow() {
                   </div>
 
                   {/* Chat Body */}
-                  <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat px-[15px] pt-[15px] overflow-y-hidden">
-                    {/* Chat messages go here */}
-                    {/* Message bubble with placeholders */}
-                        <div className="bg-white rounded-[4px] px-[16px] pt-[16px]  text-[14px]  text-[#1A1A1A]">
-                          <p>Hi <strong>{`{{name}}`}</strong> !</p>
+                  <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat px-[15px] pt-[15px] overflow-y-auto no-scrollbar">
+                    
+                    <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px]  text-[#1A1A1A]">
+                      {templateMessage.split('\n').map((line, idx) => (
+                            <p key={idx} style={{ 
+                              fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {line}
+                              <br />
+                            </p>
+                       ))}
+                    </div>
+                      {/* Timestamp */}
+                      <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
 
-                          <p className="mt-3">
-                            Greetings from <strong>{`{{Shopifyname}}`}</strong>. We thank you for liking our product and placing an order for it.
-                          </p>
-
-                          <p className="mt-3">🛒 ✈️ 🚛</p>
-
-                          <p className="mt-3">
-                            Your order, with ID: <strong>{`{{Shopify_orderid}}`}</strong> for a value <strong>{`{{Shopify_value}}`}</strong> has been placed successfully & should get delivered soon.
-                          </p>
-
-                          <p className="">
-                            Now all you need to do is sit back & relax. <br />We shall update you on the shipment details shortly.
-                          </p>
-
-                          <p className="mt-[10px] text-[#999999] text-[14px]">
-                            Reply “STOP” to unsubscribe
-                          </p>
-                          </div>
-
-                          {/* Timestamp */}
-                            <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
-
-                            {/* Link Button */}
-                            <div className="text-center bg-white py-[10px] border-t border-[#E9E9E9]">
-                              <button className="text-[#4275D6] text-[14px] font-medium ">
-                                🔗 Track your order
-                              </button>
-                            </div>
+                        {/* Link Button */}
+                        <div className="text-center bg-white py-[10px] border-t border-[#E9E9E9]">
+                          <button className="text-[#4275D6] text-[14px] font-medium ">
+                            🔗 Track your order
+                          </button>
+                        </div>
                         
 
                   </div>

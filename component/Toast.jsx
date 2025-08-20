@@ -1,17 +1,16 @@
-// components/Toast.js
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
 
 // Toast Component
-export const Toast = ({ 
-  message, 
-  type = 'success', 
-  isVisible, 
-  onClose, 
+export const Toast = ({
+  message,
+  type = 'success',
+  isVisible,
+  onClose,
   duration = 3000,
-  position = 'top-right'
+  position = 'custom-bottom-right' // Default to custom position
 }) => {
   const [mounted, setMounted] = useState(false);
 
@@ -35,19 +34,31 @@ export const Toast = ({
     switch (type) {
       case 'success':
         return (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
+          <div className="w-5 h-5 rounded-full border border-[#1BC98E] flex items-center justify-center">
+      <svg
+        className="w-3 h-3 text-[#1BC98E]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </div>
         );
       case 'error':
         return (
-          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </div>
+          <div className="w-5 h-5 rounded-full border border-[#F44336] flex items-center justify-center">
+      <svg
+        className="w-3 h-3 text-[#F44336]"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </div>
         );
       case 'warning':
         return (
@@ -64,27 +75,29 @@ export const Toast = ({
 
   const getPositionClasses = () => {
     switch (position) {
+      case 'custom-bottom-right':
+        return 'bottom-30 right-50'; // Exactly like image spacing
+      case 'bottom-right':
+        return 'bottom-4 right-4';
+      case 'bottom-left':
+        return 'bottom-4 left-4';
+      case 'top-right':
+        return 'top-4 right-4';
       case 'top-left':
         return 'top-4 left-4';
       case 'top-center':
         return 'top-4 left-1/2 transform -translate-x-1/2';
-      case 'top-right':
-        return 'top-4 right-4';
-      case 'bottom-left':
-        return 'bottom-4 left-4';
       case 'bottom-center':
         return 'bottom-4 left-1/2 transform -translate-x-1/2';
-      case 'bottom-right':
-        return 'bottom-4 right-4';
       default:
-        return 'top-4 right-4';
+        return 'bottom-6 right-8'; // Default to custom
     }
   };
 
   const getBgColor = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-50 border-green-200';
+        return 'bg-[#D5FFEF] border-green-200';
       case 'error':
         return 'bg-red-50 border-red-200';
       case 'warning':
@@ -95,18 +108,26 @@ export const Toast = ({
   };
 
   const toastElement = (
-    <div className={`fixed ${getPositionClasses()} z-50 animate-in slide-in-from-top-2 duration-300`}>
-      <div className={`${getBgColor()} border rounded-lg shadow-lg p-4 flex items-center gap-3 min-w-[300px] max-w-[500px]`}>
-        {getIcon()}
-        <span className="text-gray-800 text-sm font-medium flex-1">
-          {message}
-        </span>
+    <div className={`fixed ${getPositionClasses()} z-50`}>
+      <div className={`text-[#1B1B1B] rounded-md shadow-md flex items-center px-4 py-2.5 min-w-[300px] max-w-[500px] border ${getBgColor()}`}>
+  
+  {/* Left Icon (based on type) */}
+  <div className="flex-shrink-0 mr-3">
+    {getIcon()}
+  </div>
+
+
+
+        {/* Message */}
+        <span className="flex-1 text-sm font-medium">{message}</span>
+
+        {/* Close Button */}
         <button
           onClick={onClose}
-          className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+          className="ml-4 text-[#000000] hover:text-gray-600 transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
@@ -116,23 +137,23 @@ export const Toast = ({
   return createPortal(toastElement, document.body);
 };
 
-// Toast Hook for easy usage
+// Toast Hook
 export const useToast = () => {
   const [toasts, setToasts] = useState([]);
 
-  const showToast = (message, type = 'success', duration = 4000) => {
+  const showToast = (message, type = 'success', duration = 4000, position = 'custom-bottom-right') => {
     const id = Date.now() + Math.random();
     const newToast = {
       id,
       message,
       type,
       duration,
+      position,
       isVisible: true,
     };
 
     setToasts(prev => [...prev, newToast]);
 
-    // Auto remove after duration
     if (duration > 0) {
       setTimeout(() => {
         removeToast(id);
@@ -155,7 +176,8 @@ export const useToast = () => {
           type={toast.type}
           isVisible={toast.isVisible}
           onClose={() => removeToast(toast.id)}
-          duration={0} // Disable auto-close since we handle it in showToast
+          duration={0}
+          position={toast.position}
         />
       ))}
     </>
@@ -165,15 +187,16 @@ export const useToast = () => {
     showToast,
     removeToast,
     ToastContainer,
-    success: (message, duration) => showToast(message, 'success', duration),
-    error: (message, duration) => showToast(message, 'error', duration),
-    warning: (message, duration) => showToast(message, 'warning', duration),
+    success: (message, duration = 4000, position = 'custom-bottom-right') =>
+      showToast(message, 'success', duration, position),
+    error: (message, duration = 4000, position = 'custom-bottom-right') =>
+      showToast(message, 'error', duration, position),
+    warning: (message, duration = 4000, position = 'custom-bottom-right') =>
+      showToast(message, 'warning', duration, position),
   };
 };
 
-// Alternative: Simple Toast Context Provider
-import { createContext, useContext } from 'react';
-
+// Toast Context for global use
 const ToastContext = createContext();
 
 export const ToastProvider = ({ children }) => {
@@ -194,57 +217,3 @@ export const useToastContext = () => {
   }
   return context;
 };
-
-// Usage Example in your ConfigurationForm
-/*
-// Method 1: Using the hook directly
-import { useToast } from '@/components/Toast';
-
-function ConfigurationForm() {
-  const { success, error, ToastContainer } = useToast();
-
-  const handleSaveChanges = async () => {
-    try {
-      // Your save logic...
-      success("Account information updated.");
-    } catch (err) {
-      error("Error updating store");
-    }
-  };
-
-  return (
-    <div>
-      // Your JSX...
-      <ToastContainer />
-    </div>
-  );
-}
-
-// Method 2: Using Context Provider (Recommended)
-// In your _app.js or layout.js
-import { ToastProvider } from '@/components/Toast';
-
-export default function App({ Component, pageProps }) {
-  return (
-    <ToastProvider>
-      <Component {...pageProps} />
-    </ToastProvider>
-  );
-}
-
-// In your components
-import { useToastContext } from '@/components/Toast';
-
-function ConfigurationForm() {
-  const { success, error } = useToastContext();
-
-  const handleSaveChanges = async () => {
-    try {
-      // Your save logic...
-      success("Account information updated.");
-    } catch (err) {
-      error("Error updating store");
-    }
-  };
-}
-*/

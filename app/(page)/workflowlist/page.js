@@ -1,7 +1,7 @@
 "use client";
 import DashboardHeaader from "@/component/DashboardHeaader";
 import Sidebar from "../sidebar/page";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import DropDown from "@/component/DropDown";
 import { useRouter } from "next/navigation";
 import { FiEye, FiMoreVertical } from 'react-icons/fi';
@@ -9,6 +9,39 @@ import { FiEye, FiMoreVertical } from 'react-icons/fi';
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
+
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const storeId = 11; // ⬅️ Replace this with the actual store ID dynamically if needed
+
+  const hasFetched = useRef(false);
+
+  useEffect(() => {
+    if (!storeId || hasFetched.current) return;
+
+    const fetchTemplates = async () => {
+      try {
+        const res = await fetch(`/api/template-data?store_id=${storeId}`);
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch: ${res.status}`);
+        }
+
+        const data = await res.json();
+        setTemplates(data); // data contains templates with nested data and variables
+        hasFetched.current = true;
+      } catch (err) {
+        console.error("Error fetching templates:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTemplates();
+  }, [storeId]);
+
   const [reminders, setReminders] = useState([
     {
       id: 1,

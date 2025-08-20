@@ -32,6 +32,17 @@ body {
   font-style: normal;
 }
 
+.emoji-support {
+  font-family: 
+    "Apple Color Emoji",    /* iOS Safari */
+    "Segoe UI Emoji",       /* Windows */
+    "Noto Color Emoji",     /* Android/Chrome */
+    "Segoe UI Symbol",      /* Windows fallback */
+    "Android Emoji",        /* Android fallback */
+    "EmojiSymbols",         /* Generic fallback */
+    sans-serif;
+}
+
 
 .font-source-sans {
   font-family: 'SourceSansPro', sans-serif;
