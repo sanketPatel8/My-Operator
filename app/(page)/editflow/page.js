@@ -13,13 +13,15 @@ function Editflow() {
   const [selectedDelay, setSelectedDelay] = useState("1 hour");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [activePart, setActivePart] = useState("template");
-  const [activeselect1, setActiveselect1] = useState("Name");
-  const [activeselect2, setActiveselect2] = useState("Name");
-  const [activeselect3, setActiveselect3] = useState("Name");
-  const [activeselect4, setActiveselect4] = useState("Name");
   const [templateMessage, setTemplateMessage] = useState('');
   const [allTemplatesData, setAllTemplatesData] = useState([]);
   const [templateOptions, setTemplateOptions] = useState([]);
+  const [templateVariables, setTemplateVariables] = useState({
+    header: [],
+    body: [],
+    buttons: []
+  });
+  const [variableSettings, setVariableSettings] = useState({});
   const [openUp, setOpenUp] = useState(false);
   const selectRef = useRef(null);
 
@@ -31,6 +33,18 @@ function Editflow() {
     }
   };
 
+  // Extract variables from text using regex
+  const extractVariables = (text) => {
+    if (!text) return [];
+    const regex = /\{\{([^}]+)\}\}/g;
+    const variables = [];
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      variables.push(match[1].trim());
+    }
+    return variables;
+  };
+
   async function fetchTemplateOptions(storeId) {
     try {
       const response = await fetch(`/api/template-data?store_id=${storeId}`);
@@ -39,8 +53,6 @@ function Editflow() {
       }
 
       const templates = await response.json();
-
-      // Extract template names from the API response
       const templateOptions = templates.map(template => template.template_name);
 
       return templateOptions;
@@ -51,10 +63,9 @@ function Editflow() {
   }
 
   useEffect(() => {
-    const storeId = '11'; // dynamically provide this
+    const storeId = '11'; 
     fetchTemplateOptions(storeId).then(setTemplateOptions);
   }, []);
-
 
   async function fetchTemplateData(storeId) {
     const res = await fetch(`/api/template-data?store_id=${storeId}`);
@@ -62,7 +73,6 @@ function Editflow() {
     const data = await res.json();
     return data;
   }
-
 
   useEffect(() => {
     async function loadTemplate() {
@@ -73,10 +83,9 @@ function Editflow() {
 
         console.log("whole data:::", templates);
         
-        // Automatically select the first template if none is selected
         if (!selectedTemplate && templates.length > 0) {
           const firstTemplate = templates[0];
-          setSelectedTemplate(firstTemplate.template_name); // 👈 this is key
+          setSelectedTemplate(firstTemplate.template_name);
         }
       } catch (error) {
         console.error('Failed to load template', error);
@@ -85,8 +94,6 @@ function Editflow() {
 
     loadTemplate();
   }, []);
-
-
 
   useEffect(() => {
     window.addEventListener("resize", checkDropdownPosition);
@@ -102,14 +109,59 @@ function Editflow() {
     );
 
     const contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
-    const bodyBlock = contentBlocks.find((block) => block.type === "BODY");
+    
+    // Extract variables from different components
+    const headerVariables = [];
+    const bodyVariables = [];
+    const buttonVariables = [];
 
-    const message = bodyBlock?.text || '';
-    setTemplateMessage(message);
+    contentBlocks.forEach(block => {
+      switch (block.type) {
+        case 'HEADER':
+          if (block.format === 'TEXT' && block.text) {
+            headerVariables.push(...extractVariables(block.text));
+          }
+          break;
+        
+        case 'BODY':
+          if (block.text) {
+            bodyVariables.push(...extractVariables(block.text));
+            setTemplateMessage(block.text);
+          }
+          break;
+        
+        case 'BUTTONS':
+          if (block.buttons && Array.isArray(block.buttons)) {
+            block.buttons.forEach(button => {
+              if (button.text) {
+                buttonVariables.push(button.text);
+              }
+            });
+          }
+          break;
+      }
+    });
+
+    // Remove duplicates and set variables
+    setTemplateVariables({
+      header: [...new Set(headerVariables)],
+      body: [...new Set(bodyVariables)],
+      buttons: [...new Set(buttonVariables)]
+    });
+
+    // Initialize variable settings
+    const newSettings = {};
+    [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
+      if (!newSettings[variable]) {
+        newSettings[variable] = {
+          dropdown: "Name",
+          fallback: ""
+        };
+      }
+    });
+    setVariableSettings(newSettings);
+
   }, [selectedTemplate, allTemplatesData]);
-
-
-
 
   const delayOptions = [
     "Immediate",
@@ -120,7 +172,6 @@ function Editflow() {
     "12 hours",
     "24 hours",
   ];
-  
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("/workflowlist");
@@ -131,6 +182,65 @@ function Editflow() {
     "Service number",
     "Order id",
   ];
+
+  const updateVariableSetting = (variable, field, value) => {
+    setVariableSettings(prev => ({
+      ...prev,
+      [variable]: {
+        ...prev[variable],
+        [field]: value
+      }
+    }));
+  };
+
+  const renderVariableRow = (variable, section) => (
+    <div key={`${section}-${variable}`} className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px]">
+      {/* Variable Label */}
+      <span className="text-[#333333] text-[14px] w-full sm:w-36">
+        {`{{${variable}}}`}
+      </span>
+
+      {/* Dropdown */}
+      <Listbox 
+        value={variableSettings[variable]?.dropdown || "Name"} 
+        onChange={(value) => updateVariableSetting(variable, 'dropdown', value)}
+      >
+        <div className="relative w-full sm:w-48">
+          <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+            {variableSettings[variable]?.dropdown || "Name"}
+            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+              <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
+            </span>
+          </Listbox.Button>
+
+          <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+            {dropdownOptions.map((option, idx) => (
+              <Listbox.Option
+                key={idx}
+                className={({ active }) =>
+                  `cursor-default select-none py-2 pl-4 pr-4 ${
+                    active ? "bg-gray-100" : ""
+                  }`
+                }
+                value={option}
+              >
+                {option}
+              </Listbox.Option>
+            ))}
+          </Listbox.Options>
+        </div>
+      </Listbox>
+
+      {/* Fallback Input */}
+      <input
+        type="text"
+        placeholder="Fallback value"
+        value={variableSettings[variable]?.fallback || ""}
+        onChange={(e) => updateVariableSetting(variable, 'fallback', e.target.value)}
+        className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
+      />
+    </div>
+  );
 
   return (
     <>
@@ -165,7 +275,7 @@ function Editflow() {
               {/* Form Section */}
               <div className="md:w-full lg:w-2/3 mx-[10px] md:mx-[32px] mt-[24px]">
                 <div className="flex flex-col md:flex-row gap-[24px]">
-                  {/* Custom Event */}
+                  {/* Delay Dropdown */}
                   <div className="flex-1">
                     <label className="block text-[12px] text-[#555555] mb-[4px]">
                       Delay
@@ -197,7 +307,7 @@ function Editflow() {
                     </Listbox>
                   </div>
 
-                  {/* WhatsApp Template */}
+                  {/* Template Dropdown */}
                   <div className="flex-1">
                     <label className="block text-[12px] text-[#555555] mb-[4px]">
                       Select WhatsApp template
@@ -209,7 +319,6 @@ function Editflow() {
                       <div className="relative">
                         <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                           {selectedTemplate || "Select a template"}
-                          
                           <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                             <FiChevronDown className="h-5 w-5 text-gray-400" />
                           </span>
@@ -234,7 +343,7 @@ function Editflow() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
+                {/* Template Variables Section */}
                 <div className="flex mt-[32px]">
                   <div className="w-full">
                     <h2 className="text-[16px] font-semibold text-[#333333] mb-[20px]">
@@ -242,7 +351,7 @@ function Editflow() {
                     </h2>
 
                     {/* Tabs */}
-                    <div className="flex space-x-[32px] ">
+                    <div className="flex space-x-[32px]">
                       <button
                         onClick={() => setActivePart("template")}
                         className={`text-[14px] text-[#343E55] cursor-pointer font-medium pb-[4px] ${
@@ -268,195 +377,50 @@ function Editflow() {
                     {/* Template Variables Tab */}
                     {activePart === "template" && (
                       <div className="mt-[20px]">
-                    {/* Header */}
-                    <div className="mb-[24px]">
-                      <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
-                        Header
-                      </h3>
-
-                      <div className="flex flex-wrap items-center gap-3 sm:gap-[20px]">
-                        {/* Label */}
-                        <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                          {"{{Value}}"}
-                        </span>
-
-                        {/* Dropdown */}
-                        <Listbox value={activeselect1} onChange={setActiveselect1}>
-                          <div className="relative w-full sm:w-48">
-                            <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                              {activeselect1 || "Select a template"}
-                              <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
-                                <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
-                              </span>
-                            </Listbox.Button>
-
-                            <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                              {dropdownOptions.map((option, idx) => (
-                                <Listbox.Option
-                                  key={idx}
-                                  className={({ active }) =>
-                                    `cursor-default select-none py-2 pl-4 pr-4 ${
-                                      active ? "bg-gray-100" : ""
-                                    }`
-                                  }
-                                  value={option}
-                                >
-                                  {option}
-                                </Listbox.Option>
-                              ))}
-                            </Listbox.Options>
+                        {/* Header Variables */}
+                        {templateVariables.header.length > 0 && (
+                          <div className="mb-[24px]">
+                            <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
+                              Header
+                            </h3>
+                            {templateVariables.header.map((variable) => 
+                              renderVariableRow(variable, 'header')
+                            )}
                           </div>
-                        </Listbox>
-
-                        {/* Input */}
-                        <input
-                          type="text"
-                          placeholder="Fallback value"
-                          className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-                        />
-                      </div>
-                    </div>
+                        )}
 
                         {/* Body Variables */}
-                        <div>
-                          <h3 className="text-[14px] font-semibold text-[#999999] mb-[6px] ">
-                            Body variables
-                          </h3>
-
-                          <div className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px] overflow-visible">
-                            {/* Label */}
-                            <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                              {"{{Shopify_name}}"}
-                            </span>
-
-                            {/* Dropdown */}
-                            <Listbox value={activeselect2} onChange={setActiveselect2}>
-                              <div className="relative w-full sm:w-48">
-                                <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                                  {activeselect2 || "Select a template"}
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
-                                    <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
-                                  </span>
-                                </Listbox.Button>
-
-                                <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                                  {dropdownOptions.map((option, idx) => (
-                                    <Listbox.Option
-                                      key={idx}
-                                      className={({ active }) =>
-                                        `cursor-default select-none py-2 pl-4 pr-4 ${
-                                          active ? "bg-gray-100" : ""
-                                        }`
-                                      }
-                                      value={option}
-                                    >
-                                      {option}
-                                    </Listbox.Option>
-                                  ))}
-                                </Listbox.Options>
-                              </div>
-                            </Listbox>
-
-                            {/* Input */}
-                            <input
-                              type="text"
-                              placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-                            />
+                        {templateVariables.body.length > 0 && (
+                          <div className="mb-[24px]">
+                            <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
+                              Body variables
+                            </h3>
+                            {templateVariables.body.map((variable) => 
+                              renderVariableRow(variable, 'body')
+                            )}
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 mb-[16px] sm:gap-[20px] overflow-visible">
-                            {/* Label */}
-                            <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                              {"{{Shopify_orderid}}"}
-                            </span>
+                        )}
 
-                            {/* Dropdown */}
-                            <Listbox value={activeselect3} onChange={setActiveselect3}>
-                              <div className="relative w-full sm:w-48 " ref={selectRef}>
-                                <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                                  {activeselect3 || "Select a template"}
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
-                                    <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
-                                  </span>
-                                </Listbox.Button>
-
-                                <Listbox.Options  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50
-                                    ${openUp ? "bottom-full mb-1" : "top-full mt-1"}`}
-                                  style={{
-                                    maxHeight: "200px",
-                                  }}
-                                >
-                                  {dropdownOptions.map((option, idx) => (
-                                    <Listbox.Option
-                                      key={idx}
-                                      className={({ active }) =>
-                                        `cursor-default select-none py-2 pl-4 pr-4 ${
-                                          active ? "bg-gray-100" : ""
-                                        }`
-                                      }
-                                      value={option}
-                                    >
-                                      {option}
-                                    </Listbox.Option>
-                                  ))}
-                                </Listbox.Options>
-                              </div>
-                            </Listbox>
-
-                            {/* Input */}
-                            <input
-                              type="text"
-                              placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-                            />
+                        {/* Button Variables */}
+                        {templateVariables.buttons.length > 0 && (
+                          <div className="mb-[24px]">
+                            <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
+                              Button
+                            </h3>
+                            {templateVariables.buttons.map((variable) => 
+                              renderVariableRow(variable, 'buttons')
+                            )}
                           </div>
-                          <div className="flex flex-wrap items-center gap-3 mb-[16px] sm:gap-[20px] overflow-visible">
-                            {/* Label */}
-                            <span className="text-[#333333] text-[14px] w-full sm:w-36">
-                              {"{{Shopify_value}}"}
-                            </span>
+                        )}
 
-                            {/* Dropdown */}
-                            <Listbox value={activeselect4} onChange={setActiveselect4}>
-                              <div className="relative w-full sm:w-48 " ref={selectRef}>
-                                <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                                  {activeselect4 || "Select a template"}
-                                  <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
-                                    <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
-                                  </span>
-                                </Listbox.Button>
-
-                                <Listbox.Options  className={`absolute w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50
-                                    ${openUp ? "bottom-full mb-1" : "md:top-full md:mt-1"}`}
-                                  style={{
-                                    maxHeight: "200px",
-                                  }}
-                                >
-                                  {dropdownOptions.map((option, idx) => (
-                                    <Listbox.Option
-                                      key={idx}
-                                      className={({ active }) =>
-                                        `cursor-default select-none py-2 pl-4 pr-4 ${
-                                          active ? "bg-gray-100" : ""
-                                        }`
-                                      }
-                                      value={option}
-                                    >
-                                      {option}
-                                    </Listbox.Option>
-                                  ))}
-                                </Listbox.Options>
-                              </div>
-                            </Listbox>
-
-                            {/* Input */}
-                            <input
-                              type="text"
-                              placeholder="Fallback value"
-                              className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-                            />
+                        {/* No Variables Message */}
+                        {templateVariables.header.length === 0 && 
+                         templateVariables.body.length === 0 && 
+                         templateVariables.buttons.length === 0 && (
+                          <div className="text-center py-[40px] text-[#999999]">
+                            <p>No template variables found in the selected template.</p>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
 
@@ -464,7 +428,7 @@ function Editflow() {
                     {activePart === "media" && (
                       <div className="mt-[20px]">
                         <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[32px] text-center text-gray-500">
-                          <button className="px-[24px] mb-[8px] py-[10px] text-[#343E55] text-[14px] font-semibold bg-[#FFFFFF] border border-[#E4E4E4] rounded-[4px] ">
+                          <button className="px-[24px] mb-[8px] py-[10px] text-[#343E55] text-[14px] font-semibold bg-[#FFFFFF] border border-[#E4E4E4] rounded-[4px]">
                             Upload from device
                           </button>
                           <p className="text-[12px] text-[#555555] mb-[6px]">
@@ -477,11 +441,12 @@ function Editflow() {
                       </div>
                     )}
 
-                    {/* Buttons */}
+                    {/* Action Buttons */}
                     <div className="flex justify-end space-x-[16px] mt-[32px] mb-[20px]">
                       <button
-                      onClick={() => router.push("/workflowlist")} 
-                      className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100">
+                        onClick={() => router.push("/workflowlist")} 
+                        className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
+                      >
                         Cancel
                       </button>
                       <button className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]">
@@ -491,6 +456,7 @@ function Editflow() {
                   </div>
                 </div>
               </div>
+
               {/* Chat Preview */}
               <div className="flex justify-center items-center flex-grow bg-[#E8F1FC] min-h-[83.65vh]">
                 <div className="h-[571px] w-[317px] my-[20px] mx-[32px] flex-shrink-0 rounded-[20px] overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
@@ -501,7 +467,7 @@ function Editflow() {
                       alt="back btn"
                       height={100}
                       width={100}
-                      className="max-h-[14px] max-w-[14px] invert brightness-200 mr-[10px] cursor-pointer "
+                      className="max-h-[14px] max-w-[14px] invert brightness-200 mr-[10px] cursor-pointer"
                     />
                     <Image
                       src="/assets/wp_icon.svg"
@@ -526,30 +492,90 @@ function Editflow() {
 
                   {/* Chat Body */}
                   <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat px-[15px] pt-[15px] overflow-y-auto no-scrollbar">
-                    
-                    <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px]  text-[#1A1A1A]">
-                      {templateMessage.split('\n').map((line, idx) => (
-                            <p key={idx} style={{ 
-                              fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif',
-                              lineHeight: '1.4'
-                            }}>
-                              {line}
-                              <br />
-                            </p>
-                       ))}
-                    </div>
-                      {/* Timestamp */}
-                      <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
+                    <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px] text-[#1A1A1A] space-y-3">
 
-                        {/* Link Button */}
-                        <div className="text-center bg-white py-[10px] border-t border-[#E9E9E9]">
-                          <button className="text-[#4275D6] text-[14px] font-medium ">
-                            🔗 Track your order
-                          </button>
-                        </div>
+                      {/* Header Media/Text */}
+                      {allTemplatesData.length > 0 && selectedTemplate && (() => {
+                        const template = allTemplatesData.find(
+                          (t) => t.template_name === selectedTemplate
+                        );
+
+                        const headerBlock = template?.data?.[0]?.content?.find(
+                          (block) => block.type === "HEADER"
+                        );
+
+                        if (!headerBlock) return null;
+
+                        if (headerBlock.format === "MEDIA" && headerBlock.media_id) {
+                          return (
+                            <Image
+                              src={`/api/media/${headerBlock.media_id}`} // Adjust API if needed
+                                alt="Header"
+                                width={200}
+                                height={200}
+                                className="rounded-[6px] mx-auto"
+                              />
+                            );
+                          }
+
+                          // If header is TEXT → show text
+                          if (headerBlock.format === "TEXT" && headerBlock.text) {
+                            return (
+                              <p className="font-semibold  mb-2">
+                                {headerBlock.text}
+                              </p>
+                            );
+                          }
+
+                          return null;
+                        })()}
+
+
+                        {/* Body Text */}
+                        {templateMessage && (
+                          <div>
+                            {templateMessage.split('\n').map((line, idx) => (
+                              <p key={idx} style={{ 
+                                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif',
+                                lineHeight: '1.4'
+                              }}>
+                                {line}
+                                <br />
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
                         
 
-                  </div>
+                        {/* Button */}
+                        <div className="">
+                          {allTemplatesData.length > 0 && selectedTemplate && (() => {
+                            const template = allTemplatesData.find(t => t.template_name === selectedTemplate);
+                            const buttonBlock = template?.data?.[0]?.content?.find(block => block.type === "BUTTONS");
+
+                            if (buttonBlock && buttonBlock.buttons?.length > 0) {
+                              return (
+                                <div className="text-center">
+                                  {buttonBlock.buttons.map((btn, idx) => (
+                                    <button
+                                      key={idx}
+                                      className="text-[#4275D6] w-full border-t border-[#E9E9E9]  text-[14px] font-medium px-4 py-3 "
+                                    >
+                                    {btn.text || "Click here"}
+                                    </button>
+                                  ))}
+                                </div>
+                              );
+                            }
+
+                            return null;
+                          })()}
+                        </div>
+
+                      </div>
+                    </div>
 
                   {/* Chat Input */}
                   <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px] ">

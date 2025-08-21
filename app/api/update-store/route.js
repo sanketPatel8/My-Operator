@@ -67,7 +67,6 @@ export async function POST(req) {
     });
 
     console.log("whole response:::", response);
-    
 
     if (!response.ok) {
       await connection.end();
@@ -85,6 +84,18 @@ export async function POST(req) {
     const seenTemplates = new Set();
     let insertedTemplateCount = 0;
     let insertedTemplateDataCount = 0;
+
+    // Helper function to extract variables from text
+    function extractVariables(text) {
+      if (!text) return [];
+      const regex = /\{\{([^}]+)\}\}/g;
+      const variables = [];
+      let match;
+      while ((match = regex.exec(text)) !== null) {
+        variables.push(match[1].trim());
+      }
+      return variables;
+    }
 
     for (const template of templates) {
       const { name: template_name, category, components } = template;
@@ -110,7 +121,6 @@ export async function POST(req) {
         const content = JSON.stringify(components);
 
         console.log("content whole:::", content);
-        
 
         const [templateDataInsertResult] = await connection.execute(
           `INSERT INTO template_data (template_id, content, created_at, updated_at)
@@ -121,22 +131,101 @@ export async function POST(req) {
         insertedTemplateDataCount++;
         const templateDataId = templateDataInsertResult.insertId;
 
-        // Insert into template_variable
-        // Insert into template_variable
-// Insert every component as-is into template_variable
-for (const component of components) {
-  const { type } = component;
+        // Extract and insert variables by component type
+        for (const component of components) {
+          const { type, format } = component;
 
-  if (!type) continue;
+          if (!type) continue;
 
-  await connection.execute(
-    `INSERT INTO template_variable (template_data_id, type, value, created_at, updated_at)
-     VALUES (?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-    [templateDataId, type, JSON.stringify(component)]
-  );
-}
+          let variables = [];
 
+          // Extract variables based on component type
+          switch (type) {
+            case 'HEADER':
+              if (format === 'TEXT' && component.text) {
+                variables = extractVariables(component.text);
+              } else if (format === 'MEDIA') {
+                // For media headers, we might not have text variables
+                // but we store the component info
+                variables = [];
+              }
+              break;
 
+            case 'BODY':
+              if (component.text) {
+                variables = extractVariables(component.text);
+              }
+              break;
+
+            case 'BUTTONS':
+              if (component.buttons && Array.isArray(component.buttons)) {
+                // Extract variables from button text
+                component.buttons.forEach(button => {
+                  if (button.text) {
+                    variables.push(button.text);
+                  }
+                });
+              }
+              break;
+
+            default:
+              // Handle other types if needed
+              if (component.text) {
+                variables = extractVariables(component.text);
+              }
+              break;
+          }
+
+          // 1. Insert individual variables for mapping UI
+          for (const variable of variables) {
+            await connection.execute(
+              `INSERT INTO template_variable (
+                template_data_id, 
+                type, 
+                value, 
+                variable_name, 
+                component_type, 
+                mapping_field, 
+                fallback_value, 
+                created_at, 
+                updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+              [
+                templateDataId, 
+                type,                    // Component type (HEADER, BODY, BUTTONS)
+                null,                    // No JSON value for individual variables
+                variable,                // Variable name extracted from {{variable}}
+                type,                    // Same as type
+                null,                    // Will be set by user later
+                null,                    // Will be set by user later
+              ]
+            );
+          }
+
+          // 2. Store the full component data for reference (CORRECTED)
+          await connection.execute(
+            `INSERT INTO template_variable (
+              template_data_id, 
+              type, 
+              value, 
+              variable_name, 
+              component_type, 
+              mapping_field, 
+              fallback_value, 
+              created_at, 
+              updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+            [
+              templateDataId, 
+              `${type}_COMPONENT`,     // Type like "HEADER_COMPONENT"
+              JSON.stringify(component), // Full component JSON
+              null,                    // No variable name for component data
+              type,                    // Original component type
+              null,                    // Not applicable for component data
+              null,                    // Not applicable for component data
+            ]
+          );
+        }
       }
     }
 
