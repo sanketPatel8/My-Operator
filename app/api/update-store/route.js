@@ -192,10 +192,10 @@ export async function POST(req) {
               ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
               [
                 templateDataId, 
-                type,                    // Component type (HEADER, BODY, BUTTONS)
-                null,                    // No JSON value for individual variables
-                variable,                // Variable name extracted from {{variable}}
-                type,                    // Same as type
+                type,                    
+                null,                
+                variable,                
+                type,                    
                 null,                    // Will be set by user later
                 null,                    // Will be set by user later
               ]
@@ -217,12 +217,12 @@ export async function POST(req) {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
             [
               templateDataId, 
-              `${type}_COMPONENT`,     // Type like "HEADER_COMPONENT"
-              JSON.stringify(component), // Full component JSON
-              null,                    // No variable name for component data
-              type,                    // Original component type
-              null,                    // Not applicable for component data
-              null,                    // Not applicable for component data
+              `${type}_COMPONENT`,     
+              JSON.stringify(component), 
+              null,                    
+              type,                   
+              null,                    
+              null,                    
             ]
           );
         }

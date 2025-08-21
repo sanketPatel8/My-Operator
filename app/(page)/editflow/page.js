@@ -438,15 +438,13 @@ function Editflow() {
 
                           if (headerBlock?.format === "MEDIA") {
                             return (
-                              <div className="mb-[24px]">
-                                <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
-                                  Header Media
-                                </h3>
+                              <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[32px] text-center text-gray-500">
+                                
                                 <Image
                                   src={`/api/media/${headerBlock.media_id}`}
                                   alt="Header Media"
-                                  width={200}
-                                  height={200}
+                                  width={57}
+                                  height={53}
                                   className="rounded-[6px] mx-auto mb-4"
                                 />
                               </div>
