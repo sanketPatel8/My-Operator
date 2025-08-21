@@ -427,17 +427,46 @@ function Editflow() {
                     {/* Media Tab */}
                     {activePart === "media" && (
                       <div className="mt-[20px]">
-                        <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[32px] text-center text-gray-500">
-                          <button className="px-[24px] mb-[8px] py-[10px] text-[#343E55] text-[14px] font-semibold bg-[#FFFFFF] border border-[#E4E4E4] rounded-[4px]">
-                            Upload from device
-                          </button>
-                          <p className="text-[12px] text-[#555555] mb-[6px]">
-                            Or drag and drop file here
-                          </p>
-                          <p className="text-[12px] text-[#999999]">
-                            Supported file types: .JPG, .JPEG, .PNG within 5MB
-                          </p>
-                        </div>
+                        {/* Check if selectedTemplate has a media header */}
+                        {(() => {
+                          const template = allTemplatesData.find(
+                            (t) => t.template_name === selectedTemplate
+                          );
+                          const headerBlock = template?.data?.[0]?.content?.find(
+                            (block) => block.type === "HEADER"
+                          );
+
+                          if (headerBlock?.format === "MEDIA") {
+                            return (
+                              <div className="mb-[24px]">
+                                <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
+                                  Header Media
+                                </h3>
+                                <Image
+                                  src={`/api/media/${headerBlock.media_id}`}
+                                  alt="Header Media"
+                                  width={200}
+                                  height={200}
+                                  className="rounded-[6px] mx-auto mb-4"
+                                />
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[32px] text-center text-gray-500">
+                              <button className="px-[24px] mb-[8px] py-[10px] text-[#343E55] text-[14px] font-semibold bg-[#FFFFFF] border border-[#E4E4E4] rounded-[4px]">
+                                Upload from device
+                              </button>
+                              <p className="text-[12px] text-[#555555] mb-[6px]">
+                                Or drag and drop file here
+                              </p>
+                              <p className="text-[12px] text-[#999999]">
+                                Supported file types: .JPG, .JPEG, .PNG within 5MB
+                              </p>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
 
