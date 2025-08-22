@@ -23,55 +23,42 @@ export default function WorkflowList() {
   useEffect(() => {
     if (workflowsFetched.current) return;
 
-    const initializeWorkflows = async () => {
-      try {
-        // First, try to fetch existing workflows
-        const existingRes = await fetch('/api/category');
-        
-        if (!existingRes.ok) {
-          throw new Error(`Failed to fetch categories: ${existingRes.status}`);
-        }
-        
-        const existingData = await existingRes.json();
+   const initializeWorkflows = async () => {
+  try {
+    // ✅ Always POST first to sync/update categories
+    const initRes = await fetch('/api/category', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-        if (existingData.success && existingData.categories.length > 0) {
-          // Workflows already exist, use them
-          setWorkflows(existingData.categories);
-          workflowsFetched.current = true;
-        } else {
-          // No workflows exist, initialize them
-          const initRes = await fetch('/api/category', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+    if (!initRes.ok) {
+      throw new Error(`Failed to initialize workflows: ${initRes.status}`);
+    }
 
-          if (!initRes.ok) {
-            throw new Error(`Failed to initialize workflows: ${initRes.status}`);
-          }
+    // ✅ Then fetch the updated workflows
+    const updatedRes = await fetch('/api/category');
+    if (!updatedRes.ok) {
+      throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+    }
 
-          // Fetch the newly created workflows
-          const newRes = await fetch('/api/category');
-          
-          if (!newRes.ok) {
-            throw new Error(`Failed to fetch new categories: ${newRes.status}`);
-          }
-          
-          const newData = await newRes.json();
-          
-          if (newData.success) {
-            setWorkflows(newData.categories);
-            workflowsFetched.current = true;
-          }
-        }
-      } catch (err) {
-        console.error("Error with workflows:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const updatedData = await updatedRes.json();
+
+    console.log("✅ updated fulllllllll::::::::", updatedData);
+
+    if (updatedData.success) {
+      setWorkflows(updatedData.categories);
+      workflowsFetched.current = true;
+    }
+  } catch (err) {
+    console.error("❌ Error with workflows:", err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
     initializeWorkflows();
   }, []);
