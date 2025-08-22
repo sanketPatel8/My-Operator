@@ -144,18 +144,21 @@ useClickOutside({ current: menuRefs.current[openMenuId] }, () => {
         <div className="space-y-[6px]">
           <p className="text-[14px] font-semibold text-[#1A1A1A]">{reminder.title}</p>
           <p className="text-[14px] text-[#A0A1A1]">{reminder.text}</p>
-          <p className="text-[14px] text-[#A0A1A1] flex items-center gap-[6px]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-[14px] h-[14px]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="#999999"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2m-4-10a9 9 0 110 18 9 9 0 010-18z" />
-            </svg>
-            {reminder.footerText}
-          </p>
+          {reminder.footerText && (
+            <p className="text-[14px] text-[#A0A1A1] flex items-center gap-[6px]">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-[14px] h-[14px]"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="#999999"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2m-4-10a9 9 0 110 18 9 9 0 010-18z" />
+              </svg>
+              {reminder.footerText}
+            </p>
+          )}
+
         </div>
       </div>
 

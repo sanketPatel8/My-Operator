@@ -23,37 +23,7 @@ export async function POST(req) {
       return new Response(JSON.stringify({ message: 'No matching store found' }), { status: 404 });
     }
 
-    // 2. Clear old templates and their template_data + template_variable
-    const [existingTemplates] = await connection.execute(
-      `SELECT template_id FROM template WHERE store_id = ?`, [id]
-    );
-
-    const templateIds = existingTemplates.map(row => row.template_id);
-
-    if (templateIds.length > 0) {
-      const [templateDataRows] = await connection.execute(
-        `SELECT template_data_id FROM template_data WHERE template_id IN (${templateIds.map(() => '?').join(',')})`,
-        templateIds
-      );
-
-      const templateDataIds = templateDataRows.map(row => row.template_data_id);
-
-      if (templateDataIds.length > 0) {
-        await connection.execute(
-          `DELETE FROM template_variable WHERE template_data_id IN (${templateDataIds.map(() => '?').join(',')})`,
-          templateDataIds
-        );
-      }
-
-      await connection.execute(
-        `DELETE FROM template_data WHERE template_id IN (${templateIds.map(() => '?').join(',')})`,
-        templateIds
-      );
-    }
-
-    await connection.execute(`DELETE FROM template WHERE store_id = ?`, [id]);
-
-    // 3. Fetch from API
+    // 2. Fetch from API
     const templateApiUrl = `https://publicapi.myoperator.co/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
 
     const response = await fetch(templateApiUrl, {
@@ -84,6 +54,8 @@ export async function POST(req) {
     const seenTemplates = new Set();
     let insertedTemplateCount = 0;
     let insertedTemplateDataCount = 0;
+    let updatedTemplateVariableCount = 0;
+    let insertedTemplateVariableCount = 0;
 
     // Helper function to extract variables from text
     function extractVariables(text) {
@@ -102,36 +74,75 @@ export async function POST(req) {
 
       if (!template_name || !category) continue;
 
-      const uniqueKey = `${category}::${template_name}`;
+      // Check if template already exists for this store and phone number
+      const uniqueKey = `${category}::${template_name}::${phonenumber}`;
       if (seenTemplates.has(uniqueKey)) continue;
       seenTemplates.add(uniqueKey);
 
-      // Insert into template
-      const [templateInsertResult] = await connection.execute(
-        `INSERT INTO template (store_id, category, template_name, created_at, updated_at)
-         VALUES (?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-        [id, category, template_name]
+      // Check if template already exists in database for this store and phone number
+      const [existingTemplate] = await connection.execute(
+        `SELECT template_id FROM template WHERE store_id = ? AND category = ? AND template_name = ? AND phonenumber = ?`,
+        [id, category, template_name, phonenumber]
       );
 
-      const templateId = templateInsertResult.insertId;
-      insertedTemplateCount++;
+      let templateId;
 
-      // Insert into template_data
+      if (existingTemplate.length > 0) {
+        // Template exists, use existing ID
+        templateId = existingTemplate[0].template_id;
+        
+        // Update timestamp
+        await connection.execute(
+          `UPDATE template SET updated_at = CURRENT_TIMESTAMP() WHERE template_id = ?`,
+          [templateId]
+        );
+      } else {
+        // Insert new template with phone number
+        const [templateInsertResult] = await connection.execute(
+          `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at)
+           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+          [id, category, template_name, phonenumber]
+        );
+
+        templateId = templateInsertResult.insertId;
+        insertedTemplateCount++;
+      }
+
+      // Handle template_data
       if (Array.isArray(components)) {
         const content = JSON.stringify(components);
 
         console.log("content whole:::", content);
 
-        const [templateDataInsertResult] = await connection.execute(
-          `INSERT INTO template_data (template_id, content, created_at, updated_at)
-           VALUES (?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-          [templateId, content]
+        // Check if template_data already exists
+        const [existingTemplateData] = await connection.execute(
+          `SELECT template_data_id FROM template_data WHERE template_id = ?`,
+          [templateId]
         );
 
-        insertedTemplateDataCount++;
-        const templateDataId = templateDataInsertResult.insertId;
+        let templateDataId;
 
-        // Extract and insert variables by component type
+        if (existingTemplateData.length > 0) {
+          // Update existing template_data
+          templateDataId = existingTemplateData[0].template_data_id;
+          
+          await connection.execute(
+            `UPDATE template_data SET content = ?, updated_at = CURRENT_TIMESTAMP() WHERE template_data_id = ?`,
+            [content, templateDataId]
+          );
+        } else {
+          // Insert new template_data
+          const [templateDataInsertResult] = await connection.execute(
+            `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at)
+             VALUES (?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+            [templateId, content, phonenumber]
+          );
+
+          templateDataId = templateDataInsertResult.insertId;
+          insertedTemplateDataCount++;
+        }
+
+        // Extract and handle variables by component type
         for (const component of components) {
           const { type, format } = component;
 
@@ -145,8 +156,6 @@ export async function POST(req) {
               if (format === 'TEXT' && component.text) {
                 variables = extractVariables(component.text);
               } else if (format === 'MEDIA') {
-                // For media headers, we might not have text variables
-                // but we store the component info
                 variables = [];
               }
               break;
@@ -159,7 +168,6 @@ export async function POST(req) {
 
             case 'BUTTONS':
               if (component.buttons && Array.isArray(component.buttons)) {
-                // Extract variables from button text
                 component.buttons.forEach(button => {
                   if (button.text) {
                     variables.push(button.text);
@@ -169,15 +177,83 @@ export async function POST(req) {
               break;
 
             default:
-              // Handle other types if needed
               if (component.text) {
                 variables = extractVariables(component.text);
               }
               break;
           }
 
-          // 1. Insert individual variables for mapping UI
+          // Handle individual variables for mapping UI
           for (const variable of variables) {
+            // Check if variable already exists
+            const [existingVariable] = await connection.execute(
+              `SELECT template_variable_id, mapping_field, fallback_value FROM template_variable 
+               WHERE template_data_id = ? AND variable_name = ? AND component_type = ?`,
+              [templateDataId, variable, type]
+            );
+
+            if (existingVariable.length > 0) {
+              // Variable exists, update only if mapping_field and fallback_value are not set
+              const existing = existingVariable[0];
+              if (!existing.mapping_field && !existing.fallback_value) {
+                await connection.execute(
+                  `UPDATE template_variable SET updated_at = CURRENT_TIMESTAMP() WHERE template_variable_id = ?`,
+                  [existing.template_variable_id]
+                );
+                updatedTemplateVariableCount++;
+              }
+            } else {
+              // Insert new variable
+              await connection.execute(
+                `INSERT INTO template_variable (
+                  template_data_id, 
+                  type, 
+                  value, 
+                  variable_name, 
+                  component_type, 
+                  mapping_field, 
+                  fallback_value,
+                  phonenumber,
+                  created_at, 
+                  updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+                [
+                  templateDataId, 
+                  type,                    
+                  null,                
+                  variable,                
+                  type,                    
+                  null,                    
+                  null,
+                  phonenumber
+                ]
+              );
+              insertedTemplateVariableCount++;
+            }
+          }
+
+          // Handle full component data for reference
+          const componentType = `${type}_COMPONENT`;
+          
+          // Check if component already exists
+          const [existingComponent] = await connection.execute(
+            `SELECT template_variable_id FROM template_variable 
+             WHERE template_data_id = ? AND type = ?`,
+            [templateDataId, componentType]
+          );
+
+          if (existingComponent.length > 0) {
+            // Update existing component
+            await connection.execute(
+              `UPDATE template_variable SET 
+               value = ?, 
+               updated_at = CURRENT_TIMESTAMP() 
+               WHERE template_variable_id = ?`,
+              [JSON.stringify(component), existingComponent[0].template_variable_id]
+            );
+            updatedTemplateVariableCount++;
+          } else {
+            // Insert new component
             await connection.execute(
               `INSERT INTO template_variable (
                 template_data_id, 
@@ -186,45 +262,24 @@ export async function POST(req) {
                 variable_name, 
                 component_type, 
                 mapping_field, 
-                fallback_value, 
+                fallback_value,
+                phonenumber,
                 created_at, 
                 updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
               [
                 templateDataId, 
-                type,                    
-                null,                
-                variable,                
-                type,                    
-                null,                    // Will be set by user later
-                null,                    // Will be set by user later
+                componentType,     
+                JSON.stringify(component), 
+                null,                    
+                type,                   
+                null,                    
+                null,
+                phonenumber
               ]
             );
+            insertedTemplateVariableCount++;
           }
-
-          // 2. Store the full component data for reference (CORRECTED)
-          await connection.execute(
-            `INSERT INTO template_variable (
-              template_data_id, 
-              type, 
-              value, 
-              variable_name, 
-              component_type, 
-              mapping_field, 
-              fallback_value, 
-              created_at, 
-              updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-            [
-              templateDataId, 
-              `${type}_COMPONENT`,     
-              JSON.stringify(component), 
-              null,                    
-              type,                   
-              null,                    
-              null,                    
-            ]
-          );
         }
       }
     }
@@ -232,9 +287,12 @@ export async function POST(req) {
     await connection.end();
 
     return new Response(JSON.stringify({
-      message: 'Store, templates and template_data updated successfully',
+      message: 'Store and templates updated successfully',
       templateCount: insertedTemplateCount,
       templateDataCount: insertedTemplateDataCount,
+      insertedVariableCount: insertedTemplateVariableCount,
+      updatedVariableCount: updatedTemplateVariableCount,
+      phonenumber: phonenumber
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

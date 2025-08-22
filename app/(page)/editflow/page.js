@@ -45,22 +45,32 @@ function Editflow() {
     return variables;
   };
 
-  async function fetchTemplateOptions(storeId) {
-    try {
-      const response = await fetch(`/api/template-data?store_id=${storeId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch template options');
-      }
+  
+async function fetchTemplateOptions(storeId) {
+  try {
+    const response = await fetch(`/api/template-data?store_id=${storeId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch template options');
+    }
 
-      const templates = await response.json();
-      const templateOptions = templates.map(template => template.template_name);
-
-      return templateOptions;
-    } catch (error) {
-      console.error('Error fetching template options:', error);
+    const data = await response.json();
+    
+    // Access the templates array from the response object
+    const templates = data.templates;
+    
+    // Check if templates is an array before mapping
+    if (!Array.isArray(templates)) {
+      console.error('Templates is not an array:', templates);
       return [];
     }
+    
+    const templateOptions = templates.map(template => template.template_name);
+    return templateOptions;
+  } catch (error) {
+    console.error('Error fetching template options:', error);
+    return [];
   }
+}
 
   useEffect(() => {
     const storeId = '11'; 
@@ -70,7 +80,8 @@ function Editflow() {
   async function fetchTemplateData(storeId) {
     const res = await fetch(`/api/template-data?store_id=${storeId}`);
     if (!res.ok) throw new Error('Failed to fetch template');
-    const data = await res.json();
+    const templates = await res.json();
+    const data = templates.templates;
     return data;
   }
 
