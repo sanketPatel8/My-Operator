@@ -69,7 +69,7 @@ function Editflow() {
     loadTemplate();
   }, []);
 
-  useEffect(() => {
+  
     
 
     const initializeWorkflows = async () => {
@@ -124,8 +124,8 @@ function Editflow() {
       }
     };
 
-    initializeWorkflows();
-  }, []);
+
+
 
   // Extract variables from text using regex
   const extractVariables = (text) => {
