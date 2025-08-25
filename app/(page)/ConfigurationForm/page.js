@@ -10,7 +10,7 @@ import { useToastContext } from "@/component/Toast"; // Import the toast hook
 
 function ConfigurationForm({ searchParams }) {
   // Get shop from URL params
-  const shop = searchParams?.shop || "default-store";
+  const shop = "sanket-store01.myshopify.com";
 
   
   const [edit, setEdit] = useState(false);

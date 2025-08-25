@@ -2,7 +2,19 @@
 import { NextResponse } from 'next/server';
 
 export async function GET(request) {
-  const apiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/phonenumbers?limit=10&offset=0&expand=waba_account`;
+
+  const baseUrl = process.env.NEXT_PUBLIC_BASEURL;
+if (!baseUrl) {
+  console.error('Environment variable NEXT_PUBLIC_BASEURL is not defined');
+  return NextResponse.json(
+    { message: 'Server configuration error', error: 'Base URL is not set in environment' },
+    { status: 500 }
+  );
+}
+
+
+
+  const apiUrl = `${baseUrl}/chat/phonenumbers?limit=10&offset=0&expand=waba_account`;
   try {
     const response = await fetch(apiUrl, {
       method: 'GET',
