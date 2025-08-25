@@ -192,7 +192,6 @@ useClickOutside({ current: menuRefs.current[openMenuId] }, () => {
           className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:bg-[#F5F5F5] space-x-[8px]"
           onClick={() => {
             onEditFlow(reminder);
-            router.push("/editflow");
             setOpenMenuId(null);
           }}
         >

@@ -1,16 +1,35 @@
 "use client";
 
+import { useRouter, useParams } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import DashboardHeaader from "@/component/DashboardHeaader";
-import React from "react";
-import Sidebar from "../sidebar/page";
-import { useState, useRef, useEffect } from "react";
+import Sidebar from "../../sidebar/page";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
 
 function Editflow() {
-  const [selectedDelay, setSelectedDelay] = useState("1 hour");
+  const router = useRouter();
+  const params = useParams();
+  const category_event_id = params.id;
+  const category_id = "";
+
+
+
+  // Debug: log them
+  useEffect(() => {
+    console.log("URL Parameters:", {
+     
+      category_event_id,
+     
+    });
+
+    
+  }, [category_event_id, router]);
+
+
+
+  const [selectedDelay, setSelectedDelay] = useState( "1 hour");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [activePart, setActivePart] = useState("template");
   const [templateMessage, setTemplateMessage] = useState('');
@@ -24,6 +43,7 @@ function Editflow() {
   const [variableSettings, setVariableSettings] = useState({});
   const [openUp, setOpenUp] = useState(false);
   const selectRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("/workflowlist");
 
   const checkDropdownPosition = () => {
     if (selectRef.current) {
@@ -32,6 +52,64 @@ function Editflow() {
       setOpenUp(spaceBelow < 200);
     }
   };
+
+  useEffect(() => {
+    
+
+    const initializeWorkflows = async () => {
+      try {
+
+        const updatedRes = await fetch('/api/category');
+        if (!updatedRes.ok) {
+          throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+        }
+
+       const updatedData = await updatedRes.json();
+
+      console.log("✅ Updated workflow data:", updatedData);
+
+      // Make sure categories is an array
+      if (!Array.isArray(updatedData?.categories)) {
+        throw new Error("Invalid data: 'categories' is not an array");
+      }
+
+      const categoryData = updatedData.categories.flatMap((category) =>
+        (category.events || []).map((event, index) => ({
+          id: event.category_event_id || index + 1,
+          enabled: false,
+          title: event.title,
+          text: event.subtitle,
+          footerText: event.delay ? `Send after ${event.delay}` : '',
+          category_id: category.category_id ?? null,
+          categoryName: category.categoryName ?? null,
+          category_event_id: event.category_event_id
+        }))
+      );
+
+      console.log("✅ categoryData:", categoryData);
+
+      const matchedEvent = categoryData.find(item => item.category_event_id == params.id);
+
+      // Check and log result
+      if (matchedEvent) {
+        console.log("✅ Matched Event:", matchedEvent);
+      } else {
+        console.log("❌ No event found with category_event_id =", params.id);
+      }
+
+        
+
+
+      } catch (err) {
+        console.error("❌ Error with workflows:", err);
+        setError(err.message);
+      } finally {
+        
+      }
+    };
+
+    initializeWorkflows();
+  }, []);
 
   // Extract variables from text using regex
   const extractVariables = (text) => {
@@ -184,9 +262,6 @@ async function fetchTemplateOptions(storeId) {
     "24 hours",
   ];
 
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState("/workflowlist");
-
   const dropdownOptions = [
     "Name",
     "Phone number",
@@ -202,6 +277,93 @@ async function fetchTemplateOptions(storeId) {
         [field]: value
       }
     }));
+  };
+
+  const handleUpdateWorkflow = async () => {
+    try {
+     
+        const updatedRes = await fetch('/api/category');
+        if (!updatedRes.ok) {
+          throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+        }
+
+       const updatedData = await updatedRes.json();
+
+
+        const categoryData = updatedData.categories.flatMap((category) =>
+          (category.events || []).map((event, index) => ({
+            id: event.category_event_id || index + 1,
+            enabled: false,
+            title: event.title,
+            text: event.subtitle,
+            footerText: event.delay ? `Send after ${event.delay}` : '',
+            category_id: category.category_id ?? null,
+            categoryName: category.categoryName ?? null,
+            category_event_id: event.category_event_id
+          }))
+        );
+
+      console.log("✅ categoryData:", categoryData);
+
+      const matchedEvent = categoryData.find(item => item.category_event_id == params.id);
+
+      // Check and log result
+      if (matchedEvent) {
+        console.log("✅ Matched Event:", matchedEvent);
+      } else {
+        console.log("❌ No event found with category_event_id =", params.id);
+      }
+
+      
+    
+
+      // Validate required IDs before making the API call
+      if (!matchedEvent.category_id || !matchedEvent.category_event_id) {
+        alert("Missing required parameters: category_id or category_event_id");
+        return;
+      }
+
+      // Convert IDs to numbers to ensure they're valid
+      const numericCategoryId = parseInt(matchedEvent.category_id, 10);
+      const numericEventId = parseInt(matchedEvent.category_event_id, 10);
+
+      if (isNaN(numericCategoryId) || isNaN(numericEventId)) {
+        alert("Invalid ID parameters");
+        return;
+      }
+
+      // Prepare the update data with proper numeric IDs
+      const updateData = {
+        category_id: numericCategoryId,
+        category_event_id: numericEventId,
+        delay: selectedDelay,
+        template: selectedTemplate,
+        variableSettings,
+        // Don't update title and subtitle as per requirement
+      };
+
+      console.log("Updating workflow with data:", updateData);
+
+      // Make API call to update the workflow
+      const response = await fetch('/api/category', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert("Workflow updated successfully!");
+        router.push("/workflowlist");
+      } else {
+        throw new Error(result.message || 'Failed to update workflow');
+      }
+      
+    } catch (error) {
+      console.error("Error updating workflow:", error);
+      alert(`Failed to update workflow: ${error.message}`);
+    }
   };
 
   const renderVariableRow = (variable, section) => (
@@ -276,9 +438,12 @@ async function fetchTemplateOptions(storeId) {
                 className="max-h-[24px] max-w-[24px] cursor-pointer"
                 onClick={() => router.push("/workflowlist")}
               />
-              <h2 className="text-[16px] font-semibold text-[#353535]">
-                Edit workflow
-              </h2>
+              <div>
+                <h2 className="text-[16px] font-semibold text-[#353535]">
+                  Edit workflow
+                </h2>
+                
+              </div>
             </div>
 
             {/* Content Section */}
@@ -487,7 +652,10 @@ async function fetchTemplateOptions(storeId) {
                       >
                         Cancel
                       </button>
-                      <button className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]">
+                      <button 
+                        onClick={handleUpdateWorkflow}
+                        className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
+                      >
                         Update workflow
                       </button>
                     </div>

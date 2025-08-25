@@ -213,9 +213,7 @@ function ConfigurationForm({ searchParams }) {
     }
   };
 
-  useEffect(() => {
-    fetchWhatsAppPhoneNumbers();
-  }, []);
+  
 
   // Fetch the stored WhatsApp number from database
   useEffect(() => {
@@ -286,9 +284,10 @@ function ConfigurationForm({ searchParams }) {
       }
     }
     
-    if (whatsappNumbers.length > 0) {
+  
       fetchStored();
-    }
+      setLoading(false);
+    
   }, [shop, whatsappNumbers]);
 
   // Close dropdown on click outside
@@ -368,6 +367,11 @@ function ConfigurationForm({ searchParams }) {
     const { name, value } = e.target;
     setFormData((p) => ({ ...p, [name]: value }));
   };
+
+  const handleEditInfo = () => {
+    fetchWhatsAppPhoneNumbers();
+    setEdit(true);
+  }
 
   if (loading) {
     return (
@@ -608,7 +612,7 @@ function ConfigurationForm({ searchParams }) {
             </>
           ) : (
             <button
-              onClick={() => setEdit(true)}
+              onClick={handleEditInfo}
               className="px-[24px] py-[10px] text-[14px]  font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
             >
               Edit information

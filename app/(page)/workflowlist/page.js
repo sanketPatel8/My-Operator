@@ -10,7 +10,7 @@ export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
 
-  const [templates, setTemplates] = useState([]);
+
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,7 +45,7 @@ export default function WorkflowList() {
 
         const updatedData = await updatedRes.json();
 
-        console.log("✅ updated fulllllllll::::::::", updatedData);
+        console.log("✅ Updated workflow data:", updatedData);
 
         if (updatedData.success) {
           setWorkflows(updatedData.categories);
@@ -59,43 +59,24 @@ export default function WorkflowList() {
       }
     };
 
-
     initializeWorkflows();
   }, []);
 
-  useEffect(() => {
-    if (!storeId || hasFetched.current) return;
-
-    const fetchTemplates = async () => {
-      try {
-        const res = await fetch(`/api/template-data?store_id=${storeId}`);
-
-        if (!res.ok) {
-          throw new Error(`Failed to fetch templates: ${res.status}`);
-        }
-
-        const data = await res.json();
-        setTemplates(data); // data contains templates with nested data and variables
-        hasFetched.current = true;
-      } catch (err) {
-        console.error("Error fetching templates:", err);
-        // Don't set error for templates as it's not critical for workflow display
-      }
-    };
-
-    fetchTemplates();
-  }, [storeId]);
+ 
 
   // Transform workflow data to match DropDown component format
   const transformWorkflowToReminders = (workflow) => {
     if (!workflow || !workflow.events) return [];
     
     return workflow.events.map((event, index) => ({
-      id: event.eventId || index + 1,
+      id: event.category_event_id || index + 1,
       enabled: false, // Default to false as shown in your images
       title: event.title,
       text: event.subtitle,
-      footerText: event.delay ? `Send after ${event.delay}` : ''
+      footerText: event.delay ? `Send after ${event.delay}` : '',
+      category_id: workflow.category_id,
+      categoryName: workflow.categoryName,
+      category_event_id: event.category_event_id
     }));
   };
 
@@ -104,11 +85,11 @@ export default function WorkflowList() {
     
     setWorkflows((prev) =>
       prev.map((workflow) => {
-        if (workflow.categoryId === workflowId) {
+        if (workflow.category_id === workflowId) {
           return {
             ...workflow,
             events: workflow.events.map((event) =>
-              event.eventId === reminderId 
+              event.category_event_id === reminderId 
                 ? { ...event, enabled: !event.enabled }
                 : event
             )
@@ -125,6 +106,31 @@ export default function WorkflowList() {
 
   const handleMoreClick = (reminder) => {
     console.log('More clicked:', reminder);
+  };
+
+  // Handle edit flow navigation with specific event data
+  const handleEditFlow = (reminder) => {
+    console.log("Edit flow for reminder:", reminder);
+    
+   
+   
+    const delayText = reminder.footerText || '';
+    const cleanDelay = delayText.replace('Send after ', '').trim() || '1 hour';
+    
+    // Navigate to edit flow with query parameters - ENSURE ALL PARAMS ARE PRESENT
+    const queryParams = new URLSearchParams({
+      category_id: reminder.category_id,
+      categoryName: reminder.categoryName || 'Unknown Category',
+      category_event_id: String(reminder.category_event_id),
+      eventTitle: reminder.title || 'Untitled Event',
+      eventSubtitle: reminder.text || '',
+      eventDelay: cleanDelay
+    });
+    
+    console.log("Navigating to edit flow with params:", queryParams.get("category_event_id"));
+    
+    router.push(`/editflow/${queryParams.get("category_event_id")}`);
+
   };
 
   // Static workflow configurations for display
@@ -234,6 +240,13 @@ export default function WorkflowList() {
                 ? transformWorkflowToReminders(workflowData)
                 : [];
 
+              // Debug logging to verify data structure
+              console.log(`Workflow "${config.name}":`, {
+                workflowData,
+                reminders,
+                hasEvents: workflowData?.events?.length || 0
+              });
+
               return (
                 <div key={configIndex} className={configIndex === 0 ? "mt-[24px]" : "mt-[16px]"}>
                   <DropDown
@@ -241,12 +254,12 @@ export default function WorkflowList() {
                     description={config.description}
                     reminders={reminders}
                     src={config.icon}
-                    onToggle={(reminderId) => handleToggle(workflowData?.categoryId, reminderId)}
+                    onToggle={(reminderId) => handleToggle(workflowData?.category_id, reminderId)}
                     onEyeClick={handleEyeClick}
                     onMoreClick={handleMoreClick}
                     EyeIcon={FiEye}
                     MoreIcon={FiMoreVertical}
-                    onEditFlow={(reminder) => console.log("Edit:", reminder)}
+                    onEditFlow={handleEditFlow} // Pass the edit handler
                     onDeleteFlow={(reminder) => console.log("Delete:", reminder)}
                     buttonText={config.buttonText}
                     onClickButton={config.onClickButton}
