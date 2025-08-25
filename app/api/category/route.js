@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 
-// Utility: Normalize phone number (e.g., remove +91 and spaces)
+
 const normalizePhone = (phone) => phone?.replace(/\D/g, '').slice(-10);
 
 // CORS middleware
@@ -78,7 +78,6 @@ export async function POST(request) {
 
     await connection.beginTransaction();
 
-    // Get current store phone number
     const [storeRows] = await connection.execute(
       `SELECT phonenumber FROM stores WHERE id = ? LIMIT 1`,
       [STORE_ID]
@@ -87,34 +86,25 @@ export async function POST(request) {
     if (storeRows.length === 0) throw new Error('Store not found');
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
+    const insertedCategoryPhones = new Set();
 
-    // Get previous phone number from category_event table
-    const [lastPhoneRows] = await connection.execute(
-      `SELECT DISTINCT phonenumber FROM category_event WHERE phonenumber IS NOT NULL ORDER BY updated_at DESC LIMIT 1`
-    );
+    const upsertCategory = async (data) => {
+      const normalizedCategoryName = data.category_name.trim();
+      const lowerCategoryName = normalizedCategoryName.toLowerCase();
+      const categoryPhoneKey = `${lowerCategoryName}_${currentPhoneNumber}`;
 
-    const previousPhoneNumber = lastPhoneRows.length > 0 ? normalizePhone(lastPhoneRows[0].phonenumber) : null;
-    const phoneChanged = previousPhoneNumber && previousPhoneNumber !== currentPhoneNumber;
+      // ✅ Avoid duplicate calls in a single execution
+      if (insertedCategoryPhones.has(categoryPhoneKey)) {
+        return { category: data.category_name, categoryId: null, inserted: 0, updated: 0 };
+      }
+      insertedCategoryPhones.add(categoryPhoneKey);
 
-    
-    
-
-    const phoneVariants = Array.from(
-  new Set([previousPhoneNumber, currentPhoneNumber].filter(Boolean))
-);
-
-
-    console.log("phone number of edit :::::", previousPhoneNumber, currentPhoneNumber);
-
-    // UPSERT category and map events to phone numbers
-    const upsertCategory = async (data, phoneNumbers) => {
       const [existing] = await connection.execute(
-        'SELECT category_id FROM category WHERE category_name = ?',
-        [data.category_name]
+        'SELECT category_id FROM category WHERE LOWER(TRIM(category_name)) = ? LIMIT 1',
+        [lowerCategoryName]
       );
 
       let categoryId;
-
       if (existing.length > 0) {
         categoryId = existing[0].category_id;
         await connection.execute(
@@ -124,60 +114,77 @@ export async function POST(request) {
       } else {
         const [insertResult] = await connection.execute(
           'INSERT INTO category (category_name, category_desc, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
-          [data.category_name, data.category_desc]
+          [normalizedCategoryName, data.category_desc]
         );
         categoryId = insertResult.insertId;
       }
 
-      let inserted = 0;
-      let skipped = 0;
-
-      for (const phone of phoneNumbers) {
-  const [existingEvents] = await connection.execute(
-    'SELECT title FROM category_event WHERE category_id = ? AND phonenumber = ?',
-    [categoryId, phone]
-  );
-
-  const existingTitles = new Set(
-    existingEvents.map(e => e.title?.trim().toLowerCase())
-  );
-
-  for (const event of data.events) {
-    const title = event.title?.trim();
-    if (!existingTitles.has(title.toLowerCase())) {
-      const { subtitle = null, delay = null } = event;
-
-      await connection.execute(
-        `INSERT INTO category_event 
-          (category_id, title, subtitle, delay, phonenumber, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-        [categoryId, title, subtitle, delay, phone]
+      // Check if already mapped for this phone number
+      const [existingEventsForPhone] = await connection.execute(
+        `SELECT COUNT(*) as count FROM category_event 
+        WHERE category_id = ? AND phonenumber = ?`,
+        [categoryId, currentPhoneNumber]
       );
-      inserted++;
-    } else {
-      skipped++;
-    }
-  }
-}
 
-      
+      if (existingEventsForPhone[0].count > 0) {
+        // Update existing
+        let updated = 0;
+        for (const event of data.events) {
+          const title = event.title?.trim();
+          const subtitle = event.subtitle || null;
+          const delay = event.delay || null;
 
-      return {
-        category: data.category_name,
-        categoryId,
-        inserted,
-        skipped,
-        phoneNumbersUsed: phoneNumbers,
-        phoneChanged
-      };
+          const [eventRow] = await connection.execute(
+            `SELECT category_event_id FROM category_event 
+            WHERE category_id = ? AND LOWER(TRIM(title)) = ? AND phonenumber = ? LIMIT 1`,
+            [categoryId, title.toLowerCase(), currentPhoneNumber]
+          );
+
+          if (eventRow.length > 0) {
+            await connection.execute(
+              `UPDATE category_event 
+              SET subtitle = ?, delay = ?, updated_at = NOW()
+              WHERE category_event_id = ?`,
+              [subtitle, delay, eventRow[0].category_event_id]
+            );
+            updated++;
+          }
+        }
+
+        return { category: data.category_name, categoryId, inserted: 0, updated };
+      } else {
+        // Insert fresh
+        let inserted = 0;
+        for (const event of data.events) {
+          const title = event.title?.trim();
+          const subtitle = event.subtitle || null;
+          const delay = event.delay || null;
+
+          await connection.execute(
+            `INSERT INTO category_event 
+            (category_id, title, subtitle, delay, phonenumber, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+            ON DUPLICATE KEY UPDATE 
+              subtitle = VALUES(subtitle),
+              delay = VALUES(delay),
+              updated_at = NOW()`,
+            [categoryId, title, subtitle, delay, currentPhoneNumber]
+          );
+
+          inserted++;
+        }
+
+        return { category: data.category_name, categoryId, inserted, updated: 0 };
+      }
     };
 
-    // Run upserts
+
+    // Upsert all categories
     const results = [];
-    results.push(await upsertCategory(abandonedCartData, phoneVariants));
-    results.push(await upsertCategory(orderLifecycleData, phoneVariants));
-    results.push(await upsertCategory(CODData, phoneVariants));
-    results.push(await upsertCategory(WelcomeData, phoneVariants));
+    results.push(await upsertCategory(abandonedCartData));
+    results.push(await upsertCategory(orderLifecycleData));
+    results.push(await upsertCategory(CODData));
+    results.push(await upsertCategory(WelcomeData));
 
     await connection.commit();
 
@@ -186,8 +193,8 @@ export async function POST(request) {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Categories and events updated successfully',
-      results,
+      message: 'Categories and events processed successfully',
+      results
     }), {
       status: 200,
       headers
@@ -208,8 +215,8 @@ export async function POST(request) {
 
 
 
-// ========== GET ==========
 
+// ========== GET ==========
 export async function GET() {
   let conn;
   try {
@@ -220,15 +227,32 @@ export async function GET() {
       database: process.env.DATABASE_NAME,
     });
 
+
+
+    // Step 1: Get current store phone number
+    const [storeRows] = await conn.execute(
+      `SELECT phonenumber FROM stores WHERE id = ? LIMIT 1`,
+      [STORE_ID]
+    );
+
+    if (storeRows.length === 0) {
+      return new Response(JSON.stringify({ success: false, message: 'Store not found' }), { status: 404 });
+    }
+
+    const currentPhone = storeRows[0].phonenumber;
+
+    // Step 2: Fetch only events for this store's phone number
     const [rows] = await conn.execute(`
       SELECT c.category_id, c.category_name, c.category_desc, c.created_at AS category_created_at,
              ce.category_event_id, ce.title, ce.subtitle, ce.delay, ce.created_at AS event_created_at,
              ce.phonenumber
       FROM category c
       LEFT JOIN category_event ce ON c.category_id = ce.category_id
+      WHERE ce.phonenumber = ?
       ORDER BY c.category_id, ce.category_event_id
-    `);
+    `, [currentPhone]);
 
+    // Step 3: Group by categories
     const categories = {};
 
     rows.forEach(r => {
@@ -256,12 +280,15 @@ export async function GET() {
     const headers = new Headers();
     setCORSHeaders(headers);
 
-    return new Response(JSON.stringify({ success: true, categories: Object.values(categories) }), { status: 200, headers });
+    return new Response(JSON.stringify({ success: true, categories: Object.values(categories) }), {
+      status: 200,
+      headers,
+    });
 
   } catch (e) {
     console.error('GET /api/category error:', e);
     return new Response(JSON.stringify({ success: false, message: 'DB error', error: e.message }), { status: 500 });
   } finally {
-    if (conn) await conn?.end();
+    if (conn) await conn.end();
   }
 }
