@@ -16,16 +16,7 @@ function Editflow() {
 
 
 
-  // Debug: log them
-  useEffect(() => {
-    console.log("URL Parameters:", {
-     
-      category_event_id,
-     
-    });
-
-    
-  }, [category_event_id, router]);
+  
 
 
 
@@ -150,10 +141,6 @@ async function fetchTemplateOptions(storeId) {
   }
 }
 
-  useEffect(() => {
-    const storeId = '11'; 
-    fetchTemplateOptions(storeId).then(setTemplateOptions);
-  }, []);
 
   async function fetchTemplateData(storeId) {
     const res = await fetch(`/api/template-data?store_id=${storeId}`);
@@ -167,6 +154,7 @@ async function fetchTemplateOptions(storeId) {
     async function loadTemplate() {
       try {
         const storeId = '11';
+        fetchTemplateOptions(storeId).then(setTemplateOptions);
         const templates = await fetchTemplateData(storeId);
         setAllTemplatesData(templates);
 
