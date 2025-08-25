@@ -1,4 +1,5 @@
-import mysql from 'mysql2/promise';
+import pool from "@/lib/db";
+
 
 
 const normalizePhone = (phone) => phone?.replace(/\D/g, '').slice(-10);
@@ -69,12 +70,8 @@ export async function POST(request) {
   let connection;
 
   try {
-    connection = await mysql.createConnection({
-      host: process.env.DATABASE_HOST,
-      user: process.env.DATABASE_USER,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-    });
+    const connection = await pool.getConnection();
+
 
     await connection.beginTransaction();
 
@@ -211,6 +208,8 @@ export async function POST(request) {
   } finally {
     if (connection) await connection.end();
   }
+  connection.release();
+
 }
 
 
@@ -220,12 +219,8 @@ export async function POST(request) {
 export async function GET() {
   let conn;
   try {
-    conn = await mysql.createConnection({
-      host: process.env.DATABASE_HOST,
-      user: process.env.DATABASE_USER,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-    });
+    const conn = await pool.getConnection();
+
 
 
 
@@ -291,4 +286,6 @@ export async function GET() {
   } finally {
     if (conn) await conn.end();
   }
+  connection.release();
+
 }

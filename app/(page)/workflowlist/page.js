@@ -24,40 +24,40 @@ export default function WorkflowList() {
     if (workflowsFetched.current) return;
 
    const initializeWorkflows = async () => {
-  try {
-    // ✅ Always POST first to sync/update categories
-    const initRes = await fetch('/api/category', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+      try {
+        // ✅ Always POST first to sync/update categories
+        const initRes = await fetch('/api/category', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
 
-    if (!initRes.ok) {
-      throw new Error(`Failed to initialize workflows: ${initRes.status}`);
-    }
+        if (!initRes.ok) {
+          throw new Error(`Failed to initialize workflows: ${initRes.status}`);
+        }
 
-    // ✅ Then fetch the updated workflows
-    const updatedRes = await fetch('/api/category');
-    if (!updatedRes.ok) {
-      throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
-    }
+        // ✅ Then fetch the updated workflows
+        const updatedRes = await fetch('/api/category');
+        if (!updatedRes.ok) {
+          throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+        }
 
-    const updatedData = await updatedRes.json();
+        const updatedData = await updatedRes.json();
 
-    console.log("✅ updated fulllllllll::::::::", updatedData);
+        console.log("✅ updated fulllllllll::::::::", updatedData);
 
-    if (updatedData.success) {
-      setWorkflows(updatedData.categories);
-      workflowsFetched.current = true;
-    }
-  } catch (err) {
-    console.error("❌ Error with workflows:", err);
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+        if (updatedData.success) {
+          setWorkflows(updatedData.categories);
+          workflowsFetched.current = true;
+        }
+      } catch (err) {
+        console.error("❌ Error with workflows:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
 
 
     initializeWorkflows();
