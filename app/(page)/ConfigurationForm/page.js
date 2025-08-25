@@ -482,7 +482,7 @@ function ConfigurationForm({ searchParams }) {
             <h3 className="text-[14px] font-semibold text-[#1A1A1A]">
               Shopify Store
             </h3>
-            <p className="text-[12px] text-[#999999]">your-store.myshopify.com</p>
+            <p className="text-[12px] text-[#999999]">{shopUrl}</p>
           </div>
         </div>
 
