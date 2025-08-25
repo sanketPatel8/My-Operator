@@ -140,15 +140,7 @@ export async function GET(req) {
       });
     }
 
-    // Group results by phone number for better organization
-    const groupedResults = results.reduce((acc, template) => {
-      const phone = template.phonenumber || 'unknown';
-      if (!acc[phone]) {
-        acc[phone] = [];
-      }
-      acc[phone].push(template);
-      return acc;
-    }, {});
+   
 
     await connection.end();
 
@@ -156,10 +148,7 @@ export async function GET(req) {
       success: true,
       storeId: storeId,
       currentStorePhoneNumber: currentStorePhoneNumber,
-      requestedPhone: phonenumber || 'current store phone',
-      totalTemplates: results.length,
-      templatesGroupedByPhone: groupedResults,
-      templates: results // Keep flat structure for backward compatibility
+      templates: results 
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
