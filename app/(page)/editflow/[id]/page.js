@@ -45,6 +45,31 @@ function Editflow() {
   };
 
   useEffect(() => {
+    async function loadTemplate() {
+      try {
+        const storeId = '11';
+        const response = await fetch(`/api/template-data?store_id=${storeId}`);
+        if (!response.ok) throw new Error('Failed to fetch template data');
+        
+        const data = await response.json();
+
+        // Set both templateOptions and allTemplatesData from the same data
+        setTemplateOptions(data.templates.map(t => t.template_name));
+        setAllTemplatesData(data.templates);
+
+        if (!selectedTemplate && data.templates.length > 0) {
+          setSelectedTemplate(data.templates[0].template_name);
+        }
+
+      } catch (error) {
+        console.error('Failed to load template', error);
+      }
+    }
+
+    loadTemplate();
+  }, []);
+
+  useEffect(() => {
     
 
     const initializeWorkflows = async () => {
@@ -116,30 +141,7 @@ function Editflow() {
 
 
 
-  useEffect(() => {
-  async function loadTemplate() {
-    try {
-      const storeId = '11';
-      const response = await fetch(`/api/template-data?store_id=${storeId}`);
-      if (!response.ok) throw new Error('Failed to fetch template data');
-      
-      const data = await response.json();
-
-      // Set both templateOptions and allTemplatesData from the same data
-      setTemplateOptions(data.templates.map(t => t.template_name));
-      setAllTemplatesData(data.templates);
-
-      if (!selectedTemplate && data.templates.length > 0) {
-        setSelectedTemplate(data.templates[0].template_name);
-      }
-
-    } catch (error) {
-      console.error('Failed to load template', error);
-    }
-  }
-
-  loadTemplate();
-}, []);
+  
 
 
   useEffect(() => {
