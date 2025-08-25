@@ -114,63 +114,33 @@ function Editflow() {
     return variables;
   };
 
-  
-async function fetchTemplateOptions(storeId) {
-  try {
-    const response = await fetch(`/api/template-data?store_id=${storeId}`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch template options');
-    }
 
-    const data = await response.json();
-    
-    // Access the templates array from the response object
-    const templates = data.templates;
-    
-    // Check if templates is an array before mapping
-    if (!Array.isArray(templates)) {
-      console.error('Templates is not an array:', templates);
-      return [];
-    }
-    
-    const templateOptions = templates.map(template => template.template_name);
-    return templateOptions;
-  } catch (error) {
-    console.error('Error fetching template options:', error);
-    return [];
-  }
-}
-
-
-  async function fetchTemplateData(storeId) {
-    const res = await fetch(`/api/template-data?store_id=${storeId}`);
-    if (!res.ok) throw new Error('Failed to fetch template');
-    const templates = await res.json();
-    const data = templates.templates;
-    return data;
-  }
 
   useEffect(() => {
-    async function loadTemplate() {
-      try {
-        const storeId = '11';
-        fetchTemplateOptions(storeId).then(setTemplateOptions);
-        const templates = await fetchTemplateData(storeId);
-        setAllTemplatesData(templates);
+  async function loadTemplate() {
+    try {
+      const storeId = '11';
+      const response = await fetch(`/api/template-data?store_id=${storeId}`);
+      if (!response.ok) throw new Error('Failed to fetch template data');
+      
+      const data = await response.json();
 
-        console.log("whole data:::", templates);
-        
-        if (!selectedTemplate && templates.length > 0) {
-          const firstTemplate = templates[0];
-          setSelectedTemplate(firstTemplate.template_name);
-        }
-      } catch (error) {
-        console.error('Failed to load template', error);
+      // Set both templateOptions and allTemplatesData from the same data
+      setTemplateOptions(data.templates.map(t => t.template_name));
+      setAllTemplatesData(data.templates);
+
+      if (!selectedTemplate && data.templates.length > 0) {
+        setSelectedTemplate(data.templates[0].template_name);
       }
-    }
 
-    loadTemplate();
-  }, []);
+    } catch (error) {
+      console.error('Failed to load template', error);
+    }
+  }
+
+  loadTemplate();
+}, []);
+
 
   useEffect(() => {
     window.addEventListener("resize", checkDropdownPosition);
