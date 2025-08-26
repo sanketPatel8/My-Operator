@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ToastProvider } from "@/component/Toast";
+import { WorkflowProvider } from "@/component/WorkflowContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,15 +24,16 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        
-        <ToastProvider>
-          <div className="flex min-h-screen">
-             <main className="flex-1 relative">
-        {children}
-        <div id="toast-root" className="absolute bottom-6 right-6 z-50" />
-        </main>
-        </div>
-        </ToastProvider>
+        <WorkflowProvider> {/* ✅ Wrap everything */}
+          <ToastProvider>
+            <div className="flex min-h-screen">
+              <main className="flex-1 relative">
+                {children}
+                <div id="toast-root" className="absolute bottom-6 right-6 z-50" />
+              </main>
+            </div>
+          </ToastProvider>
+        </WorkflowProvider>
       </body>
     </html>
   );

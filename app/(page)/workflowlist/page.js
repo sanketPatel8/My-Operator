@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import DropDown from "@/component/DropDown";
 import { useRouter } from "next/navigation";
 import { FiEye, FiMoreVertical } from 'react-icons/fi';
+import { useWorkflow } from "@/component/WorkflowContext";
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
@@ -18,10 +19,13 @@ export default function WorkflowList() {
 
   const hasFetched = useRef(false);
   const workflowsFetched = useRef(false);
+  const { fetched, setFetched } = useWorkflow();
 
   // Initialize workflow data on first load
   useEffect(() => {
-    if (workflowsFetched.current) return;
+
+    console.log("🟡 useEffect ran. fetched =", hasFetched.current);
+    if (hasFetched.current) return;
 
    const initializeWorkflows = async () => {
       try {
@@ -50,6 +54,8 @@ export default function WorkflowList() {
         if (updatedData.success) {
           setWorkflows(updatedData.categories);
           workflowsFetched.current = true;
+          setFetched(true);
+          hasFetched.current = true;
         }
       } catch (err) {
         console.error("❌ Error with workflows:", err);
@@ -60,6 +66,7 @@ export default function WorkflowList() {
     };
 
     initializeWorkflows();
+    
   }, []);
 
  
