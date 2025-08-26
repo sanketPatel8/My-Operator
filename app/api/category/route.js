@@ -60,17 +60,25 @@ const WelcomeData = {
     { title: 'Welcome Customer', subtitle: 'Send an automated welcome message when a new account is created.' }
   ]
 };
-
 // Your test store ID
 const STORE_ID = 11;
 
-// PUT endpoint to update workflow event
+// Enhanced PUT endpoint for storing comma-separated template_variable_ids and updating template variables
 export async function PUT(request) {
   let connection;
 
   try {
     const body = await request.json();
-    const { category_id, category_event_id, delay, template, variableSettings } = body;
+    const { 
+      category_id, 
+      category_event_id, 
+      delay, 
+      template, 
+      variableSettings,
+      template_id,           // Single template ID
+      template_data_id,      // Single template data ID
+      template_variable_id   // Comma-separated string of variable IDs
+    } = body;
 
     // Validate required fields
     if (!category_id || !category_event_id) {
@@ -83,7 +91,7 @@ export async function PUT(request) {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    // First, verify the category_event exists and belongs to the correct store
+    // Get store info and validate
     const [storeRows] = await connection.execute(
       `SELECT phonenumber FROM stores WHERE id = ? LIMIT 1`,
       [STORE_ID]
@@ -95,7 +103,7 @@ export async function PUT(request) {
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
 
-    // Verify the event exists for this store's phone number
+    // Verify the event exists
     const [existingEvent] = await connection.execute(`
       SELECT ce.category_event_id, ce.category_id, c.category_name
       FROM category_event ce
@@ -107,21 +115,27 @@ export async function PUT(request) {
       throw new Error('Workflow event not found for this store');
     }
 
-    // Update the category_event with new delay and template info
+    // Log the template_variable_id for debugging
+    console.log('Storing template_variable_ids:', template_variable_id);
+    console.log('Variable Settings:', variableSettings);
+
+    // Update category_event with comma-separated template_variable_id
+    // Only updating columns that exist in the category_event table
     const updateQuery = `
       UPDATE category_event 
       SET 
         delay = ?,
-        template_name = ?,
-        template_variables = ?,
-        updated_at = NOW()
+        template_id = ?,
+        template_data_id = ?,
+        template_variable_id = ?
       WHERE category_event_id = ? AND category_id = ? AND phonenumber = ?
     `;
 
     const [updateResult] = await connection.execute(updateQuery, [
       delay || null,
-      template || null,
-      JSON.stringify(variableSettings) || null,
+      template_id || null,
+      template_data_id || null,
+      template_variable_id || null, // This will be a comma-separated string like "1109,1110,1111"
       category_event_id,
       category_id,
       currentPhoneNumber
@@ -129,6 +143,119 @@ export async function PUT(request) {
 
     if (updateResult.affectedRows === 0) {
       throw new Error('No workflow event found to update');
+    }
+
+    // Update individual template variables with mapping_field and fallback_value
+    if (template_variable_id && variableSettings) {
+      console.log('=== DEBUGGING TEMPLATE VARIABLES ===');
+      console.log('template_variable_id:', template_variable_id);
+      console.log('variableSettings type:', typeof variableSettings);
+      console.log('variableSettings keys:', Object.keys(variableSettings));
+      console.log('variableSettings full object:', JSON.stringify(variableSettings, null, 2));
+      
+      const variableIds = template_variable_id.split(',').map(id => parseInt(id.trim()));
+      console.log('Parsed variableIds:', variableIds);
+      
+      // First, get the actual template variables from database to understand the structure
+      const [currentVariables] = await connection.execute(`
+        SELECT template_variable_id, variable_name, component_type, type
+        FROM template_variable 
+        WHERE template_variable_id IN (${variableIds.map(() => '?').join(',')})
+        ORDER BY template_variable_id
+      `, variableIds);
+      
+      console.log('Current template variables from DB:', currentVariables);
+      
+      for (const variableId of variableIds) {
+        console.log(`\n--- Processing Variable ID: ${variableId} ---`);
+        
+        // Get the variable info from database
+        const currentVar = currentVariables.find(v => v.template_variable_id === variableId);
+        console.log('Current variable from DB:', currentVar);
+        
+        // Try multiple ways to find the variable setting
+        let variableSetting = null;
+        let settingKey = null;
+        let settingValue = null;
+        
+        // Method 1: Direct ID match
+        if (variableSettings[variableId.toString()]) {
+          settingKey = variableId.toString();
+          settingValue = variableSettings[variableId.toString()];
+          variableSetting = [settingKey, settingValue];
+          console.log('Found by direct ID match');
+        }
+        // Method 2: Variable name match
+        else if (currentVar && variableSettings[currentVar.variable_name]) {
+          settingKey = currentVar.variable_name;
+          settingValue = variableSettings[currentVar.variable_name];
+          variableSetting = [settingKey, settingValue];
+          console.log('Found by variable name match');
+        }
+        // Method 3: Search through all entries
+        else {
+          const foundEntry = Object.entries(variableSettings).find(([key, value]) => {
+            return key === variableId.toString() || 
+                   (typeof value === 'object' && value.variableId === variableId) ||
+                   (currentVar && key === currentVar.variable_name);
+          });
+          if (foundEntry) {
+            variableSetting = foundEntry;
+            settingKey = foundEntry[0];
+            settingValue = foundEntry[1];
+            console.log('Found by comprehensive search');
+          }
+        }
+
+        console.log('Variable setting found:', variableSetting);
+        console.log('Setting key:', settingKey);
+        console.log('Setting value:', settingValue);
+
+        if (variableSetting) {
+          let mappingField = null;
+          let fallbackValue = null;
+
+          // Extract mapping field and fallback value from variableSettings
+          if (typeof settingValue === 'object' && settingValue !== null) {
+            mappingField = settingValue.dropdown || settingValue.mappingField || settingValue.mapping_field || null;
+            fallbackValue = settingValue.fallback || settingValue.fallbackValue || settingValue.fallback_value || null;
+            console.log('Extracted from object - mappingField:', mappingField, 'fallbackValue:', fallbackValue);
+          } else if (typeof settingValue === 'string') {
+            // If it's a string, treat it as fallback value
+            fallbackValue = settingValue;
+            console.log('Extracted from string - fallbackValue:', fallbackValue);
+          }
+
+          console.log(`Final values - mappingField: "${mappingField}", fallbackValue: "${fallbackValue}"`);
+
+          // Update the template_variable table
+          const updateVariableQuery = `
+            UPDATE template_variable 
+            SET 
+              mapping_field = ?,
+              fallback_value = ?,
+              updated_at = NOW()
+            WHERE template_variable_id = ?
+          `;
+
+          const [updateVarResult] = await connection.execute(updateVariableQuery, [
+            mappingField,
+            fallbackValue,
+            variableId
+          ]);
+
+          console.log(`Update result for variable ${variableId}:`, updateVarResult);
+          console.log(`Updated template_variable_id ${variableId} with mapping_field: "${mappingField}", fallback_value: "${fallbackValue}"`);
+        } else {
+          console.log(`No variable setting found for variable ID: ${variableId}`);
+          console.log('Available setting keys:', Object.keys(variableSettings));
+        }
+      }
+      console.log('=== END DEBUGGING ===\n');
+    } else {
+      console.log('Skipping template variable updates:');
+      console.log('template_variable_id exists:', !!template_variable_id);
+      console.log('variableSettings exists:', !!variableSettings);
     }
 
     // Fetch the updated event to return
@@ -139,6 +266,23 @@ export async function PUT(request) {
       WHERE ce.category_event_id = ? AND ce.phonenumber = ?
     `, [category_event_id, currentPhoneNumber]);
 
+    // Parse the comma-separated template_variable_id back to array for response
+    const eventData = updatedEvent[0];
+    if (eventData.template_variable_id) {
+      eventData.template_variable_ids_array = eventData.template_variable_id.split(',').map(id => parseInt(id.trim()));
+    }
+
+    // Fetch updated template variables for response
+    if (eventData.template_variable_id) {
+      const [updatedVariables] = await connection.execute(`
+        SELECT template_variable_id, type, value, variable_name, component_type, mapping_field, fallback_value
+        FROM template_variable 
+        WHERE template_variable_id IN (${eventData.template_variable_id})
+        ORDER BY template_variable_id
+      `);
+      eventData.template_variables_details = updatedVariables;
+    }
+
     await connection.commit();
 
     const headers = new Headers();
@@ -146,8 +290,8 @@ export async function PUT(request) {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Workflow event updated successfully',
-      data: updatedEvent[0]
+      message: 'Workflow event and template variables updated successfully',
+      data: eventData
     }), {
       status: 200,
       headers
@@ -181,6 +325,49 @@ export async function PUT(request) {
   }
 }
 
+// Helper function to retrieve template variable IDs from database
+async function getTemplateVariableIds(template_data_id) {
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    
+    const [variableRows] = await connection.execute(
+      `SELECT template_variable_id FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id`,
+      [template_data_id]
+    );
+
+    return variableRows.map(row => row.template_variable_id);
+  } catch (error) {
+    console.error('Error fetching template variable IDs:', error);
+    return [];
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}
+
+// Helper function to update template variables with batch processing
+async function updateTemplateVariablesBatch(connection, variableUpdates) {
+  try {
+    for (const update of variableUpdates) {
+      const { variableId, mappingField, fallbackValue } = update;
+      
+      await connection.execute(
+        `UPDATE template_variable 
+         SET mapping_field = ?, fallback_value = ?, updated_at = NOW() 
+         WHERE template_variable_id = ?`,
+        [mappingField, fallbackValue, variableId]
+      );
+    }
+    
+    console.log(`Successfully updated ${variableUpdates.length} template variables`);
+    return true;
+  } catch (error) {
+    console.error('Error updating template variables:', error);
+    throw error;
+  }
+}
 
 // POST endpoint to initialize/sync workflow categories and events
 export async function POST(request) {

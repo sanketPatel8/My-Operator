@@ -7,20 +7,14 @@ import Sidebar from "../../sidebar/page";
 import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
+import { useToastContext } from "@/component/Toast";
 
 function Editflow() {
   const router = useRouter();
   const params = useParams();
-  const category_event_id = params.id;
-  const category_id = "";
+  const { success, error } = useToastContext();
 
-
-
-  
-
-
-
-  const [selectedDelay, setSelectedDelay] = useState( "1 hour");
+  const [selectedDelay, setSelectedDelay] = useState("1 hour");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [activePart, setActivePart] = useState("template");
   const [templateMessage, setTemplateMessage] = useState('');
@@ -35,6 +29,8 @@ function Editflow() {
   const [openUp, setOpenUp] = useState(false);
   const selectRef = useRef(null);
   const [activeTab, setActiveTab] = useState("/workflowlist");
+  const [currentWorkflowData, setCurrentWorkflowData] = useState(null);
+  const [selectedTemplateData, setSelectedTemplateData] = useState(null); // For category-specific template data
 
   const checkDropdownPosition = () => {
     if (selectRef.current) {
@@ -44,47 +40,99 @@ function Editflow() {
     }
   };
 
+  // Function to fetch specific template data from category-events API
+  const fetchSelectedTemplateData = async (templateName) => {
+    if (!currentWorkflowData || !templateName) return null;
+
+    try {
+      const storeId = '11';
+      let apiUrl = `/api/category-template?store_id=${storeId}`;
+      if (currentWorkflowData.category_event_id) {
+        apiUrl += `&category_event_id=${currentWorkflowData.category_event_id}`;
+      }
+
+      const response = await fetch(apiUrl);
+      if (!response.ok) return null;
+      
+      const data = await response.json();
+      
+      if (data.success && data.templates && data.templates.length > 0) {
+        // Find the specific template by name
+        const specificTemplate = data.templates.find(t => t.template_name === templateName);
+        return specificTemplate || null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Failed to fetch specific template data:', error);
+      return null;
+    }
+  };
+
   useEffect(() => {
-    async function loadTemplate() {
+    async function loadTemplateData() {
       try {
         const storeId = '11';
-        const response = await fetch(`/api/template-data?store_id=${storeId}`);
-        if (!response.ok) throw new Error('Failed to fetch template data');
         
-        const data = await response.json();
+        // First, get the current workflow data to determine category_id
+        const workflowRes = await fetch('/api/category');
+        if (!workflowRes.ok) throw new Error('Failed to fetch workflow data');
+        
+        const workflowData = await workflowRes.json();
+        const categoryData = workflowData.categories.flatMap((category) =>
+          (category.events || []).map((event) => ({
+            id: event.category_event_id,
+            category_id: category.category_id,
+            category_event_id: event.category_event_id,
+            title: event.title,
+            subtitle: event.subtitle,
+            delay: event.delay
+          }))
+        );
 
-        // Set both templateOptions and allTemplatesData from the same data
-        setTemplateOptions(data.templates.map(t => t.template_name));
-        setAllTemplatesData(data.templates);
+        const matchedEvent = categoryData.find(item => item.category_event_id == params.id);
+        if (matchedEvent) {
+          setCurrentWorkflowData(matchedEvent);
+          if (matchedEvent.delay) {
+            setSelectedDelay(matchedEvent.delay);
+          }
+        }
 
-        if (!selectedTemplate && data.templates.length > 0) {
-          setSelectedTemplate(data.templates[0].template_name);
+        // Always load ALL templates from template-data API for dropdown
+        const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`);
+        if (!templateResponse.ok) throw new Error('Failed to fetch all templates');
+        
+        const templateData = await templateResponse.json();
+        console.log("All templates data:", templateData);
+
+        // Set dropdown options from all available templates
+        if (templateData.templates && templateData.templates.length > 0) {
+          setTemplateOptions(templateData.templates.map(t => t.template_name));
+          setAllTemplatesData(templateData.templates); // Store all templates for fallback
+          
+          if (!selectedTemplate) {
+            setSelectedTemplate(templateData.templates[0].template_name);
+          }
         }
 
       } catch (error) {
-        console.error('Failed to load template', error);
+        console.error('Failed to load template data', error);
       }
     }
 
-    loadTemplate();
-  }, []);
+    loadTemplateData();
+  }, [params.id]);
 
-  
-    
+  const initializeWorkflows = async () => {
+    try {
+      const updatedRes = await fetch('/api/category');
+      if (!updatedRes.ok) {
+        throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+      }
 
-    const initializeWorkflows = async () => {
-      try {
-
-        const updatedRes = await fetch('/api/category');
-        if (!updatedRes.ok) {
-          throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
-        }
-
-       const updatedData = await updatedRes.json();
-
+      const updatedData = await updatedRes.json();
       console.log("✅ Updated workflow data:", updatedData);
 
-      // Make sure categories is an array
       if (!Array.isArray(updatedData?.categories)) {
         throw new Error("Invalid data: 'categories' is not an array");
       }
@@ -106,26 +154,17 @@ function Editflow() {
 
       const matchedEvent = categoryData.find(item => item.category_event_id == params.id);
 
-      // Check and log result
       if (matchedEvent) {
         console.log("✅ Matched Event:", matchedEvent);
       } else {
         console.log("❌ No event found with category_event_id =", params.id);
       }
 
-        
-
-
-      } catch (err) {
-        console.error("❌ Error with workflows:", err);
-        setError(err.message);
-      } finally {
-        
-      }
-    };
-
-
-
+    } catch (err) {
+      console.error("❌ Error with workflows:", err);
+      setError(err.message);
+    }
+  };
 
   // Extract variables from text using regex
   const extractVariables = (text) => {
@@ -139,11 +178,6 @@ function Editflow() {
     return variables;
   };
 
-
-
-  
-
-
   useEffect(() => {
     window.addEventListener("resize", checkDropdownPosition);
     checkDropdownPosition();
@@ -151,66 +185,87 @@ function Editflow() {
   }, []);
 
   useEffect(() => {
-    if (!selectedTemplate || allTemplatesData.length === 0) return;
+    const processTemplateData = async () => {
+      if (!selectedTemplate || allTemplatesData.length === 0) return;
 
-    const selectedTemplateObj = allTemplatesData.find(
-      (template) => template.template_name === selectedTemplate
-    );
+      // First, try to get category-specific template data
+      const categorySpecificData = await fetchSelectedTemplateData(selectedTemplate);
+      
+      let selectedTemplateObj;
+      let contentBlocks = [];
 
-    const contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
-    
-    // Extract variables from different components
-    const headerVariables = [];
-    const bodyVariables = [];
-    const buttonVariables = [];
-
-    contentBlocks.forEach(block => {
-      switch (block.type) {
-        case 'HEADER':
-          if (block.format === 'TEXT' && block.text) {
-            headerVariables.push(...extractVariables(block.text));
-          }
-          break;
-        
-        case 'BODY':
-          if (block.text) {
-            bodyVariables.push(...extractVariables(block.text));
-            setTemplateMessage(block.text);
-          }
-          break;
-        
-        case 'BUTTONS':
-          if (block.buttons && Array.isArray(block.buttons)) {
-            block.buttons.forEach(button => {
-              if (button.text) {
-                buttonVariables.push(button.text);
-              }
-            });
-          }
-          break;
+      if (categorySpecificData && categorySpecificData.hasSpecificData) {
+        // Use category-specific data if available
+        console.log("Using category-specific template data:", categorySpecificData);
+        setSelectedTemplateData(categorySpecificData);
+        selectedTemplateObj = categorySpecificData;
+        contentBlocks = categorySpecificData.data?.content || [];
+      } else {
+        // Fall back to general template data
+        console.log("Using general template data");
+        setSelectedTemplateData(null);
+        selectedTemplateObj = allTemplatesData.find(
+          (template) => template.template_name === selectedTemplate
+        );
+        contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
       }
-    });
 
-    // Remove duplicates and set variables
-    setTemplateVariables({
-      header: [...new Set(headerVariables)],
-      body: [...new Set(bodyVariables)],
-      buttons: [...new Set(buttonVariables)]
-    });
+      if (!selectedTemplateObj) return;
+      
+      // Extract variables from different components
+      const headerVariables = [];
+      const bodyVariables = [];
+      const buttonVariables = [];
 
-    // Initialize variable settings
-    const newSettings = {};
-    [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
-      if (!newSettings[variable]) {
-        newSettings[variable] = {
-          dropdown: "Name",
-          fallback: ""
-        };
-      }
-    });
-    setVariableSettings(newSettings);
+      contentBlocks.forEach(block => {
+        switch (block.type) {
+          case 'HEADER':
+            if (block.format === 'TEXT' && block.text) {
+              headerVariables.push(...extractVariables(block.text));
+            }
+            break;
+          
+          case 'BODY':
+            if (block.text) {
+              bodyVariables.push(...extractVariables(block.text));
+              setTemplateMessage(block.text);
+            }
+            break;
+          
+          case 'BUTTONS':
+            if (block.buttons && Array.isArray(block.buttons)) {
+              block.buttons.forEach(button => {
+                if (button.text) {
+                  buttonVariables.push(button.text);
+                }
+              });
+            }
+            break;
+        }
+      });
 
-  }, [selectedTemplate, allTemplatesData]);
+      // Remove duplicates and set variables
+      setTemplateVariables({
+        header: [...new Set(headerVariables)],
+        body: [...new Set(bodyVariables)],
+        buttons: [...new Set(buttonVariables)]
+      });
+
+      // Initialize variable settings
+      const newSettings = {};
+      [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
+        if (!newSettings[variable]) {
+          newSettings[variable] = {
+            dropdown: "Name",
+            fallback: ""
+          };
+        }
+      });
+      setVariableSettings(newSettings);
+    };
+
+    processTemplateData();
+  }, [selectedTemplate, allTemplatesData, currentWorkflowData]);
 
   const delayOptions = [
     "Immediate",
@@ -241,70 +296,79 @@ function Editflow() {
 
   const handleUpdateWorkflow = async () => {
     try {
-     
-        const updatedRes = await fetch('/api/category');
-        if (!updatedRes.ok) {
-          throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+      if (!currentWorkflowData) {
+        alert("Workflow data not found");
+        return;
+      }
+
+      let selectedTemplateObj;
+      let templateDataObj = null;
+      let allTemplateVariableIds = [];
+
+      // Use category-specific data if available, otherwise use general template data
+      if (selectedTemplateData && selectedTemplateData.hasSpecificData) {
+        // Use category-specific template data
+        console.log("Using category-specific data for update");
+        selectedTemplateObj = selectedTemplateData;
+        templateDataObj = selectedTemplateData.data;
+        
+        if (selectedTemplateData.template_variable_id) {
+          // If template_variable_id is a comma-separated string, split it
+          const variableIds = selectedTemplateData.template_variable_id.toString().split(',');
+          allTemplateVariableIds = variableIds.filter(id => id && id.trim());
         }
-
-       const updatedData = await updatedRes.json();
-
-
-        const categoryData = updatedData.categories.flatMap((category) =>
-          (category.events || []).map((event, index) => ({
-            id: event.category_event_id || index + 1,
-            enabled: false,
-            title: event.title,
-            text: event.subtitle,
-            footerText: event.delay ? `Send after ${event.delay}` : '',
-            category_id: category.category_id ?? null,
-            categoryName: category.categoryName ?? null,
-            category_event_id: event.category_event_id
-          }))
+      } else {
+        // Use general template data as fallback
+        console.log("Using general template data for update");
+        selectedTemplateObj = allTemplatesData.find(
+          (template) => template.template_name === selectedTemplate
         );
 
-      console.log("✅ categoryData:", categoryData);
+        if (!selectedTemplateObj) {
+          alert("Selected template not found");
+          return;
+        }
 
-      const matchedEvent = categoryData.find(item => item.category_event_id == params.id);
+        templateDataObj = selectedTemplateObj.data?.[0];
+        
+        if (templateDataObj) {
+          // Collect from componentVariables
+          if (templateDataObj.componentVariables && Array.isArray(templateDataObj.componentVariables)) {
+            const componentIds = templateDataObj.componentVariables
+              .map(v => v.template_variable_id)
+              .filter(id => id != null);
+            allTemplateVariableIds.push(...componentIds);
+          }
 
-      // Check and log result
-      if (matchedEvent) {
-        console.log("✅ Matched Event:", matchedEvent);
-      } else {
-        console.log("❌ No event found with category_event_id =", params.id);
+          // Collect from mappingVariables
+          if (templateDataObj.mappingVariables && Array.isArray(templateDataObj.mappingVariables)) {
+            const mappingIds = templateDataObj.mappingVariables
+              .map(v => v.template_variable_id)
+              .filter(id => id != null);
+            allTemplateVariableIds.push(...mappingIds);
+          }
+        }
       }
 
-      
-    
+      // Remove duplicates and create comma-separated string
+      const uniqueVariableIds = [...new Set(allTemplateVariableIds)];
+      const templateVariableIdsString = uniqueVariableIds.length > 0 ? uniqueVariableIds.join(',') : null;
 
-      // Validate required IDs before making the API call
-      if (!matchedEvent.category_id || !matchedEvent.category_event_id) {
-        alert("Missing required parameters: category_id or category_event_id");
-        return;
-      }
-
-      // Convert IDs to numbers to ensure they're valid
-      const numericCategoryId = parseInt(matchedEvent.category_id, 10);
-      const numericEventId = parseInt(matchedEvent.category_event_id, 10);
-
-      if (isNaN(numericCategoryId) || isNaN(numericEventId)) {
-        alert("Invalid ID parameters");
-        return;
-      }
-
-      // Prepare the update data with proper numeric IDs
+      // Prepare the update data with template metadata
       const updateData = {
-        category_id: numericCategoryId,
-        category_event_id: numericEventId,
+        category_id: currentWorkflowData.category_id,
+        category_event_id: currentWorkflowData.category_event_id,
         delay: selectedDelay,
         template: selectedTemplate,
-        variableSettings,
-        // Don't update title and subtitle as per requirement
+        variableSettings: variableSettings,
+        template_id: selectedTemplateObj.template_id,
+        template_data_id: templateDataObj?.template_data_id || selectedTemplateData?.template_data_id,
+        template_variable_id: templateVariableIdsString
       };
 
       console.log("Updating workflow with data:", updateData);
 
-      // Make API call to update the workflow
+      // Update the workflow using your existing category API (enhanced)
       const response = await fetch('/api/category', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -314,7 +378,7 @@ function Editflow() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        alert("Workflow updated successfully!");
+        success("Workflow updated successfully!");
         router.push("/workflowlist");
       } else {
         throw new Error(result.message || 'Failed to update workflow');
@@ -375,6 +439,32 @@ function Editflow() {
     </div>
   );
 
+  // Helper function to get template content blocks
+  const getTemplateContentBlocks = () => {
+    if (!selectedTemplate || allTemplatesData.length === 0) return [];
+    
+    // First check if we have category-specific data
+    if (selectedTemplateData && selectedTemplateData.hasSpecificData && selectedTemplateData.data?.content) {
+      return selectedTemplateData.data.content;
+    }
+    
+    // Fall back to general template data
+    const template = allTemplatesData.find(
+      (t) => t.template_name === selectedTemplate
+    );
+
+    if (!template) return [];
+
+    // Handle general template format
+    if (template.data && Array.isArray(template.data)) {
+      return template.data[0]?.content || [];
+    } else if (template.data?.content) {
+      return template.data.content;
+    }
+
+    return [];
+  };
+
   return (
     <>
       <div className="font-source-sans flex flex-col min-h-screen">
@@ -402,7 +492,6 @@ function Editflow() {
                 <h2 className="text-[16px] font-semibold text-[#353535]">
                   Edit workflow
                 </h2>
-                
               </div>
             </div>
 
@@ -563,19 +652,15 @@ function Editflow() {
                     {/* Media Tab */}
                     {activePart === "media" && (
                       <div className="mt-[20px]">
-                        {/* Check if selectedTemplate has a media header */}
                         {(() => {
-                          const template = allTemplatesData.find(
-                            (t) => t.template_name === selectedTemplate
-                          );
-                          const headerBlock = template?.data?.[0]?.content?.find(
+                          const contentBlocks = getTemplateContentBlocks();
+                          const headerBlock = contentBlocks.find(
                             (block) => block.type === "HEADER"
                           );
 
                           if (headerBlock?.format === "MEDIA") {
                             return (
                               <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[32px] text-center text-gray-500">
-                                
                                 <Image
                                   src={`/api/media/${headerBlock.media_id}`}
                                   alt="Header Media"
@@ -661,12 +746,9 @@ function Editflow() {
                     <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px] text-[#1A1A1A] space-y-3">
 
                       {/* Header Media/Text */}
-                      {allTemplatesData.length > 0 && selectedTemplate && (() => {
-                        const template = allTemplatesData.find(
-                          (t) => t.template_name === selectedTemplate
-                        );
-
-                        const headerBlock = template?.data?.[0]?.content?.find(
+                      {(() => {
+                        const contentBlocks = getTemplateContentBlocks();
+                        const headerBlock = contentBlocks.find(
                           (block) => block.type === "HEADER"
                         );
 
@@ -675,76 +757,74 @@ function Editflow() {
                         if (headerBlock.format === "MEDIA" && headerBlock.media_id) {
                           return (
                             <Image
-                              src={`/api/media/${headerBlock.media_id}`} // Adjust API if needed
-                                alt="Header"
-                                width={200}
-                                height={200}
-                                className="rounded-[6px] mx-auto"
-                              />
-                            );
-                          }
+                              src={`/api/media/${headerBlock.media_id}`}
+                              alt="Header"
+                              width={200}
+                              height={200}
+                              className="rounded-[6px] mx-auto"
+                            />
+                          );
+                        }
 
-                          // If header is TEXT → show text
-                          if (headerBlock.format === "TEXT" && headerBlock.text) {
+                        // If header is TEXT → show text
+                        if (headerBlock.format === "TEXT" && headerBlock.text) {
+                          return (
+                            <p className="font-semibold mb-2">
+                              {headerBlock.text}
+                            </p>
+                          );
+                        }
+
+                        return null;
+                      })()}
+
+                      {/* Body Text */}
+                      {templateMessage && (
+                        <div>
+                          {templateMessage.split('\n').map((line, idx) => (
+                            <p key={idx} style={{ 
+                              fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {line}
+                              <br />
+                            </p>
+                          ))}
+                        </div>
+                      )}
+
+                      <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
+                      
+                      {/* Button */}
+                      <div className="">
+                        {(() => {
+                          const contentBlocks = getTemplateContentBlocks();
+                          const buttonBlock = contentBlocks.find(block => block.type === "BUTTONS");
+
+                          if (buttonBlock && buttonBlock.buttons?.length > 0) {
                             return (
-                              <p className="font-semibold  mb-2">
-                                {headerBlock.text}
-                              </p>
+                              <div className="text-center">
+                                {buttonBlock.buttons.map((btn, idx) => (
+                                  <button
+                                    key={idx}
+                                    className="text-[#4275D6] w-full border-t border-[#E9E9E9] text-[14px] font-medium px-4 py-3"
+                                  >
+                                    {btn.text || "Click here"}
+                                  </button>
+                                ))}
+                              </div>
                             );
                           }
 
                           return null;
                         })()}
-
-
-                        {/* Body Text */}
-                        {templateMessage && (
-                          <div>
-                            {templateMessage.split('\n').map((line, idx) => (
-                              <p key={idx} style={{ 
-                                fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif',
-                                lineHeight: '1.4'
-                              }}>
-                                {line}
-                                <br />
-                              </p>
-                            ))}
-                          </div>
-                        )}
-
-                        <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
-                        
-
-                        {/* Button */}
-                        <div className="">
-                          {allTemplatesData.length > 0 && selectedTemplate && (() => {
-                            const template = allTemplatesData.find(t => t.template_name === selectedTemplate);
-                            const buttonBlock = template?.data?.[0]?.content?.find(block => block.type === "BUTTONS");
-
-                            if (buttonBlock && buttonBlock.buttons?.length > 0) {
-                              return (
-                                <div className="text-center">
-                                  {buttonBlock.buttons.map((btn, idx) => (
-                                    <button
-                                      key={idx}
-                                      className="text-[#4275D6] w-full border-t border-[#E9E9E9]  text-[14px] font-medium px-4 py-3 "
-                                    >
-                                    {btn.text || "Click here"}
-                                    </button>
-                                  ))}
-                                </div>
-                              );
-                            }
-
-                            return null;
-                          })()}
-                        </div>
-
                       </div>
+
                     </div>
+                  </div>
 
                   {/* Chat Input */}
-                  <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px] ">
+                  <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px]">
                     <Image
                       src="/assets/Emoji.svg"
                       alt="wp emoji"
@@ -769,7 +849,7 @@ function Editflow() {
                       alt="wp emoji"
                       height={100}
                       width={100}
-                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
+                      className="max-h-[16px] max-w-[16px] z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
                     />
                     <Image
                       src="/assets/mic.svg"
