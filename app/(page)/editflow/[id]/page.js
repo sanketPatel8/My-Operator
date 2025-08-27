@@ -20,6 +20,7 @@ function Editflow() {
   const [templateMessage, setTemplateMessage] = useState('');
   const [allTemplatesData, setAllTemplatesData] = useState([]);
   const [templateOptions, setTemplateOptions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [templateVariables, setTemplateVariables] = useState({
     header: [],
     body: [],
@@ -108,7 +109,9 @@ function Editflow() {
         // Set dropdown options from all available templates
         if (templateData.templates && templateData.templates.length > 0) {
           setTemplateOptions(templateData.templates.map(t => t.template_name));
-          setAllTemplatesData(templateData.templates); // Store all templates for fallback
+          setAllTemplatesData(templateData.templates);
+          console.log("for mappingfield::::::::", templateData.templates);
+          
           
           if (!selectedTemplate) {
             setSelectedTemplate(templateData.templates[0].template_name);
@@ -117,6 +120,8 @@ function Editflow() {
 
       } catch (error) {
         console.error('Failed to load template data', error);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -184,98 +189,111 @@ function Editflow() {
     return () => window.removeEventListener("resize", checkDropdownPosition);
   }, []);
 
-  useEffect(() => {
-    const processTemplateData = async () => {
-      if (!selectedTemplate || allTemplatesData.length === 0) return;
+  const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
 
-      // First, try to get category-specific template data
-      const categorySpecificData = await fetchSelectedTemplateData(selectedTemplate);
-      
-      let selectedTemplateObj;
-      let contentBlocks = [];
+// Update the processTemplateData useEffect
+useEffect(() => {
+  const processTemplateData = async () => {
+    if (!selectedTemplate || allTemplatesData.length === 0) return;
 
-      if (categorySpecificData && categorySpecificData.hasSpecificData) {
-        // Use category-specific data if available
-        console.log("Using category-specific template data:", categorySpecificData);
-        setSelectedTemplateData(categorySpecificData);
-        selectedTemplateObj = categorySpecificData;
-        contentBlocks = categorySpecificData.data?.content || [];
-      } else {
-        // Fall back to general template data
-        console.log("Using general template data");
-        setSelectedTemplateData(null);
-        selectedTemplateObj = allTemplatesData.find(
-          (template) => template.template_name === selectedTemplate
-        );
-        contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
+    // First, try to get category-specific template data
+    const categorySpecificData = await fetchSelectedTemplateData(selectedTemplate);
+    
+    let selectedTemplateObj;
+    let contentBlocks = [];
+    let mappingVariables = [];
+
+    if (categorySpecificData && categorySpecificData.hasSpecificData) {
+      // Use category-specific data if available
+      console.log("Using category-specific template data:", categorySpecificData);
+      setSelectedTemplateData(categorySpecificData);
+      selectedTemplateObj = categorySpecificData;
+      contentBlocks = categorySpecificData.data?.content || [];
+      mappingVariables = categorySpecificData.data?.mappingVariables || [];
+    } else {
+      // Fall back to general template data
+      console.log("Using general template data");
+      setSelectedTemplateData(null);
+      selectedTemplateObj = allTemplatesData.find(
+        (template) => template.template_name === selectedTemplate
+      );
+      contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
+      mappingVariables = selectedTemplateObj?.data?.[0]?.mappingVariables || [];
+    }
+
+    if (!selectedTemplateObj) return;
+    
+    // Extract dropdown options from mappingVariables
+    const mappingOptions = mappingVariables
+      .map(variable => variable.mapping_field)
+      .filter(field => field && field.trim() !== ''); // Filter out empty values
+    
+    // Add default options and remove duplicates
+    const defaultOptions = ["Name", "Phone number", "Service number", "Order id"];
+    const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
+    setMappingFieldOptions(combinedOptions);
+    
+    // Extract variables from different components
+    const headerVariables = [];
+    const bodyVariables = [];
+    const buttonVariables = [];
+
+    contentBlocks.forEach(block => {
+      switch (block.type) {
+        case 'HEADER':
+          if (block.format === 'TEXT' && block.text) {
+            headerVariables.push(...extractVariables(block.text));
+          }
+          break;
+        
+        case 'BODY':
+          if (block.text) {
+            bodyVariables.push(...extractVariables(block.text));
+            setTemplateMessage(block.text);
+          }
+          break;
+        
+        case 'BUTTONS':
+          if (block.buttons && Array.isArray(block.buttons)) {
+            block.buttons.forEach(button => {
+              if (button.text) {
+                buttonVariables.push(button.text);
+              }
+            });
+          }
+          break;
       }
+    });
 
-      if (!selectedTemplateObj) return;
-      
-      // Extract variables from different components
-      const headerVariables = [];
-      const bodyVariables = [];
-      const buttonVariables = [];
+    // Remove duplicates and set variables
+    setTemplateVariables({
+      header: [...new Set(headerVariables)],
+      body: [...new Set(bodyVariables)],
+      buttons: [...new Set(buttonVariables)]
+    });
 
-      contentBlocks.forEach(block => {
-        switch (block.type) {
-          case 'HEADER':
-            if (block.format === 'TEXT' && block.text) {
-              headerVariables.push(...extractVariables(block.text));
-            }
-            break;
-          
-          case 'BODY':
-            if (block.text) {
-              bodyVariables.push(...extractVariables(block.text));
-              setTemplateMessage(block.text);
-            }
-            break;
-          
-          case 'BUTTONS':
-            if (block.buttons && Array.isArray(block.buttons)) {
-              block.buttons.forEach(button => {
-                if (button.text) {
-                  buttonVariables.push(button.text);
-                }
-              });
-            }
-            break;
-        }
-      });
+    // Initialize variable settings with mapping field values and fallback values
+    const newSettings = {};
+    [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
+      if (!newSettings[variable]) {
+        // Find matching mapping variable for this template variable
+        const matchingMappingVar = mappingVariables.find(mv => 
+          mv.variable_name === variable || mv.variable_name === `{{${variable}}}`
+        );
+        
+        newSettings[variable] = {
+          dropdown: matchingMappingVar?.mapping_field || "Name",
+          fallback: matchingMappingVar?.fallback_value || ""
+        };
+      }
+    });
+    setVariableSettings(newSettings);
+  };
 
-      // Remove duplicates and set variables
-      setTemplateVariables({
-        header: [...new Set(headerVariables)],
-        body: [...new Set(bodyVariables)],
-        buttons: [...new Set(buttonVariables)]
-      });
+  processTemplateData();
+}, [selectedTemplate, allTemplatesData, currentWorkflowData]);
 
-      // Initialize variable settings
-      const newSettings = {};
-      [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
-        if (!newSettings[variable]) {
-          newSettings[variable] = {
-            dropdown: "Name",
-            fallback: ""
-          };
-        }
-      });
-      setVariableSettings(newSettings);
-    };
-
-    processTemplateData();
-  }, [selectedTemplate, allTemplatesData, currentWorkflowData]);
-
-  const delayOptions = [
-    "Immediate",
-    "15 minutes",
-    "30 minutes",
-    "1 hour",
-    "6 hours",
-    "12 hours",
-    "24 hours",
-  ];
+  
 
   const dropdownOptions = [
     "Name",
@@ -390,54 +408,65 @@ function Editflow() {
     }
   };
 
-  const renderVariableRow = (variable, section) => (
-    <div key={`${section}-${variable}`} className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px]">
-      {/* Variable Label */}
-      <span className="text-[#333333] text-[14px] w-full sm:w-36">
-        {`{{${variable}}}`}
-      </span>
+  // Update the renderVariableRow function to use dynamic options
+const renderVariableRow = (variable, section) => (
+  <div key={`${section}-${variable}`} className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px]">
+    {/* Variable Label */}
+    <span className="text-[#333333] text-[14px] w-full sm:w-36">
+      {`{{${variable}}}`}
+    </span>
 
-      {/* Dropdown */}
-      <Listbox 
-        value={variableSettings[variable]?.dropdown || "Name"} 
-        onChange={(value) => updateVariableSetting(variable, 'dropdown', value)}
-      >
-        <div className="relative w-full sm:w-48">
-          <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-            {variableSettings[variable]?.dropdown || "Name"}
-            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
-              <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
-            </span>
-          </Listbox.Button>
+    {/* Dropdown */}
+    <Listbox 
+      value={variableSettings[variable]?.dropdown || "Name"} 
+      onChange={(value) => updateVariableSetting(variable, 'dropdown', value)}
+    >
+      <div className="relative w-full sm:w-48">
+        <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+          {variableSettings[variable]?.dropdown || "Name"}
+          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+            <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
+          </span>
+        </Listbox.Button>
 
-          <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-            {dropdownOptions.map((option, idx) => (
-              <Listbox.Option
-                key={idx}
-                className={({ active }) =>
-                  `cursor-default select-none py-2 pl-4 pr-4 ${
-                    active ? "bg-gray-100" : ""
-                  }`
-                }
-                value={option}
-              >
-                {option}
-              </Listbox.Option>
-            ))}
-          </Listbox.Options>
-        </div>
-      </Listbox>
+        <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+          {mappingFieldOptions.map((option, idx) => (
+            <Listbox.Option
+              key={idx}
+              className={({ active }) =>
+                `cursor-default select-none py-2 pl-4 pr-4 ${
+                  active ? "bg-gray-100" : ""
+                }`
+              }
+              value={option}
+            >
+              {option}
+            </Listbox.Option>
+          ))}
+        </Listbox.Options>
+      </div>
+    </Listbox>
 
-      {/* Fallback Input */}
-      <input
-        type="text"
-        placeholder="Fallback value"
-        value={variableSettings[variable]?.fallback || ""}
-        onChange={(e) => updateVariableSetting(variable, 'fallback', e.target.value)}
-        className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-      />
-    </div>
-  );
+    {/* Fallback Input */}
+    <input
+      type="text"
+      placeholder="Fallback value"
+      value={variableSettings[variable]?.fallback || ""}
+      onChange={(e) => updateVariableSetting(variable, 'fallback', e.target.value)}
+      className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
+    />
+  </div>
+);
+
+  const delayOptions = [
+    "Immediate",
+    "15 minutes",
+    "30 minutes",
+    "1 hour",
+    "6 hours",
+    "12 hours",
+    "24 hours",
+  ];
 
   // Helper function to get template content blocks
   const getTemplateContentBlocks = () => {
@@ -464,6 +493,23 @@ function Editflow() {
 
     return [];
   };
+
+  if (loading) {
+    return (
+      <div className="font-source-sans flex flex-col min-h-screen">
+        <DashboardHeaader />
+        <div className="p-[16px] flex flex-1 bg-[#E9E9E9]">
+          <Sidebar active={activeTab} onChange={setActiveTab} />
+          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading templates...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>

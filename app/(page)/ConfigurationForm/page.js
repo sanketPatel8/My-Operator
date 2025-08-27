@@ -286,7 +286,7 @@ function ConfigurationForm({ searchParams }) {
     
   
       fetchStored();
-      setLoading(false);
+      
     
   }, [shop, whatsappNumbers]);
 
@@ -381,8 +381,8 @@ function ConfigurationForm({ searchParams }) {
           <Sidebar active={activeTab} onChange={setActiveTab} />
           <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#343E55] mx-auto mb-4"></div>
-              <p className="text-[#999999]">Loading configuration...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading configuration...</p>
             </div>
           </main>
         </div>
@@ -390,22 +390,7 @@ function ConfigurationForm({ searchParams }) {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="font-source-sans flex flex-col min-h-screen">
-        <DashboardHeaader />
-        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
-          <Sidebar active={activeTab} onChange={setActiveTab} />
-          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#343E55] mx-auto mb-4"></div>
-              <p className="text-[#999999]">Loading configuration...</p>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
+  
 
   return (
     <div className="font-source-sans flex flex-col min-h-screen">

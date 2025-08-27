@@ -122,6 +122,7 @@ function ConnectWhatsApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [loading1, setLoading1] = useState(false);
   const [pagination, setPagination] = useState({
     hasNext: false,
     hasPrevious: false,
@@ -132,9 +133,7 @@ function ConnectWhatsApp() {
   // Memoized load function to prevent unnecessary re-renders
   const loadWhatsAppNumbers = useCallback(async (offset = 0, showLoading = true) => {
     try {
-      if (showLoading) {
-        setLoading(true);
-      }
+      
       setIsRetrying(true);
       setError(null);
       
@@ -212,6 +211,7 @@ function ConnectWhatsApp() {
   
 
    const handleContinue = async () => {
+    setLoading1(true);
     const selected = accounts.find(a => a.id === selectedAccount);
     if (!selected) {
       alert('Please select an account.');
@@ -242,7 +242,7 @@ function ConnectWhatsApp() {
       console.log('Selected WABA ID:', selected?.wabaAccount?.wabaId);
 
 
-      // ✅ Navigate after success
+      setLoading1(false);
       router.push('/ConfigurationForm');
     } catch (err) {
       console.error('Error updating store:', err);
@@ -273,16 +273,8 @@ function ConnectWhatsApp() {
     return null;
   };
 
-  if (loading && !isRetrying) {
-    return (
-      <div className="font-source-sans min-h-screen flex items-center justify-center bg-[#F9FBFF]">
-        <div className="bg-white shadow rounded-lg p-8 max-w-md w-full text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading WhatsApp accounts...</p>
-        </div>
-      </div>
-    );
-  }
+  
+  
 
   return (
     <div className="font-source-sans min-h-screen flex items-start justify-center bg-[#F9FBFF] px-4 sm:px-6 lg:px-8">
@@ -295,43 +287,53 @@ function ConnectWhatsApp() {
           Select your WhatsApp Business API account or link a new one
         </p>
 
+        
         {/* Dynamic Options */}
         <div className="space-y-4">
-          {accounts.map((account) => (
-            <label
-              key={account.id}
-              className={`flex flex-col sm:flex-row items-start sm:items-center p-4 border rounded-lg cursor-pointer shadow-sm gap-3 sm:gap-4 transition-all ${
-                selectedAccount === account.id
-                  ? 'border-blue-600 bg-blue-50'
-                  : 'border-gray-200 hover:border-blue-500'
-              }`}
-              onClick={() => setSelectedAccount(account.id)}
-            >
-              <div className="flex items-center">
-                <input
-                  type="radio"
-                  name="account"
-                  checked={selectedAccount === account.id}
-                  onChange={() => setSelectedAccount(account.id)}
-                  className="h-5 w-5 text-blue-600 accent-blue-600 cursor-pointer mr-3"
-                />
-                <Image
-                  src={account.image}
-                  alt="profile"
-                  height={36}
-                  width={36}
-                  className="h-[36px] w-[36px]"
-                />
+          {loading && isRetrying ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading numbers...</p>
               </div>
-              <div className="flex-1">
-                <p className="text-[12px] text-[#333333] ">{account.name}</p>
-                <p className="text-[14px] text-[#333333] ">+{account.countryCode}{account.phone}</p>
-              </div>
-              <div className={`text-[14px]  font-semibold ${getStatusColor(account.status)} sm:ml-auto`}>
-                {account.status}
-              </div>
-            </label>
-          ))}
+            </div>
+          ) : (
+            accounts.map((account) => (
+              <label
+                key={account.id}
+                className={`flex flex-col sm:flex-row items-start sm:items-center p-4 border rounded-lg cursor-pointer shadow-sm gap-3 sm:gap-4 transition-all ${
+                  selectedAccount === account.id
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-200 hover:border-blue-500'
+                }`}
+                onClick={() => setSelectedAccount(account.id)}
+              >
+                <div className="flex items-center">
+                  <input
+                    type="radio"
+                    name="account"
+                    checked={selectedAccount === account.id}
+                    onChange={() => setSelectedAccount(account.id)}
+                    className="h-5 w-5 text-blue-600 accent-blue-600 cursor-pointer mr-3"
+                  />
+                  <Image
+                    src={account.image}
+                    alt="profile"
+                    height={36}
+                    width={36}
+                    className="h-[36px] w-[36px]"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-[12px] text-[#333333]">{account.name}</p>
+                  <p className="text-[14px] text-[#333333]">+{account.countryCode}{account.phone}</p>
+                </div>
+                <div className={`text-[14px] font-semibold ${getStatusColor(account.status)} sm:ml-auto`}>
+                  {account.status}
+                </div>
+              </label>
+            ))
+          )}
         </div>
 
         {/* Link new */}
@@ -350,14 +352,21 @@ function ConnectWhatsApp() {
             Back
           </button>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <button className="px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100 w-full sm:w-auto">
+            <button 
+            className="px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100 w-full sm:w-auto">
               ⟳ Sync
             </button>
             <button
-            onClick={handleContinue}
-             className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto">
-              Verify & Continue
+              onClick={handleContinue}
+              className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto"
+            >
+              {loading1 ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+              ) : (
+                'Verify & Continue'
+              )}
             </button>
+
           </div>
         </div>
       </div>

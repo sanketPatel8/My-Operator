@@ -87,9 +87,21 @@ export async function GET(req) {
       for (const data of templateData) {
         const { template_data_id, content } = data;
 
-        // Get template_variable for this template_data
+        // Get template_variable for this template_data - explicitly select all fields including mapping_field and fallback_value
         const [variables] = await connection.execute(
-          `SELECT * FROM template_variable WHERE template_data_id = ?`,
+          `SELECT 
+            template_variable_id,
+            template_data_id,
+            type,
+            value,
+            variable_name,
+            component_type,
+            mapping_field,
+            fallback_value,
+            created_at,
+            updated_at
+          FROM template_variable 
+          WHERE template_data_id = ?`,
           [template_data_id]
         );
 
@@ -98,14 +110,27 @@ export async function GET(req) {
         const mappingVariables = [];
 
         for (const variable of variables) {
+          // Parse value if it's JSON string
+          let parsedValue = variable.value;
+          if (parsedValue && typeof parsedValue === 'string') {
+            try {
+              if (parsedValue.startsWith('{') || parsedValue.startsWith('[')) {
+                parsedValue = JSON.parse(parsedValue);
+              }
+            } catch (e) {
+              // If parsing fails, keep original value
+              parsedValue = variable.value;
+            }
+          }
+
           const variableData = {
             template_variable_id: variable.template_variable_id,
             type: variable.type,
-            value: variable.value ? (variable.value.startsWith('{') || variable.value.startsWith('[') ? JSON.parse(variable.value) : variable.value) : null,
+            value: parsedValue,
             variable_name: variable.variable_name,
             component_type: variable.component_type,
-            mapping_field: variable.mapping_field,
-            fallback_value: variable.fallback_value,
+            mapping_field: variable.mapping_field, // Explicitly include mapping_field
+            fallback_value: variable.fallback_value, // Explicitly include fallback_value
             created_at: variable.created_at,
             updated_at: variable.updated_at
           };
@@ -139,8 +164,6 @@ export async function GET(req) {
         totalTemplateData: templateData.length
       });
     }
-
-   
 
     await connection.end();
 
