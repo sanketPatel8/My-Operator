@@ -85,11 +85,11 @@ function extractPhoneDetails(orderData) {
     
     
     
-    console.log(`📞 Extracted - Phone: ${phone}, Country Code: ${countryCode}`);
+    console.log(`📞 Extracted - Phone: ${phone},`);
     
     return {
       phone: phone,
-      countryCode: countryCode
+      
     };
   } catch (error) {
     console.error('❌ Error extracting phone details:', error);
@@ -198,7 +198,7 @@ function buildTemplateContent(templateData, orderData, customerName) {
 }
 
 // Helper function to send WhatsApp message
-async function sendWhatsAppMessage(phoneNumber, countryCode, templateName, templateContent, storeData) {
+async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, storeData) {
   try {
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
@@ -329,7 +329,7 @@ export async function POST(req) {
     try {
       const messageResult = await sendWhatsAppMessage(
         phoneDetails.phone,
-        phoneDetails.countryCode,
+       
         templateName,
         templateContent,
         storeData
