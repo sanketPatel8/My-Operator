@@ -838,7 +838,7 @@ const renderVariableRow = (variable, section) => (
                         <div>
                           {templateMessage.split('\n').map((line, idx) => (
                             <p key={idx} style={{ 
-                              fontFamily: 'Apple Color Emoji, Segoe UI Emoji, Noto Color Emoji, Segoe UI Symbol, sans-serif',
+                              fontFamily: 'sans-serif',
                               lineHeight: '1.4'
                             }}>
                               {line}

@@ -32,6 +32,7 @@ function ConfigurationForm({ searchParams }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loading1, setLoading1] = useState(false);
   const dropdownRef = useRef(null);
   const [shopUrl, setShopUrl] = useState("");
 
@@ -311,6 +312,7 @@ function ConfigurationForm({ searchParams }) {
   };
 
   const handleSaveChanges = async () => {
+    setLoading1(true);
     try {
       if (!selectedNumber) {
         console.error("Missing selected number");
@@ -351,6 +353,7 @@ function ConfigurationForm({ searchParams }) {
         error(`Update failed: ${result.message}`);
         return;
       }
+      setLoading1(false);
       success("Account information updated.");
       setEdit(false);
 
@@ -592,7 +595,11 @@ function ConfigurationForm({ searchParams }) {
                 onClick={handleSaveChanges}
                 className="px-[24px] py-[10px] text-[14px] font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
               >
-                Save changes
+                {loading1 ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+              ) : (
+                'Save changes'
+              )}
               </button>
             </>
           ) : (
