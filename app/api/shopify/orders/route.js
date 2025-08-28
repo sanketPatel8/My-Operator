@@ -234,7 +234,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${storeData.whatsapp_api_key}`,
+        'Authorization': `Bearer KIM7l16W0ijm6loVbaKoK4gsHJrrFt8LjceH9RyEna`,
         'X-MYOP-COMPANY-ID': `5cd40f6554442586`
       },
       body: JSON.stringify(messagePayload)
