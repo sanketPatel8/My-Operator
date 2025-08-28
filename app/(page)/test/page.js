@@ -106,7 +106,7 @@ export default function OrderNotifications() {
 <ul>
         {orders.map((o, i) => (
 <li key={i}>
-<strong>{o.shop}</strong> - {o.topic} - {o.receivedAt}
+<strong>{o.shop}</strong> - {o.topic} - {o.receivedAt} - {o.data.phone}
 </li>
         ))}
 </ul>
