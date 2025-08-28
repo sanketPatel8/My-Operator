@@ -228,7 +228,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     
     console.log('📤 Sending message payload:', JSON.stringify(messagePayload, null, 2));
     
-    // Make API call to send message
+    // Make API call to send message.
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`, {
       method: 'POST',
       headers: {
