@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { pushUpdate } from "./stream"; // Adjust path as needed
+import { pushUpdate } from "../stream/route";
 
 // Inside your POST handler:
 
