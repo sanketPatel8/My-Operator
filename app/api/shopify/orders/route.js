@@ -51,6 +51,7 @@ const dbConfig = {
   database: process.env.DATABASE_NAME
 };
 
+
 // ✅ In-memory orders store
 let orders = [];
 
@@ -79,29 +80,10 @@ function extractPhoneDetails(orderData) {
     
     // Clean phone number (remove spaces, dashes, etc.)
     phone = phone.replace(/[\s\-\(\)]/g, '');
+
+    phone = phone.slice(-10);
     
-    // Extract country code if phone starts with +
-    let countryCode = 'US'; // default
-    if (phone.startsWith('+')) {
-      // Extract country code from phone number
-      if (phone.startsWith('+91')) {
-        countryCode = '91';
-        phone = phone.substring(3); // remove +91
-      } else if (phone.startsWith('+1')) {
-        countryCode = '1';
-        phone = phone.substring(2); // remove +1
-      } else if (phone.startsWith('+44')) {
-        countryCode = '44';
-        phone = phone.substring(3); // remove +44
-      } else {
-        // Extract first 1-3 digits as country code
-        const match = phone.match(/^\+(\d{1,3})/);
-        if (match) {
-          countryCode = match[1];
-          phone = phone.substring(match[0].length);
-        }
-      }
-    }
+    
     
     console.log(`📞 Extracted - Phone: ${phone}, Country Code: ${countryCode}`);
     
@@ -120,42 +102,58 @@ function buildTemplateContent(templateData, orderData, customerName) {
   try {
     let content = {};
     
+    console.log('🏗️ Building template content with data:', templateData.map(item => ({
+      type: item.type,
+      variable_name: item.variable_name,
+      value: item.value ? 'HAS_VALUE' : 'NO_VALUE'
+    })));
+    
     templateData.forEach(item => {
       switch(item.type) {
         case 'HEADER_COMPONENT':
           if (item.value) {
-            const headerData = JSON.parse(item.value);
-            content.header = headerData;
+            try {
+              const headerData = JSON.parse(item.value);
+              content.header = headerData;
+            } catch (e) {
+              console.warn('⚠️ Failed to parse header JSON:', item.value);
+            }
           }
           break;
           
         case 'BODY_COMPONENT':
           if (item.value) {
-            const bodyData = JSON.parse(item.value);
-            // Replace placeholders with actual order data
-            let bodyText = bodyData.text || '';
-            bodyText = bodyText.replace(/\{name\}/g, customerName || 'Customer');
-            bodyText = bodyText.replace(/\{order_id\}/g, orderData.id || 'N/A');
-            bodyText = bodyText.replace(/\{total_price\}/g, orderData.total_price || '0');
-            
-            content.body = { ...bodyData, text: bodyText };
-          } else if (item.variable_name === 'name') {
-            content.body = content.body || {};
-            content.body.text = content.body.text || '';
+            try {
+              const bodyData = JSON.parse(item.value);
+              // Replace placeholders with actual order data
+              let bodyText = bodyData.text || '';
+              bodyText = bodyText.replace(/\{name\}/g, customerName || 'Customer');
+              bodyText = bodyText.replace(/\{order_id\}/g, orderData.id || 'N/A');
+              bodyText = bodyText.replace(/\{total_price\}/g, orderData.total_price || '0');
+              
+              content.body = { ...bodyData, text: bodyText };
+            } catch (e) {
+              console.warn('⚠️ Failed to parse body JSON:', item.value);
+            }
+          }
+          break;
+          
+        case 'BODY':
+          // Handle simple body text
+          if (item.variable_name === 'name') {
+            content.body = content.body || { text: '' };
+            content.body.text = content.body.text.replace(/\{name\}/g, customerName || 'Customer');
           }
           break;
           
         case 'BUTTONS_COMPONENT':
           if (item.value) {
-            const buttonsData = JSON.parse(item.value);
-            content.buttons = buttonsData.buttons;
-          }
-          break;
-          
-        case 'FOOTER_COMPONENT':
-          if (item.value) {
-            const footerData = JSON.parse(item.value);
-            content.footer = footerData;
+            try {
+              const buttonsData = JSON.parse(item.value);
+              content.buttons = buttonsData.buttons || [];
+            } catch (e) {
+              console.warn('⚠️ Failed to parse buttons JSON:', item.value);
+            }
           }
           break;
           
@@ -170,7 +168,26 @@ function buildTemplateContent(templateData, orderData, customerName) {
             });
           }
           break;
+          
+        case 'FOOTER_COMPONENT':
+          if (item.value) {
+            try {
+              const footerData = JSON.parse(item.value);
+              content.footer = footerData;
+            } catch (e) {
+              console.warn('⚠️ Failed to parse footer JSON:', item.value);
+            }
+          }
+          break;
       }
+    });
+    
+    console.log('📝 Built template content structure:', {
+      hasHeader: !!content.header,
+      hasBody: !!content.body,
+      hasButtons: !!content.buttons,
+      hasFooter: !!content.footer,
+      buttonsCount: content.buttons ? content.buttons.length : 0
     });
     
     return content;
@@ -185,7 +202,7 @@ async function sendWhatsAppMessage(phoneNumber, countryCode, templateName, templ
   try {
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
-      customer_country_code: countryCode,
+      customer_country_code: '91',
       customer_number: phoneNumber,
       data: {
         type: "template",
@@ -199,20 +216,19 @@ async function sendWhatsAppMessage(phoneNumber, countryCode, templateName, templ
           footer: templateContent.footer || null
         }
       },
-      reply_to: null,
-      myop_ref_id: "csat_123"
+      reply_to: null
     };
     
     console.log('📤 Sending message payload:', JSON.stringify(messagePayload, null, 2));
     
     // Make API call to send message
-    const response = await fetch('https://publicapi.myoperator.co/chat/messages', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${storeData.whatsapp_api_key}`,
-        'X-MYOP-COMPANY-ID':`${storeData.company_id}`
+        'X-MYOP-COMPANY-ID': `${storeData.company_id}`
       },
       body: JSON.stringify(messagePayload)
     });
@@ -270,6 +286,7 @@ export async function POST(req) {
     console.log('🏪 Store data fetched:', storeData);
     
     // 2. Extract phone details from order
+    console.log('🔍 Customer data from order:', JSON.stringify(data.customer, null, 2));
     const phoneDetails = extractPhoneDetails(data);
     if (!phoneDetails) {
       console.warn('⚠️ Skipping message send - no phone number found');
@@ -279,6 +296,8 @@ export async function POST(req) {
         message: "Order received but no phone number found"
       });
     }
+    
+    console.log('📞 Extracted phone details:', phoneDetails);
     
     // 3. Fetch template data from template_variable table
     const templateDataId = 129; // You can make this dynamic based on order type or other criteria
@@ -356,6 +375,35 @@ export async function POST(req) {
 // ✅ Handle GET (return stored orders)
 export async function GET() {
   try {
+    return NextResponse.json({ 
+      status: "success", 
+      orders: orders,
+      total: orders.length
+    });
+  } catch (error) {
+    console.error("❌ Error fetching orders:", error);
+    return NextResponse.json(
+      { status: "error", message: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+// ✅ Handle GET with specific order lookup (optional)
+export async function GET(req) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const orderId = searchParams.get('order_id');
+    
+    if (orderId) {
+      const order = orders.find(o => o.data.id == orderId);
+      if (order) {
+        return NextResponse.json({ status: "success", order });
+      } else {
+        return NextResponse.json({ status: "error", message: "Order not found" }, { status: 404 });
+      }
+    }
+    
     return NextResponse.json({ 
       status: "success", 
       orders: orders,
