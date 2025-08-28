@@ -8,7 +8,8 @@ export default function OrdersPage() {
     async function fetchOrders() {
       const res = await fetch("/api/shopify/orders");
       const data = await res.json();
-      setOrders(data);
+      console.log(data, "data");
+      setOrders(data.orders);
     }
     fetchOrders();
   }, []);
