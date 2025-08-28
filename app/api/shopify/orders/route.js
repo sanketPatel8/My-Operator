@@ -388,32 +388,3 @@ export async function GET() {
     );
   }
 }
-
-// ✅ Handle GET with specific order lookup (optional)
-export async function GET(req) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const orderId = searchParams.get('order_id');
-    
-    if (orderId) {
-      const order = orders.find(o => o.data.id == orderId);
-      if (order) {
-        return NextResponse.json({ status: "success", order });
-      } else {
-        return NextResponse.json({ status: "error", message: "Order not found" }, { status: 404 });
-      }
-    }
-    
-    return NextResponse.json({ 
-      status: "success", 
-      orders: orders,
-      total: orders.length
-    });
-  } catch (error) {
-    console.error("❌ Error fetching orders:", error);
-    return NextResponse.json(
-      { status: "error", message: error.message },
-      { status: 500 }
-    );
-  }
-}
