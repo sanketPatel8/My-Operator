@@ -82,41 +82,34 @@
 //   );
 // }
 
-
 "use client";
-
+ 
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
-
-
-let socket;
-
+ 
 export default function OrderNotifications() {
   const [orders, setOrders] = useState([]);
-
+ 
   useEffect(() => {
-    socket = io(); // connect to Socket.io server
-
-    // Listen for new orders
-    socket.on("new_order", (order) => {
-      console.log("New order received:", order);
-      // setOrders((prev) => [order, ...prev]);
-      
-    });
-
-    return () => socket.disconnect();
+    const evtSource = new EventSource("/api/orders/stream");
+ 
+    evtSource.onmessage = (event) => {
+      const order = JSON.parse(event.data);
+      setOrders((prev) => [order, ...prev]);
+    };
+ 
+    return () => evtSource.close();
   }, []);
-
+ 
   return (
-    <div>
-      <h2>Orders (Real-Time)</h2>
-      {/* <ul>
-        {orders.map((order, i) => (
-          <li key={i}>
-            {order.shop} | {order.topic} | {order.data.id} | {order.data.customer?.email}
-          </li>
+<div>
+<h2>Real-Time Orders</h2>
+<ul>
+        {orders.map((o, i) => (
+<li key={i}>
+<strong>{o.shop}</strong> - {o.topic} - {o.receivedAt}
+</li>
         ))}
-      </ul> */}
-    </div>
+</ul>
+</div>
   );
 }

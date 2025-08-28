@@ -41,38 +41,29 @@
 //   return NextResponse.json({ status: "success", orders });
 // }
 
+
+// app/api/orders/stream/route.js
 import { NextResponse } from "next/server";
-import { Server } from "socket.io";
-
+import { broadcastOrder } from "../stream/route";
+ 
 let orders = [];
-
-// Helper to initialize Socket.io once
-function getIO(res) {
-  if (!res.socket.server.io) {
-    console.log("⚡ Setting up Socket.io server...");
-    const io = new Server(res.socket.server);
-    res.socket.server.io = io;
-  }
-  return res.socket.server.io;
-}
-
-// Handle POST (receive new order)
-export async function POST(req, res) {
+ 
+export async function POST(req) {
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shop = req.headers.get("x-shop");
     const data = await req.json();
-
+ 
     console.log(`📦 Order received [${topic}] from shop ${shop}:`, data);
-
-    // Store order in memory (last 50)
-    orders.unshift({ topic, shop, data, receivedAt: new Date().toISOString() });
+ 
+    // Store order in memory
+    const order = { topic, shop, data, receivedAt: new Date().toISOString() };
+    orders.unshift(order);
     if (orders.length > 50) orders.pop();
-
-    // Emit new order notification
-    const io = getIO(res);
-    io.emit("new_order", { topic, shop, data });
-
+ 
+    // Broadcast to connected SSE clients
+    broadcastOrder(order);
+ 
     return NextResponse.json({ status: "success", order: data });
   } catch (err) {
     console.error("❌ Error receiving order:", err);
@@ -82,8 +73,7 @@ export async function POST(req, res) {
     );
   }
 }
-
-// Handle GET (return stored orders)
+ 
 export async function GET() {
   return NextResponse.json({ status: "success", orders });
 }

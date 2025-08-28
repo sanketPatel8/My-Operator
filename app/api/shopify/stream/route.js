@@ -1,26 +1,22 @@
-// app/api/shopify/stream/route.js
+// app/api/orders/stream/route.js
+ 
+// In-memory clients
 let clients = [];
-
+ 
+// SSE GET endpoint
 export async function GET(req) {
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-
-      const send = (data) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-      };
-
-      clients.push(send);
-
-      // Remove client on disconnect
-      req.signal.addEventListener("abort", () => {
-        clients = clients.filter((client) => client !== send);
-        controller.close();
-      });
-    },
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+ 
+  // Add client
+  clients.push(writer);
+ 
+  // Remove client when disconnected
+  req.signal.addEventListener("abort", () => {
+    clients = clients.filter((c) => c !== writer);
   });
-
-  return new Response(stream, {
+ 
+  return new Response(readable, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
@@ -28,10 +24,12 @@ export async function GET(req) {
     },
   });
 }
-
-// Helper to send updates to all connected clients
-export function sendOrderUpdate(order) {
-  clients.forEach((send) => {
-    send({ type: "new-order", order });
+ 
+// Helper function to send order notifications to all clients
+export function broadcastOrder(order) {
+  clients.forEach(async (client) => {
+    await client.write(
+      new TextEncoder().encode(`data: ${JSON.stringify(order)}\n\n`)
+    );
   });
 }
