@@ -1,45 +1,43 @@
 "use client";
-
 import { useEffect, useState } from "react";
 
-export default function CustomersPage() {
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function OrdersPage() {
+  const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    async function fetchCustomers() {
-      try {
-        const res = await fetch("/api/receive-customers", {
-          method: "GET", // we'll adjust the API route to support GET
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        const data = await res.json();
-        setCustomers(data.customers || []);
-      } catch (err) {
-        console.error("Failed to fetch customers:", err);
-      } finally {
-        setLoading(false);
-      }
+    async function fetchOrders() {
+      const res = await fetch("/api/shopify/orders");
+      const data = await res.json();
+      setOrders(data);
     }
-
-    fetchCustomers();
+    fetchOrders();
   }, []);
 
-  if (loading) return <div>Loading...</div>;
-
   return (
-    <div>
-      <h1>Customers</h1>
-      <ul>
-        {customers.map((c) => (
-          <li key={c.id}>
-            {c.first_name} {c.last_name} ({c.email})
-          </li>
-        ))}
-      </ul>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Shopify Orders</h1>
+      {orders.length === 0 ? (
+        <p>No orders yet.</p>
+      ) : (
+        <ul className="space-y-4">
+          {orders.map((o) => (
+            <li key={o.order_id} className="p-4 border rounded-lg shadow-sm">
+              <p>
+                <strong>Order ID:</strong> {o.order_id}
+              </p>
+              <p>
+                <strong>Shop:</strong> {o.shop}
+              </p>
+              <p>
+                <strong>Topic:</strong> {o.topic}
+              </p>
+              <pre className="bg-gray-100 p-2 mt-2 rounded">
+                {JSON.stringify(JSON.parse(o.data), null, 2)}
+              </pre>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
