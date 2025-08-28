@@ -4,23 +4,23 @@ import { useEffect, useState } from "react";
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
 
-//   useEffect(() => {
-//   const fetchOrders = async () => {
-//     try {
-//       const res = await fetch("/api/shopify/orders");
-//       const data = await res.json();
-//       setOrders(data.orders);
-//     } catch (err) {
-//       console.error("Error fetching orders:", err);
-//     }
-//   };
+  useEffect(() => {
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch("/api/shopify/orders");
+      const data = await res.json();
+      setOrders(data.orders);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+    }
+  };
 
-//   fetchOrders(); // Initial fetch
+  fetchOrders(); // Initial fetch
 
-//   const interval = setInterval(fetchOrders, 5000); // Every 5 seconds
+  const interval = setInterval(fetchOrders, 3000); // Every 5 seconds
 
-//   return () => clearInterval(interval); // Cleanup
-// }, []);
+  return () => clearInterval(interval); // Cleanup
+}, []);
 
 useEffect(() => {
   const eventSource = new EventSource("/api/shopify/stream");

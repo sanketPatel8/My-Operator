@@ -21,7 +21,7 @@ export async function POST(req) {
 
     // Store order in memory
     orders.unshift({ topic, shop, data, receivedAt: new Date().toISOString() });
-    pushUpdate({ topic, shop, data, receivedAt: new Date().toISOString() });
+    // pushUpdate({ topic, shop, data, receivedAt: new Date().toISOString() });
 
     // Optional: limit to last 50 orders to avoid memory overflow
     if (orders.length > 50) orders.pop();
