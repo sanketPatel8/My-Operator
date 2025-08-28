@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 
+import { pushUpdate } from "./stream"; // Adjust path as needed
+
+// Inside your POST handler:
+
+
+
 // ✅ In-memory orders store
 let orders = [];
 
 // ✅ Handle POST (receive new order)
 export async function POST(req) {
   try {
+    
     const topic = req.headers.get("x-shopify-topic");
     const shop = req.headers.get("x-shop");
     const data = await req.json();
@@ -14,6 +21,7 @@ export async function POST(req) {
 
     // Store order in memory
     orders.unshift({ topic, shop, data, receivedAt: new Date().toISOString() });
+    pushUpdate({ topic, shop, data, receivedAt: new Date().toISOString() });
 
     // Optional: limit to last 50 orders to avoid memory overflow
     if (orders.length > 50) orders.pop();
