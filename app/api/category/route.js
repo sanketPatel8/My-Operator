@@ -602,3 +602,145 @@ export async function GET() {
     }
   }
 }
+
+// Add this DELETE method to your existing /api/category/route.js file
+
+export async function DELETE(request) {
+  let connection;
+
+  try {
+    const body = await request.json();
+    const { category_event_id } = body;
+
+    // Validate required fields
+    if (!category_event_id) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Category Event ID is required'
+      }), { status: 400 });
+    }
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Get store info and validate
+    const [storeRows] = await connection.execute(
+      `SELECT phonenumber FROM stores WHERE id = ? LIMIT 1`,
+      [STORE_ID]
+    );
+
+    if (storeRows.length === 0) {
+      throw new Error('Store not found');
+    }
+
+    const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
+
+    // Get the category_event with current template_variable_id
+    const [eventRows] = await connection.execute(`
+      SELECT category_event_id, category_id, template_variable_id
+      FROM category_event 
+      WHERE category_event_id = ? AND phonenumber = ?
+    `, [category_event_id, currentPhoneNumber]);
+
+    if (eventRows.length === 0) {
+      throw new Error('Workflow event not found for this store');
+    }
+
+    const eventData = eventRows[0];
+    const templateVariableId = eventData.template_variable_id;
+
+    console.log('=== DELETE TEMPLATE DATA ===');
+    console.log('Category Event ID:', category_event_id);
+    console.log('Template Variable ID to clean:', templateVariableId);
+
+    // Step 1: Clean up template_variable records if template_variable_id exists
+    if (templateVariableId) {
+      const variableIds = templateVariableId.split(',').map(id => parseInt(id.trim()));
+      console.log('Cleaning template variables:', variableIds);
+
+      // Set mapping_field and fallback_value to NULL for all related template variables
+      const placeholders = variableIds.map(() => '?').join(',');
+      const cleanVariablesQuery = `
+        UPDATE template_variable 
+        SET 
+          mapping_field = NULL,
+          fallback_value = NULL,
+          updated_at = NOW()
+        WHERE template_variable_id IN (${placeholders})
+      `;
+
+      const [cleanResult] = await connection.execute(cleanVariablesQuery, variableIds);
+      console.log(`Cleaned ${cleanResult.affectedRows} template variables`);
+    }
+
+    // Step 2: Set template fields to NULL in category_event
+    const updateEventQuery = `
+      UPDATE category_event 
+      SET 
+        template_id = NULL,
+        template_data_id = NULL,
+        template_variable_id = NULL,
+        updated_at = NOW()
+      WHERE category_event_id = ? AND phonenumber = ?
+    `;
+
+    const [updateResult] = await connection.execute(updateEventQuery, [
+      category_event_id,
+      currentPhoneNumber
+    ]);
+
+    if (updateResult.affectedRows === 0) {
+      throw new Error('No workflow event found to update');
+    }
+
+    console.log('Successfully cleaned template data from category_event');
+
+    // Fetch the updated event to return
+    const [updatedEvent] = await connection.execute(`
+      SELECT ce.*, c.category_name
+      FROM category_event ce
+      JOIN category c ON ce.category_id = c.category_id
+      WHERE ce.category_event_id = ? AND ce.phonenumber = ?
+    `, [category_event_id, currentPhoneNumber]);
+
+    await connection.commit();
+
+    const headers = new Headers();
+    setCORSHeaders(headers);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Template data deleted successfully',
+      data: updatedEvent[0]
+    }), {
+      status: 200,
+      headers
+    });
+
+  } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Rollback error:', rollbackError);
+      }
+    }
+    console.error('DELETE /api/category error:', error);
+    
+    const headers = new Headers();
+    setCORSHeaders(headers);
+
+    return new Response(JSON.stringify({
+      success: false,
+      message: 'Failed to delete template data',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    }), { 
+      status: 500,
+      headers 
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}

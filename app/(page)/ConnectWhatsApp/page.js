@@ -167,21 +167,21 @@ const transformApiDataToAccounts = (apiData) => {
       }));
       
     } catch (err) {
-      console.error('Error loading WhatsApp numbers:', err);
-      let errorMessage = 'Failed to load WhatsApp accounts. Please try again.';
+      // console.error('Error loading WhatsApp numbers:', err);
+      // let errorMessage = 'Failed to load WhatsApp accounts. Please try again.';
       
       // Provide more specific error messages
-      if (err?.name === 'AbortError') {
-        errorMessage = 'Request timeout. Please check your connection and try again.';
-      } else if (err?.message?.includes('500')) {
-        errorMessage = 'Server error. Please try again in a few moments.';
-      } else if (err?.message?.includes('403')) {
-        errorMessage = 'Access denied. Please check your API credentials.';
-      } else if (err?.message?.includes('404')) {
-        errorMessage = 'API endpoint not found. Please contact support.';
-      }
+      // if (err?.name === 'AbortError') {
+      //   errorMessage = 'Request timeout. Please check your connection and try again.';
+      // } else if (err?.message?.includes('500')) {
+      //   errorMessage = 'Server error. Please try again in a few moments.';
+      // } else if (err?.message?.includes('403')) {
+      //   errorMessage = 'Access denied. Please check your API credentials.';
+      // } else if (err?.message?.includes('404')) {
+      //   errorMessage = 'API endpoint not found. Please contact support.';
+      // }
 
-      error(errorMessage);
+      // error(errorMessage);
 
       
       

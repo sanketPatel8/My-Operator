@@ -11,10 +11,10 @@ export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
 
-
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(null); // Track which item is being deleted
   const storeId = 11; // ⬅️ Replace this with the actual store ID dynamically if needed
 
   const hasFetched = useRef(false);
@@ -23,7 +23,6 @@ export default function WorkflowList() {
 
   // Initialize workflow data on first load
   useEffect(() => {
-
     console.log("🟡 useEffect ran. fetched =", hasFetched.current);
     if (hasFetched.current) return;
 
@@ -69,8 +68,6 @@ export default function WorkflowList() {
     
   }, []);
 
- 
-
   // Transform workflow data to match DropDown component format
   const transformWorkflowToReminders = (workflow) => {
     if (!workflow || !workflow.events) return [];
@@ -115,12 +112,81 @@ export default function WorkflowList() {
     console.log('More clicked:', reminder);
   };
 
+  // Handle delete flow - NEW FUNCTION
+  const handleDeleteFlow = async (reminder) => {
+    console.log("Delete flow for reminder:", reminder);
+    
+    if (!reminder.category_event_id) {
+      console.error('No category_event_id found for deletion');
+      return;
+    }
+
+    // Confirm deletion
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the template data for "${reminder.title}"?\n\nThis will remove all template configurations but keep the workflow event.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      setDeleteLoading(reminder.category_event_id);
+      
+      const response = await fetch('/api/category', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          category_event_id: reminder.category_event_id
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log('✅ Template data deleted successfully');
+        
+        // Update the local state to reflect the changes
+        setWorkflows((prev) =>
+          prev.map((workflow) => {
+            if (workflow.category_id === reminder.category_id) {
+              return {
+                ...workflow,
+                events: workflow.events.map((event) =>
+                  event.category_event_id === reminder.category_event_id
+                    ? {
+                        ...event,
+                        template_id: null,
+                        template_data_id: null,
+                        template_variable_id: null
+                      }
+                    : event
+                )
+              };
+            }
+            return workflow;
+          })
+        );
+        
+        // Show success message
+        alert('Template data deleted successfully!');
+        
+      } else {
+        console.error('❌ Failed to delete template data:', result.message);
+        alert(`Failed to delete template data: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting template data:', error);
+      alert('An error occurred while deleting template data. Please try again.');
+    } finally {
+      setDeleteLoading(null);
+    }
+  };
+
   // Handle edit flow navigation with specific event data
   const handleEditFlow = (reminder) => {
     console.log("Edit flow for reminder:", reminder);
     
-   
-   
     const delayText = reminder.footerText || '';
     const cleanDelay = delayText.replace('Send after ', '').trim() || '1 hour';
     
@@ -137,7 +203,6 @@ export default function WorkflowList() {
     console.log("Navigating to edit flow with params:", queryParams.get("category_event_id"));
     
     router.push(`/editflow/${queryParams.get("category_event_id")}`);
-
   };
 
   // Static workflow configurations for display
@@ -267,7 +332,8 @@ export default function WorkflowList() {
                     EyeIcon={FiEye}
                     MoreIcon={FiMoreVertical}
                     onEditFlow={handleEditFlow} // Pass the edit handler
-                    onDeleteFlow={(reminder) => console.log("Delete:", reminder)}
+                    onDeleteFlow={handleDeleteFlow} // Pass the DELETE handler
+                    deleteLoading={deleteLoading} // Pass loading state
                     buttonText={config.buttonText}
                     onClickButton={config.onClickButton}
                   />
