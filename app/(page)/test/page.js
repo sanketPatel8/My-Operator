@@ -90,7 +90,7 @@ export default function OrderNotifications() {
   const [orders, setOrders] = useState([]);
  
   useEffect(() => {
-    const evtSource = new EventSource("/api/orders/stream");
+    const evtSource = new EventSource("/api/shopify/stream");
  
     evtSource.onmessage = (event) => {
       const order = JSON.parse(event.data);
