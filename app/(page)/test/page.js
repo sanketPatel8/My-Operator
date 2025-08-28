@@ -5,20 +5,23 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-    const fetchInitialOrders = async () => {
-      const res = await fetch("/api/shopify/orders");
-      const data = await res.json();
-      console.log("order data::", data);
+    // const fetchInitialOrders = async () => {
+    //   const res = await fetch("/api/shopify/orders");
+    //   const data = await res.json();
+    //   console.log("order data::", data);
       
-      // setOrders(data.orders || []);
-    };
+    //   // setOrders(data.orders || []);
+    // };
 
-    fetchInitialOrders();
+    // fetchInitialOrders();
 
     const eventSource = new EventSource("/api/shopify/stream");
 
     eventSource.onmessage = (event) => {
       const { type, order } = JSON.parse(event.data);
+      console.log("order data::", order);
+
+      
       if (type === "new-order") {
         setOrders((prev) => [order, ...prev].slice(0, 50)); // Keep latest 50
       }
