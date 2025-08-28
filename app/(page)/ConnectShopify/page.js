@@ -189,7 +189,7 @@ export default function ConnectShopif() {
 
               <button
                 type="button"
-                onClick={handleClick}
+                onClick={() => router.push("/ConfigureWhatsApp")}
                 className="w-full bg-[#343E55] mt-3 text-white py-2 rounded-md hover:bg-gray-800 transition text-sm"
               >
                 Connect Store

@@ -325,49 +325,6 @@ export async function PUT(request) {
   }
 }
 
-// Helper function to retrieve template variable IDs from database
-async function getTemplateVariableIds(template_data_id) {
-  let connection;
-  try {
-    connection = await pool.getConnection();
-    
-    const [variableRows] = await connection.execute(
-      `SELECT template_variable_id FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id`,
-      [template_data_id]
-    );
-
-    return variableRows.map(row => row.template_variable_id);
-  } catch (error) {
-    console.error('Error fetching template variable IDs:', error);
-    return [];
-  } finally {
-    if (connection) {
-      connection.release();
-    }
-  }
-}
-
-// Helper function to update template variables with batch processing
-async function updateTemplateVariablesBatch(connection, variableUpdates) {
-  try {
-    for (const update of variableUpdates) {
-      const { variableId, mappingField, fallbackValue } = update;
-      
-      await connection.execute(
-        `UPDATE template_variable 
-         SET mapping_field = ?, fallback_value = ?, updated_at = NOW() 
-         WHERE template_variable_id = ?`,
-        [mappingField, fallbackValue, variableId]
-      );
-    }
-    
-    console.log(`Successfully updated ${variableUpdates.length} template variables`);
-    return true;
-  } catch (error) {
-    console.error('Error updating template variables:', error);
-    throw error;
-  }
-}
 
 // POST endpoint to initialize/sync workflow categories and events
 export async function POST(request) {

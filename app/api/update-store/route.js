@@ -24,7 +24,7 @@ export async function POST(req) {
     }
 
     // 2. Fetch from API
-    const templateApiUrl = `https://publicapi.myoperator.co/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
+    const templateApiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
 
     const response = await fetch(templateApiUrl, {
       method: 'GET',

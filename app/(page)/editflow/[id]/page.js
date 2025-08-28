@@ -54,21 +54,30 @@ function Editflow() {
 
       const response = await fetch(apiUrl);
       if (!response.ok) return null;
-      
+
       const data = await response.json();
-      
+      console.log("category template data::", data);
+
       if (data.success && data.templates && data.templates.length > 0) {
-        // Find the specific template by name
-        const specificTemplate = data.templates.find(t => t.template_name === templateName);
-        return specificTemplate || null;
+        const templateGroup = data.templates[0];
+        const templateName = templateGroup.template_name;
+        
+        console.log("Template Name:", templateName);
+        setSelectedTemplate(templateName);
+        return templateName;
+
+
       }
-      
+
+
       return null;
     } catch (error) {
       console.error('Failed to fetch specific template data:', error);
       return null;
     }
   };
+
+
 
   useEffect(() => {
     async function loadTemplateData() {
