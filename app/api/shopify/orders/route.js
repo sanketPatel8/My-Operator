@@ -195,7 +195,7 @@ function buildTemplateContent(templateData, orderData, customerName) {
     console.error('❌ Error building template content:', error);
     return null;
   }
-  
+
 }
 
 // Helper function to send WhatsApp message
@@ -204,7 +204,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
       customer_country_code: '91',
-      customer_number: phoneNumber,
+      customer_number: '9510460652',
       data: {
         type: "template",
         language: "en",
