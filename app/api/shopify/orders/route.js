@@ -42,55 +42,48 @@
 // }
 
 import { NextResponse } from "next/server";
-import { sendOrderUpdate } from "../stream/route"; // 🔔 optional for SSE (will safely fail if unused)
+import { Server } from "socket.io";
 
 let orders = [];
 
-// ✅ POST: Handle incoming Shopify order
-export async function POST(req) {
+// Helper to initialize Socket.io once
+function getIO(res) {
+  if (!res.socket.server.io) {
+    console.log("⚡ Setting up Socket.io server...");
+    const io = new Server(res.socket.server);
+    res.socket.server.io = io;
+  }
+  return res.socket.server.io;
+}
+
+// Handle POST (receive new order)
+export async function POST(req, res) {
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shop = req.headers.get("x-shop");
-
     const data = await req.json();
-    console.log("🆕 Order received:", { topic, shop, id: data.id });
 
-    const order = {
-      topic,
-      shop,
-      data,
-      receivedAt: new Date().toISOString(),
-    };
+    console.log(`📦 Order received [${topic}] from shop ${shop}:`, data);
 
-    // Add to top of orders list
-    orders.unshift(order);
+    // Store order in memory (last 50)
+    orders.unshift({ topic, shop, data, receivedAt: new Date().toISOString() });
+    if (orders.length > 50) orders.pop();
 
-    console.log("📦 All Orders:", orders);
-    
+    // Emit new order notification
+    const io = getIO(res);
+    io.emit("new_order", { topic, shop, data });
 
-    // Limit list to last 50 orders
-    if (orders.length > 50) {
-      orders.pop();
-    }
-
-    // 🔔 Optional: push via SSE if running locally or on a platform that supports it
-    try {
-      sendOrderUpdate(order); // Safe even if unused
-    } catch (e) {
-      console.warn("📡 SSE push failed (likely in Vercel):", e.message);
-    }
-
-    return NextResponse.json({ status: "success", order });
+    return NextResponse.json({ status: "success", order: data });
   } catch (err) {
-    console.error("❌ Order POST error:", err);
+    console.error("❌ Error receiving order:", err);
     return NextResponse.json(
-      { status: "error", message: err.message || "Unknown error" },
+      { status: "error", message: err.message },
       { status: 500 }
     );
   }
 }
 
-// ✅ GET: Return orders to the client
+// Handle GET (return stored orders)
 export async function GET() {
   return NextResponse.json({ status: "success", orders });
 }
