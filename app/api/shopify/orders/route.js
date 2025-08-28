@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
-import mysql from "mysql2/promise";
 
-const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-});
+import { connectDB } from "@/lib/db";
 
 // ✅ Handle POST (save new order)
 export async function POST(req) {
@@ -17,7 +11,9 @@ export async function POST(req) {
 
     console.log("📦 Order received from Remix:", data.id);
 
-    await pool.query(
+    const db = await connectDB();
+
+    await db.query(
       `INSERT INTO orders (order_id, shop, topic, data, created_at)
        VALUES (?, ?, ?, ?, NOW())
        ON DUPLICATE KEY UPDATE data = VALUES(data)`,
@@ -37,7 +33,9 @@ export async function POST(req) {
 // ✅ Handle GET (fetch orders for frontend)
 export async function GET() {
   try {
-    const [rows] = await pool.query(
+    const db = await connectDB();
+
+    const [rows] = await db.query(
       `SELECT * FROM orders ORDER BY created_at DESC LIMIT 20`
     );
     return NextResponse.json(rows);
