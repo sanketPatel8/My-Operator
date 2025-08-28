@@ -5,39 +5,33 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
 
   useEffect(() => {
-  const fetchOrders = async () => {
-    try {
+    const fetchInitialOrders = async () => {
       const res = await fetch("/api/shopify/orders");
       const data = await res.json();
-      setOrders(data.orders);
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-    }
-  };
+      console.log("order data::", data);
+      
+      // setOrders(data.orders || []);
+    };
 
-  fetchOrders(); // Initial fetch
+    fetchInitialOrders();
 
-  const interval = setInterval(fetchOrders, 3000); // Every 5 seconds
+    const eventSource = new EventSource("/api/shopify/stream");
 
-  return () => clearInterval(interval); // Cleanup
-}, []);
+    eventSource.onmessage = (event) => {
+      const { type, order } = JSON.parse(event.data);
+      if (type === "new-order") {
+        setOrders((prev) => [order, ...prev].slice(0, 50)); // Keep latest 50
+      }
+    };
 
-useEffect(() => {
-  const eventSource = new EventSource("/api/shopify/stream");
+    eventSource.onerror = (err) => {
+      console.error("SSE error:", err);
+    };
 
-  eventSource.onmessage = (event) => {
-    const { type, order } = JSON.parse(event.data);
-    console.log("order data", order);
-    
-    if (type === "new-order") {
-      setOrders(prev => [order, ...prev].slice(0, 50));
-    }
-  };
-
-  return () => {
-    eventSource.close();
-  };
-}, []);
+    return () => {
+      eventSource.close();
+    };
+  }, []);
 
 
 
