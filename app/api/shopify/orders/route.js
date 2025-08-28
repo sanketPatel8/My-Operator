@@ -203,8 +203,8 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
   try {
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
-      customer_country_code: '91',
-      customer_number: '9510460652',
+      customer_country_code: "91",
+      customer_number: "9510460652",
       data: {
         type: "template",
         language: "en",
@@ -217,7 +217,8 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
           footer: templateContent.footer || null
         }
       },
-      reply_to: null
+      reply_to: null,
+      myop_ref_id: "csat_123"
     };
     
     console.log('📤 Sending message payload:', JSON.stringify(messagePayload, null, 2));
@@ -228,8 +229,8 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${storeData.whatsapp_api_key}`,
-        'X-MYOP-COMPANY-ID': `${storeData.company_id}`
+        'Authorization': `Bearer KIM7l16W0ijm6loVbaKoK4gsHJrrFt8LjceH9RyEna`,
+        'X-MYOP-COMPANY-ID': `5cd40f6554442586`
       },
       body: JSON.stringify(messagePayload)
     });
