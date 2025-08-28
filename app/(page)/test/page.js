@@ -87,8 +87,7 @@
 
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
-import { toast } from "react-toastify"; // optional for toast notifications
-import "react-toastify/dist/ReactToastify.css";
+
 
 let socket;
 
@@ -101,8 +100,8 @@ export default function OrderNotifications() {
     // Listen for new orders
     socket.on("new_order", (order) => {
       console.log("New order received:", order);
-      setOrders((prev) => [order, ...prev]);
-      toast.info(`New order from ${order.shop}`); // optional popup notification
+      // setOrders((prev) => [order, ...prev]);
+      
     });
 
     return () => socket.disconnect();
@@ -111,13 +110,13 @@ export default function OrderNotifications() {
   return (
     <div>
       <h2>Orders (Real-Time)</h2>
-      <ul>
+      {/* <ul>
         {orders.map((order, i) => (
           <li key={i}>
             {order.shop} | {order.topic} | {order.data.id} | {order.data.customer?.email}
           </li>
         ))}
-      </ul>
+      </ul> */}
     </div>
   );
 }
