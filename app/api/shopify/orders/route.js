@@ -41,17 +41,19 @@
 //   return NextResponse.json({ status: "success", orders });
 // }
 
-
 import { NextResponse } from "next/server";
-import { sendOrderUpdate } from "../stream/route"; // 👈 import SSE push
+import { sendOrderUpdate } from "../stream/route"; // 🔔 optional for SSE (will safely fail if unused)
 
 let orders = [];
 
+// ✅ POST: Handle incoming Shopify order
 export async function POST(req) {
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shop = req.headers.get("x-shop");
+
     const data = await req.json();
+    console.log("🆕 Order received:", { topic, shop, id: data.id });
 
     const order = {
       topic,
@@ -60,21 +62,35 @@ export async function POST(req) {
       receivedAt: new Date().toISOString(),
     };
 
+    // Add to top of orders list
     orders.unshift(order);
-    if (orders.length > 50) orders.pop();
 
-    // 🔔 Push update to connected clients
-    sendOrderUpdate(order);
+    console.log("📦 All Orders:", orders);
+    
+
+    // Limit list to last 50 orders
+    if (orders.length > 50) {
+      orders.pop();
+    }
+
+    // 🔔 Optional: push via SSE if running locally or on a platform that supports it
+    try {
+      sendOrderUpdate(order); // Safe even if unused
+    } catch (e) {
+      console.warn("📡 SSE push failed (likely in Vercel):", e.message);
+    }
 
     return NextResponse.json({ status: "success", order });
   } catch (err) {
+    console.error("❌ Order POST error:", err);
     return NextResponse.json(
-      { status: "error", message: err.message },
+      { status: "error", message: err.message || "Unknown error" },
       { status: 500 }
     );
   }
 }
 
+// ✅ GET: Return orders to the client
 export async function GET() {
   return NextResponse.json({ status: "success", orders });
 }

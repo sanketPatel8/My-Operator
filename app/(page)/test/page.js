@@ -4,37 +4,52 @@ import { useEffect, useState } from "react";
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
 
+  // useEffect(() => {
+  //   const fetchInitialOrders = async () => {
+  //     const res = await fetch("/api/shopify/orders");
+  //     const data = await res.json();
+  //     console.log("order data::", data);
+      
+  //     // setOrders(data.orders || []);
+  //   };
+
+  //   fetchInitialOrders();
+
+  //   const eventSource = new EventSource("/api/shopify/stream");
+
+  //   eventSource.onmessage = (event) => {
+  //     const { type, order } = JSON.parse(event.data);
+  //     console.log("order data::", order);
+
+      
+  //     if (type === "new-order") {
+  //       setOrders((prev) => [order, ...prev].slice(0, 50)); // Keep latest 50
+  //     }
+  //   };
+
+  //   eventSource.onerror = (err) => {
+  //     console.error("SSE error:", err);
+  //   };
+
+  //   return () => {
+  //     eventSource.close();
+  //   };
+  // }, []);
+
   useEffect(() => {
-    // const fetchInitialOrders = async () => {
-    //   const res = await fetch("/api/shopify/orders");
-    //   const data = await res.json();
-    //   console.log("order data::", data);
-      
-    //   // setOrders(data.orders || []);
-    // };
+  const fetchOrders = async () => {
+    const res = await fetch("/api/shopify/orders");
+    const data = await res.json();
+    console.log("Fetched orders:", data.orders); // 👈 Add this
+    setOrders(data.orders);
+  };
 
-    // fetchInitialOrders();
+  fetchOrders();
+  const interval = setInterval(fetchOrders, 3000); // every 3 seconds
 
-    const eventSource = new EventSource("/api/shopify/stream");
+  return () => clearInterval(interval);
+}, []);
 
-    eventSource.onmessage = (event) => {
-      const { type, order } = JSON.parse(event.data);
-      console.log("order data::", order);
-
-      
-      if (type === "new-order") {
-        setOrders((prev) => [order, ...prev].slice(0, 50)); // Keep latest 50
-      }
-    };
-
-    eventSource.onerror = (err) => {
-      console.error("SSE error:", err);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, []);
 
 
 
