@@ -195,6 +195,7 @@ function buildTemplateContent(templateData, orderData, customerName) {
     console.error('❌ Error building template content:', error);
     return null;
   }
+  
 }
 
 // Helper function to send WhatsApp message
