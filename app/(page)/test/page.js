@@ -27,6 +27,8 @@ useEffect(() => {
 
   eventSource.onmessage = (event) => {
     const { type, order } = JSON.parse(event.data);
+    console.log("order data", order);
+    
     if (type === "new-order") {
       setOrders(prev => [order, ...prev].slice(0, 50));
     }
