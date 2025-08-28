@@ -2,69 +2,30 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useToastContext } from "@/component/Toast";
 
 // API service functions
-const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
-  const maxRetries = 3;
+
+
+
+
+function ConnectWhatsApp() {
+  const router = useRouter();
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
+  const [loading, setLoading] = useState(true);
   
-  try {
-    // Use Next.js API route to avoid CORS issues
-    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account`;
-    console.log('Fetching from:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      // Add timeout for client-side request
-      signal: AbortSignal.timeout(30000)
-    });
+  const [isRetrying, setIsRetrying] = useState(false);
+  const { success, error } = useToastContext();
+  const [loading1, setLoading1] = useState(false);
+  const [pagination, setPagination] = useState({
+    hasNext: false,
+    hasPrevious: false,
+    currentOffset: 0,
+    limit: 10
+  });
 
-    console.log('Response status:', response.status);
-
-    if (!response.ok) {
-      let errorData = null;
-      try {
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          errorData = await response.json();
-        } else {
-          errorData = { message: await response.text() };
-        }
-      } catch (parseError) {
-        console.error('Error parsing error response:', parseError);
-        errorData = { message: `HTTP error! status: ${response.status}` };
-      }
-      
-      console.error('Error response:', errorData);
-      throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log('Success response:', data);
-    
-    // Validate response structure
-    if (!data || typeof data !== 'object') {
-      throw new Error('Invalid response format received');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Error fetching WhatsApp numbers:', error);
-    
-    // Retry logic for network errors
-    if (retryCount < maxRetries && (error.name === 'AbortError' || error.message.includes('fetch'))) {
-      console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
-      return fetchWhatsAppNumbers(limit, offset, retryCount + 1);
-    }
-    
-    throw error;
-  }
-};
-
+  
 // Transform API data to match component format
 const transformApiDataToAccounts = (apiData) => {
   if (!apiData) {
@@ -114,28 +75,78 @@ const transformApiDataToAccounts = (apiData) => {
   }));
 };
 
+  const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
+  const maxRetries = 3;
+ 
+  
+  try {
+    // Use Next.js API route to avoid CORS issues
+    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account`;
+    console.log('Fetching from:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+      // Add timeout for client-side request
+      signal: AbortSignal.timeout(30000)
+    });
 
-function ConnectWhatsApp() {
-  const router = useRouter();
-  const [accounts, setAccounts] = useState([]);
-  const [selectedAccount, setSelectedAccount] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isRetrying, setIsRetrying] = useState(false);
-  const [loading1, setLoading1] = useState(false);
-  const [pagination, setPagination] = useState({
-    hasNext: false,
-    hasPrevious: false,
-    currentOffset: 0,
-    limit: 10
-  });
+    console.log('Response status:', response.status);
+
+    if(response.status == 403){
+      error("company id or whatsapp api key is invalid. Go back and enter valid id and key.");
+    }
+
+    if (!response.ok) {
+      let errorData = null;
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType?.includes('application/json')) {
+          errorData = await response.json();
+        } else {
+          errorData = { message: await response.text() };
+        }
+      } catch (parseError) {
+        console.error('Error parsing error response:', parseError);
+        errorData = { message: `HTTP error! status: ${response.status}` };
+      }
+      
+      console.error('Error response:', errorData);
+      throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Success response:', data);
+    
+    // Validate response structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response format received');
+    }
+    
+    return data;
+  } catch (err) {
+    
+    
+    // Retry logic for network errors
+    if (retryCount < maxRetries && (err?.name === 'AbortError' || err?.message?.includes('fetch'))) {
+      console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+      return fetchWhatsAppNumbers(limit, offset, retryCount + 1);
+    }
+    
+    throw err;
+  }
+};
 
   // Memoized load function to prevent unnecessary re-renders
   const loadWhatsAppNumbers = useCallback(async (offset = 0, showLoading = true) => {
     try {
       
       setIsRetrying(true);
-      setError(null);
+      
       
       const data = await fetchWhatsAppNumbers(pagination.limit, offset);
       const transformedAccounts = transformApiDataToAccounts(data);
@@ -160,17 +171,20 @@ function ConnectWhatsApp() {
       let errorMessage = 'Failed to load WhatsApp accounts. Please try again.';
       
       // Provide more specific error messages
-      if (err.name === 'AbortError') {
+      if (err?.name === 'AbortError') {
         errorMessage = 'Request timeout. Please check your connection and try again.';
-      } else if (err.message.includes('500')) {
+      } else if (err?.message?.includes('500')) {
         errorMessage = 'Server error. Please try again in a few moments.';
-      } else if (err.message.includes('403')) {
+      } else if (err?.message?.includes('403')) {
         errorMessage = 'Access denied. Please check your API credentials.';
-      } else if (err.message.includes('404')) {
+      } else if (err?.message?.includes('404')) {
         errorMessage = 'API endpoint not found. Please contact support.';
       }
+
+      error(errorMessage);
+
       
-      setError(errorMessage);
+      
     } finally {
       setLoading(false);
       setIsRetrying(false);
@@ -348,7 +362,9 @@ function ConnectWhatsApp() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
-          <button className="w-full sm:w-auto px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100">
+          <button
+          onClick={() => router.push("/ConfigureWhatsApp")}
+          className="w-full sm:w-auto px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100">
             Back
           </button>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">

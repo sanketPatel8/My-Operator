@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { useToastContext } from "@/component/Toast";
 
 import { Suspense } from "react";
 import axios from "axios";
@@ -12,6 +13,7 @@ function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
   const [shop, setShop] = useState("");
   const [token, setToken] = useState("");
+  const { success, error } = useToastContext();
   const [CreatedCompanyID, setCreatedCompanyID] = useState("");
   const router = useRouter();
 
@@ -44,11 +46,31 @@ function ConfigureWhatsApp() {
     if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
 
-  const handleVerify = () => {
-    if (token && CreatedCompanyID) {
-      VerifyCo(token, CreatedCompanyID);
+  const handleVerify = async () => {
+    if (!CreatedCompanyID || !token) {
+      error("Please enter both Company ID and Access Token");
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/company-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_id: CreatedCompanyID,
+          whatsapp_api_key: token,
+        }),
+      });
+
+
+      console.log("✅ API response:", response.data);
+      router.push("/ConnectWhatsApp");
+    } catch (error) {
+      console.error("❌ API error:", error.response?.data || error.message);
+      alert("Failed to verify. Please check the inputs and try again.");
     }
   };
+
 
   // For debugging (can remove later)
   console.log("Shop:", shop, "Token:", token);
@@ -124,7 +146,7 @@ function ConfigureWhatsApp() {
             </button>
             <button
               className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
-              onClick={() => router.push("/ConnectWhatsApp")}
+              onClick={handleVerify}
             >
               Verify & Continue
             </button>
