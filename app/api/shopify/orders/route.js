@@ -283,7 +283,7 @@ export async function POST(req) {
     // 3. Fetch template data from template_variable table
     const templateDataId = 129; // You can make this dynamic based on order type or other criteria
     const [templateRows] = await connection.execute(
-      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY id',
+      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
       [templateDataId]
     );
     
