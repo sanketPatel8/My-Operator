@@ -209,13 +209,18 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
         type: "template",
         language: "en",
         context: {
-          template_name: templateName,
+          template_name: "abadoned_cart",
           language: "en",
-          body: templateContent.body || {},
-          buttons: templateContent.buttons || [],
-          header: templateContent.header || null,
-          footer: templateContent.footer || null
-        }
+          body: {
+            name: "Krunal"
+          },
+         buttons: [
+            {
+             index: 0,
+             id: "1"
+            }
+         ]
+      }
       },
       reply_to: null,
       myop_ref_id: "csat_123"
