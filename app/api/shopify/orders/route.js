@@ -69,7 +69,7 @@ async function getDbConnection() {
 // Helper function to extract phone number and country code from order data
 function extractPhoneDetails(orderData) {
   try {
-    const customer = orderData.customer;
+    const customer = orderData.data.customer;
     
     if (!customer || !customer.phone) {
       console.warn('⚠️ No phone number found in customer data');
@@ -204,7 +204,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
       customer_country_code: "91",
-      customer_number: "9898894881",
+      customer_number: phoneNumber,
       data: {
         type: "template",
         language: "en",
