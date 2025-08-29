@@ -208,7 +208,9 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
         context: {
           template_name: templateName,
           language: "en",
-          body: templateContent.body.example || {},
+          "body": {
+        "name": "Krunal"
+      },
          "buttons": [
         {
           "index": 0,
@@ -236,9 +238,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
       body: JSON.stringify(messagePayload)
     });
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    
     
     const result = await response.json();
     console.log('✅ Message sent successfully:', result);
