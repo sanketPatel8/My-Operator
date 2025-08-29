@@ -204,7 +204,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
       customer_country_code: "91",
-      customer_number: "9510460652",
+      customer_number: "9898894881",
       data: {
         type: "template",
         language: "en",
