@@ -240,7 +240,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
       body: JSON.stringify(messagePayload)
     });
 
-    console.log("comapny id:::", response);
+    console.log("comapny id:::", storeData.company_id);
     console.log("pay load:::", messagePayload);
     
     
