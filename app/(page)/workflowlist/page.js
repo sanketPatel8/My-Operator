@@ -40,6 +40,9 @@ export default function WorkflowList() {
           throw new Error(`Failed to initialize workflows: ${initRes.status}`);
         }
 
+        console.log("status post api:::", initRes);
+        
+
         // ✅ Then fetch the updated workflows
         const updatedRes = await fetch('/api/category');
         if (!updatedRes.ok) {
@@ -74,8 +77,8 @@ export default function WorkflowList() {
     
     return workflow.events.map((event, index) => ({
       id: event.category_event_id || index + 1,
-      enabled: false, // Default to false as shown in your images
       title: event.title,
+      enabled: event.status === 1 ? true : false,
       text: event.subtitle,
       footerText: event.delay ? `Send after ${event.delay}` : '',
       category_id: workflow.category_id,
@@ -84,17 +87,45 @@ export default function WorkflowList() {
     }));
   };
 
-  const handleToggle = (workflowId, reminderId) => {
-    if (!workflowId || !reminderId) return;
-    
+  const handleToggle = async (workflowId, reminderId) => {
+  if (!workflowId || !reminderId) return;
+
+  // Find the current status of the toggle
+  const currentReminder = workflows
+    .find(wf => wf.category_id === workflowId)
+    ?.events.find(ev => ev.category_event_id === reminderId);
+
+  const currentStatus = currentReminder?.status ?? 0;
+  const newStatus = currentStatus === 1 ? 0 : 1;
+
+  try {
+    // Update backend status
+    const res = await fetch('/api/category', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        category_event_id: reminderId,
+        status: newStatus,
+      }),
+    });
+
+    const result = await res.json();
+
+    if (!res.ok || !result.success) {
+      throw new Error(result.message || 'Failed to update status');
+    }
+
+    // Update local state
     setWorkflows((prev) =>
       prev.map((workflow) => {
         if (workflow.category_id === workflowId) {
           return {
             ...workflow,
             events: workflow.events.map((event) =>
-              event.category_event_id === reminderId 
-                ? { ...event, enabled: !event.enabled }
+              event.category_event_id === reminderId
+                ? { ...event, status: newStatus }
                 : event
             )
           };
@@ -102,7 +133,12 @@ export default function WorkflowList() {
         return workflow;
       })
     );
-  };
+  } catch (error) {
+    console.error('❌ Error updating toggle status:', error.message);
+    alert('Failed to update toggle status. Please try again.');
+  }
+};
+
 
   const handleEyeClick = (reminder) => {
     console.log('Eye clicked:', reminder);

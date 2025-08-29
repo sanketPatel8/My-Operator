@@ -16,11 +16,15 @@ function Editflow() {
 
   const [selectedDelay, setSelectedDelay] = useState("1 hour");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [categoryTemplateData, setCategoryTemplateData] = useState(null);
   const [activePart, setActivePart] = useState("template");
   const [templateMessage, setTemplateMessage] = useState('');
+  const [matchingMapVab, SetMatchingMapVab] = useState([]);
   const [allTemplatesData, setAllTemplatesData] = useState([]);
   const [templateOptions, setTemplateOptions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [buttons, setButtons] = useState([]);
+
   const [templateVariables, setTemplateVariables] = useState({
     header: [],
     body: [],
@@ -31,7 +35,24 @@ function Editflow() {
   const selectRef = useRef(null);
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const [currentWorkflowData, setCurrentWorkflowData] = useState(null);
-  const [selectedTemplateData, setSelectedTemplateData] = useState(null); // For category-specific template data
+  const [selectedTemplateData, setSelectedTemplateData] = useState(null);
+  const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
+
+  // ✅ Add helper at top of file
+const normalizeTemplateData = (data) => {
+  if (!data) return { content: [], mappingVariables: [] };
+  if (Array.isArray(data)) {
+    return {
+      content: data[0]?.content || [],
+      mappingVariables: data[0]?.mappingVariables || [],
+    };
+  }
+  return {
+    content: data.content || [],
+    mappingVariables: data.mappingVariables || [],
+  };
+};
+
 
   const checkDropdownPosition = () => {
     if (selectRef.current) {
@@ -41,50 +62,13 @@ function Editflow() {
     }
   };
 
-  // Function to fetch specific template data from category-events API
-  const fetchSelectedTemplateData = async (templateName) => {
-    if (!currentWorkflowData || !templateName) return null;
-
-    try {
-      const storeId = '11';
-      let apiUrl = `/api/category-template?store_id=${storeId}`;
-      if (currentWorkflowData.category_event_id) {
-        apiUrl += `&category_event_id=${currentWorkflowData.category_event_id}`;
-      }
-
-      const response = await fetch(apiUrl);
-      if (!response.ok) return null;
-
-      const data = await response.json();
-      console.log("category template data::", data);
-
-      if (data.success && data.templates && data.templates.length > 0) {
-        const templateGroup = data.templates[0];
-        const templateName = templateGroup.template_name;
-        
-        console.log("Template Name:", templateName);
-        setSelectedTemplate(templateName);
-        return templateName;
-
-
-      }
-
-
-      return null;
-    } catch (error) {
-      console.error('Failed to fetch specific template data:', error);
-      return null;
-    }
-  };
-
-
-
+  // Single data loading effect - fetch everything ONCE
   useEffect(() => {
-    async function loadTemplateData() {
+    async function loadAllData() {
       try {
         const storeId = '11';
         
-        // First, get the current workflow data to determine category_id
+        // 1. Get the current workflow data
         const workflowRes = await fetch('/api/category');
         if (!workflowRes.ok) throw new Error('Failed to fetch workflow data');
         
@@ -108,76 +92,241 @@ function Editflow() {
           }
         }
 
-        // Always load ALL templates from template-data API for dropdown
+        // 2. Load all templates for dropdown
         const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`);
         if (!templateResponse.ok) throw new Error('Failed to fetch all templates');
         
         const templateData = await templateResponse.json();
         console.log("All templates data:", templateData);
 
-        // Set dropdown options from all available templates
         if (templateData.templates && templateData.templates.length > 0) {
           setTemplateOptions(templateData.templates.map(t => t.template_name));
           setAllTemplatesData(templateData.templates);
-          console.log("for mappingfield::::::::", templateData.templates);
-          
-          
-          if (!selectedTemplate) {
-            setSelectedTemplate(templateData.templates[0].template_name);
+        }
+
+        // 3. Fetch category-specific template data ONCE (with all components)
+        let categorySpecificData = null;
+        if (matchedEvent) {
+          try {
+            let apiUrl = `/api/category-template?store_id=${storeId}&category_event_id=${matchedEvent.category_event_id}`;
+            const response = await fetch(apiUrl);
+            
+            if (response.ok) {
+              const data = await response.json();
+              console.log("Category template data fetched once:", data);
+
+              if (data.success && data.templates && data.templates.length > 0) {
+                const templateGroup = data.templates[0];
+                categorySpecificData = templateGroup;
+                setCategoryTemplateData(templateGroup);
+                setSelectedTemplate(templateGroup.template_name);
+
+                const mappingVariables =
+                  templateGroup?.data?.[0]?.variables?.map((v) => ({
+                    template_variable_id: v.template_variable_id,
+                    variable_name: v.variable_name,
+                    mapping_field: v.mapping_field,
+                    fallback_value: v.fallback_value,
+                    type: v.type,
+                    component_type: v.component_type,
+                  })) || [];
+
+                  console.log("mapping variables::::::::::", mappingVariables);
+
+                  SetMatchingMapVab(mappingVariables || []);
+                  
+
+              }
+            }
+          } catch (error) {
+            console.error('Failed to fetch category template data:', error);
           }
         }
 
+        // 4. Set default template if no category template found
+        if (!categorySpecificData && templateData.templates && templateData.templates.length > 0) {
+          setSelectedTemplate(templateData.templates[0].template_name);
+        }
+
+        // 5. Process initial template data (category-specific or default)
+        processInitialTemplateData(categorySpecificData, templateData.templates, categorySpecificData?.template_name || templateData.templates[0]?.template_name);
+
       } catch (error) {
-        console.error('Failed to load template data', error);
+        console.error('Failed to load initial data', error);
       } finally {
         setLoading(false);
       }
     }
 
-    loadTemplateData();
+    loadAllData();
   }, [params.id]);
 
-  const initializeWorkflows = async () => {
-    try {
-      const updatedRes = await fetch('/api/category');
-      if (!updatedRes.ok) {
-        throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
+  // Helper function to process template data initially
+  const processInitialTemplateData = (categoryData, allTemplates, templateName) => {
+    if (!templateName || allTemplates.length === 0) return;
+
+    let selectedTemplateObj;
+    let contentBlocks = [];
+    let mappingVariables = [];
+
+    // Check if we have category-specific data
+    if (categoryData && categoryData.template_name === templateName) {
+  console.log("Processing category-specific template data:", categoryData);
+  setSelectedTemplateData(categoryData);
+  selectedTemplateObj = categoryData;
+
+  const { content, mappingVariables: vars } = normalizeTemplateData(categoryData.data);
+  contentBlocks = content;
+  mappingVariables = vars;
+} else {
+  console.log("Processing general template data");
+  setSelectedTemplateData(null);
+  selectedTemplateObj = allTemplates.find(
+    (template) => template.template_name === templateName
+  );
+  if (selectedTemplateObj) {
+    const { content, mappingVariables: vars } = normalizeTemplateData(selectedTemplateObj.data);
+    contentBlocks = content;
+    mappingVariables = vars;
+  }
+}
+
+
+    if (!selectedTemplateObj) return;
+    
+    // Process mapping field options
+    const mappingOptions = mappingVariables
+      .map(variable => variable.mapping_field)
+      .filter(field => field && field.trim() !== '');
+    
+    const defaultOptions = ["Name", "Phone number", "Service number", "Order id"];
+    const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
+    setMappingFieldOptions(combinedOptions);
+    
+    // Extract variables and process template content
+    processTemplateContent(contentBlocks, mappingVariables);
+  };
+
+  // Process template content when selectedTemplate changes (WITHOUT fetching)
+  useEffect(() => {
+    if (!selectedTemplate || allTemplatesData.length === 0) return;
+
+    let selectedTemplateObj;
+    let contentBlocks = [];
+    let mappingVariables = [];
+
+    // Check if category template data matches selected template
+   if (categoryTemplateData && categoryTemplateData.template_name === selectedTemplate) {
+  console.log("Using category-specific template data:", categoryTemplateData);
+  setSelectedTemplateData(categoryTemplateData);
+
+  const { content, mappingVariables: vars } = normalizeTemplateData(categoryTemplateData.data);
+  contentBlocks = content;
+  mappingVariables = vars;
+} else {
+  console.log("Using general template data");
+  setSelectedTemplateData(null);
+  selectedTemplateObj = allTemplatesData.find(
+    (template) => template.template_name === selectedTemplate
+  );
+  if (selectedTemplateObj) {
+    const { content, mappingVariables: vars } = normalizeTemplateData(selectedTemplateObj.data);
+    contentBlocks = content;
+    mappingVariables = vars;
+  }
+}
+
+
+    if (!categoryTemplateData && !selectedTemplateObj) return;
+
+    
+    // Extract dropdown options from mappingVariables
+    const mappingOptions = mappingVariables
+      .map(variable => variable.mapping_field)
+      .filter(field => field && field.trim() !== '');
+    
+    const defaultOptions = ["Name", "Phone number", "Service number", "Order id"];
+    const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
+    setMappingFieldOptions(combinedOptions);
+    
+    // Process template content
+    processTemplateContent(contentBlocks, mappingVariables);
+  }, [selectedTemplate, allTemplatesData, categoryTemplateData]);
+
+  // Helper function to process template content (header, body, buttons)
+  const processTemplateContent = (contentBlocks, mappingVariables) => {
+    const headerVariables = [];
+    const bodyVariables = [];
+    const buttonVariables = [];
+
+    setTemplateMessage(""); 
+
+
+    contentBlocks.forEach(block => {
+      switch (block.type) {
+        case 'HEADER':
+          if (block.format === 'TEXT' && block.text) {
+            headerVariables.push(...extractVariables(block.text));
+          }
+          break;
+        
+        case 'BODY':
+          if (block.text) {
+            bodyVariables.push(...extractVariables(block.text));
+            setTemplateMessage(block.text);
+          }
+          break;
+        
+        case "BUTTONS":
+          setButtons(block.buttons || []);
+          if (block.buttons) {
+            block.buttons.forEach((btn) => {
+              if (btn.text) {
+                buttonVariables.push(btn.text); // ✅ treat button text like body vars
+              }
+            });
+          }
+          break;
+
       }
+    });
 
-      const updatedData = await updatedRes.json();
-      console.log("✅ Updated workflow data:", updatedData);
+    setTemplateVariables({
+      header: [...new Set(headerVariables)],
+      body: [...new Set(bodyVariables)],
+      buttons: [...new Set(buttonVariables)]
+    });
 
-      if (!Array.isArray(updatedData?.categories)) {
-        throw new Error("Invalid data: 'categories' is not an array");
+    // Initialize variable settings
+    const newSettings = {};
+    [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
+      if (!newSettings[variable]) {
+        const matchingMappingVar = mappingVariables.find(mv => 
+          mv.variable_name === variable || mv.variable_name === `{{${variable}}}`
+        );
+        const matchedvab = matchingMapVab.find(mv => 
+          mv.variable_name === variable || mv.variable_name === `{{${variable}}}`
+        );
+        
+        if(matchedvab != undefined){
+          newSettings[variable] = {
+        dropdown: matchedvab?.mapping_field || variableSettings[variable]?.dropdown || "Name",
+        fallback: matchedvab?.fallback_value || variableSettings[variable]?.fallback || ""
+        } }else{
+          newSettings[variable] = {
+        dropdown: matchingMappingVar?.mapping_field || variableSettings[variable]?.dropdown || "Name",
+        fallback: matchingMappingVar?.fallback_value || variableSettings[variable]?.fallback || ""
+        }
+        
+      };
+
+      console.log("section to remove ::::::", currentWorkflowData);
+      
+      
+
       }
-
-      const categoryData = updatedData.categories.flatMap((category) =>
-        (category.events || []).map((event, index) => ({
-          id: event.category_event_id || index + 1,
-          enabled: false,
-          title: event.title,
-          text: event.subtitle,
-          footerText: event.delay ? `Send after ${event.delay}` : '',
-          category_id: category.category_id ?? null,
-          categoryName: category.categoryName ?? null,
-          category_event_id: event.category_event_id
-        }))
-      );
-
-      console.log("✅ categoryData:", categoryData);
-
-      const matchedEvent = categoryData.find(item => item.category_event_id == params.id);
-
-      if (matchedEvent) {
-        console.log("✅ Matched Event:", matchedEvent);
-      } else {
-        console.log("❌ No event found with category_event_id =", params.id);
-      }
-
-    } catch (err) {
-      console.error("❌ Error with workflows:", err);
-      setError(err.message);
-    }
+    });
+    setVariableSettings(newSettings);
   };
 
   // Extract variables from text using regex
@@ -197,119 +346,6 @@ function Editflow() {
     checkDropdownPosition();
     return () => window.removeEventListener("resize", checkDropdownPosition);
   }, []);
-
-  const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
-
-// Update the processTemplateData useEffect
-useEffect(() => {
-  const processTemplateData = async () => {
-    if (!selectedTemplate || allTemplatesData.length === 0) return;
-
-    // First, try to get category-specific template data
-    const categorySpecificData = await fetchSelectedTemplateData(selectedTemplate);
-    
-    let selectedTemplateObj;
-    let contentBlocks = [];
-    let mappingVariables = [];
-
-    if (categorySpecificData && categorySpecificData.hasSpecificData) {
-      // Use category-specific data if available
-      console.log("Using category-specific template data:", categorySpecificData);
-      setSelectedTemplateData(categorySpecificData);
-      selectedTemplateObj = categorySpecificData;
-      contentBlocks = categorySpecificData.data?.content || [];
-      mappingVariables = categorySpecificData.data?.mappingVariables || [];
-    } else {
-      // Fall back to general template data
-      console.log("Using general template data");
-      setSelectedTemplateData(null);
-      selectedTemplateObj = allTemplatesData.find(
-        (template) => template.template_name === selectedTemplate
-      );
-      contentBlocks = selectedTemplateObj?.data?.[0]?.content || [];
-      mappingVariables = selectedTemplateObj?.data?.[0]?.mappingVariables || [];
-    }
-
-    if (!selectedTemplateObj) return;
-    
-    // Extract dropdown options from mappingVariables
-    const mappingOptions = mappingVariables
-      .map(variable => variable.mapping_field)
-      .filter(field => field && field.trim() !== ''); // Filter out empty values
-    
-    // Add default options and remove duplicates
-    const defaultOptions = ["Name", "Phone number", "Service number", "Order id"];
-    const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
-    setMappingFieldOptions(combinedOptions);
-    
-    // Extract variables from different components
-    const headerVariables = [];
-    const bodyVariables = [];
-    const buttonVariables = [];
-
-    contentBlocks.forEach(block => {
-      switch (block.type) {
-        case 'HEADER':
-          if (block.format === 'TEXT' && block.text) {
-            headerVariables.push(...extractVariables(block.text));
-          }
-          break;
-        
-        case 'BODY':
-          if (block.text) {
-            bodyVariables.push(...extractVariables(block.text));
-            setTemplateMessage(block.text);
-          }
-          break;
-        
-        case 'BUTTONS':
-          if (block.buttons && Array.isArray(block.buttons)) {
-            block.buttons.forEach(button => {
-              if (button.text) {
-                buttonVariables.push(button.text);
-              }
-            });
-          }
-          break;
-      }
-    });
-
-    // Remove duplicates and set variables
-    setTemplateVariables({
-      header: [...new Set(headerVariables)],
-      body: [...new Set(bodyVariables)],
-      buttons: [...new Set(buttonVariables)]
-    });
-
-    // Initialize variable settings with mapping field values and fallback values
-    const newSettings = {};
-    [...headerVariables, ...bodyVariables, ...buttonVariables].forEach(variable => {
-      if (!newSettings[variable]) {
-        // Find matching mapping variable for this template variable
-        const matchingMappingVar = mappingVariables.find(mv => 
-          mv.variable_name === variable || mv.variable_name === `{{${variable}}}`
-        );
-        
-        newSettings[variable] = {
-          dropdown: matchingMappingVar?.mapping_field || "Name",
-          fallback: matchingMappingVar?.fallback_value || ""
-        };
-      }
-    });
-    setVariableSettings(newSettings);
-  };
-
-  processTemplateData();
-}, [selectedTemplate, allTemplatesData, currentWorkflowData]);
-
-  
-
-  const dropdownOptions = [
-    "Name",
-    "Phone number",
-    "Service number",
-    "Order id",
-  ];
 
   const updateVariableSetting = (variable, field, value) => {
     setVariableSettings(prev => ({
@@ -334,18 +370,15 @@ useEffect(() => {
 
       // Use category-specific data if available, otherwise use general template data
       if (selectedTemplateData && selectedTemplateData.hasSpecificData) {
-        // Use category-specific template data
         console.log("Using category-specific data for update");
         selectedTemplateObj = selectedTemplateData;
         templateDataObj = selectedTemplateData.data;
         
         if (selectedTemplateData.template_variable_id) {
-          // If template_variable_id is a comma-separated string, split it
           const variableIds = selectedTemplateData.template_variable_id.toString().split(',');
           allTemplateVariableIds = variableIds.filter(id => id && id.trim());
         }
       } else {
-        // Use general template data as fallback
         console.log("Using general template data for update");
         selectedTemplateObj = allTemplatesData.find(
           (template) => template.template_name === selectedTemplate
@@ -359,7 +392,6 @@ useEffect(() => {
         templateDataObj = selectedTemplateObj.data?.[0];
         
         if (templateDataObj) {
-          // Collect from componentVariables
           if (templateDataObj.componentVariables && Array.isArray(templateDataObj.componentVariables)) {
             const componentIds = templateDataObj.componentVariables
               .map(v => v.template_variable_id)
@@ -367,7 +399,6 @@ useEffect(() => {
             allTemplateVariableIds.push(...componentIds);
           }
 
-          // Collect from mappingVariables
           if (templateDataObj.mappingVariables && Array.isArray(templateDataObj.mappingVariables)) {
             const mappingIds = templateDataObj.mappingVariables
               .map(v => v.template_variable_id)
@@ -377,11 +408,9 @@ useEffect(() => {
         }
       }
 
-      // Remove duplicates and create comma-separated string
       const uniqueVariableIds = [...new Set(allTemplateVariableIds)];
       const templateVariableIdsString = uniqueVariableIds.length > 0 ? uniqueVariableIds.join(',') : null;
 
-      // Prepare the update data with template metadata
       const updateData = {
         category_id: currentWorkflowData.category_id,
         category_event_id: currentWorkflowData.category_event_id,
@@ -395,7 +424,6 @@ useEffect(() => {
 
       console.log("Updating workflow with data:", updateData);
 
-      // Update the workflow using your existing category API (enhanced)
       const response = await fetch('/api/category', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -417,60 +445,59 @@ useEffect(() => {
     }
   };
 
-  // Update the renderVariableRow function to use dynamic options
-const renderVariableRow = (variable, section) => (
-  <div key={`${section}-${variable}`} className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px]">
-    {/* Variable Label */}
-    <span className="text-[#333333] text-[14px] w-full sm:w-36">
-      {`{{${variable}}}`}
-    </span>
+  
 
-    {/* Dropdown */}
-    <Listbox 
-      value={variableSettings[variable]?.dropdown || "Name"} 
-      onChange={(value) => updateVariableSetting(variable, 'dropdown', value)}
-    >
-      <div className="relative w-full sm:w-48">
-        <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-          {variableSettings[variable]?.dropdown || "Name"}
-          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
-            <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
-          </span>
-        </Listbox.Button>
+  // Rest of your component code remains the same...
+  const renderVariableRow = (variable, section) => (
+    <div key={`${section}-${variable}`} className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px]">
+      <span className="text-[#333333] text-[14px] w-full sm:w-36">
+        {`{{${variable}}}`}
+      </span>
 
-        <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-          {mappingFieldOptions.map((option, idx) => (
-            <Listbox.Option
-              key={idx}
-              className={({ active }) =>
-                `cursor-default select-none py-2 pl-4 pr-4 ${
-                  active ? "bg-gray-100" : ""
-                }`
-              }
-              value={option}
-            >
-              {option}
-            </Listbox.Option>
-          ))}
-        </Listbox.Options>
-      </div>
-    </Listbox>
+      <Listbox 
+        value={variableSettings[variable]?.dropdown || "Name"} 
+        onChange={(value) => updateVariableSetting(variable, 'dropdown', value)}
+      >
+        <div className="relative w-full sm:w-48">
+          <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+            {variableSettings[variable]?.dropdown || "Name"}
+            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
+              <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
+            </span>
+          </Listbox.Button>
 
-    {/* Fallback Input */}
-    <input
-      type="text"
-      placeholder="Fallback value"
-      value={variableSettings[variable]?.fallback || ""}
-      onChange={(e) => updateVariableSetting(variable, 'fallback', e.target.value)}
-      className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-    />
-  </div>
-);
+          <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+            {mappingFieldOptions.map((option, idx) => (
+              <Listbox.Option
+                key={idx}
+                className={({ active }) =>
+                  `cursor-default select-none py-2 pl-4 pr-4 ${
+                    active ? "bg-gray-100" : ""
+                  }`
+                }
+                value={option}
+              >
+                {option}
+              </Listbox.Option>
+            ))}
+          </Listbox.Options>
+        </div>
+      </Listbox>
+
+      <input
+        type="text"
+        placeholder="Fallback value"
+        value={variableSettings[variable]?.fallback || ""}
+        onChange={(e) => updateVariableSetting(variable, 'fallback', e.target.value)}
+        className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
+      />
+    </div>
+  );
 
   const delayOptions = [
     "Immediate",
     "15 minutes",
-    "30 minutes",
+    "30 minutes", 
     "1 hour",
     "6 hours",
     "12 hours",
@@ -481,19 +508,16 @@ const renderVariableRow = (variable, section) => (
   const getTemplateContentBlocks = () => {
     if (!selectedTemplate || allTemplatesData.length === 0) return [];
     
-    // First check if we have category-specific data
     if (selectedTemplateData && selectedTemplateData.hasSpecificData && selectedTemplateData.data?.content) {
       return selectedTemplateData.data.content;
     }
     
-    // Fall back to general template data
     const template = allTemplatesData.find(
       (t) => t.template_name === selectedTemplate
     );
 
     if (!template) return [];
 
-    // Handle general template format
     if (template.data && Array.isArray(template.data)) {
       return template.data[0]?.content || [];
     } else if (template.data?.content) {
@@ -523,15 +547,9 @@ const renderVariableRow = (variable, section) => (
   return (
     <>
       <div className="font-source-sans flex flex-col min-h-screen">
-        {/* Header */}
         <DashboardHeaader />
-
-        {/* Layout */}
         <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
-          {/* Sidebar */}
           <Sidebar active={activeTab} onChange={setActiveTab} />
-
-          {/* Main Content */}
           <main className="flex-1 bg-white border-l border-[#E9E9E9]">
             {/* Top Bar */}
             <div className="py-[24px] pl-[32px] border-b border-[#E9E9E9] flex items-center gap-[12px]">
@@ -556,36 +574,41 @@ const renderVariableRow = (variable, section) => (
               <div className="md:w-full lg:w-2/3 mx-[10px] md:mx-[32px] mt-[24px]">
                 <div className="flex flex-col md:flex-row gap-[24px]">
                   {/* Delay Dropdown */}
-                  <div className="flex-1">
-                    <label className="block text-[12px] text-[#555555] mb-[4px]">
-                      Delay
-                    </label>
-                    <Listbox value={selectedDelay} onChange={setSelectedDelay}>
-                      <div className="relative">
-                        <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                          {selectedDelay}
-                          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                            <FiChevronDown className="h-5 w-5 text-gray-400" />
-                          </span>
-                        </Listbox.Button>
-                        <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                          {delayOptions.map((delay, idx) => (
-                            <Listbox.Option
-                              key={idx}
-                              className={({ active }) =>
-                                `cursor-default select-none py-2 pl-4 pr-4 ${
-                                  active ? "bg-gray-100" : ""
-                                }`
-                              }
-                              value={delay}
-                            >
-                              {delay}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </div>
-                    </Listbox>
-                  </div>
+                  {/* Delay Dropdown - Only show for Abandoned Cart Recovery */}
+                  {(currentWorkflowData?.title === "Reminder 1" || currentWorkflowData?.title === "Reminder 2" || currentWorkflowData?.title === "Reminder 3") && (
+                    <div className="flex-1">
+                      <label className="block text-[12px] text-[#555555] mb-[4px]">
+                        Delay
+                      </label>
+                      <Listbox value={selectedDelay} onChange={setSelectedDelay}>
+                        <div className="relative">
+                          <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                            {selectedDelay}
+                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                              <FiChevronDown className="h-5 w-5 text-gray-400" />
+                            </span>
+                          </Listbox.Button>
+                          <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                            {delayOptions.map((delay, idx) => (
+                              <Listbox.Option
+                                key={idx}
+                                className={({ active }) =>
+                                  `cursor-default select-none py-2 pl-4 pr-4 ${
+                                    active ? "bg-gray-100" : ""
+                                  }`
+                                }
+                                value={delay}
+                              >
+                                {delay}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </div>
+                      </Listbox>
+                    </div>
+                  )}
+
+                  
 
                   {/* Template Dropdown */}
                   <div className="flex-1">
@@ -803,6 +826,7 @@ const renderVariableRow = (variable, section) => (
                       {/* Header Media/Text */}
                       {(() => {
                         const contentBlocks = getTemplateContentBlocks();
+                        console.log("Content blocks for chat preview:", contentBlocks);
                         const headerBlock = contentBlocks.find(
                           (block) => block.type === "HEADER"
                         );
@@ -834,19 +858,47 @@ const renderVariableRow = (variable, section) => (
                       })()}
 
                       {/* Body Text */}
-                      {templateMessage && (
-                        <div>
-                          {templateMessage.split('\n').map((line, idx) => (
-                            <p key={idx} style={{ 
-                              fontFamily: 'sans-serif',
-                              lineHeight: '1.4'
-                            }}>
-                              {line}
-                              <br />
-                            </p>
-                          ))}
-                        </div>
-                      )}
+                      {(() => {
+                        console.log("Template message for display:", templateMessage);
+                        if (templateMessage) {
+                          return (
+                            <div>
+                              {templateMessage.split('\n').map((line, idx) => (
+                                <p key={idx} style={{ 
+                                  fontFamily: 'sans-serif',
+                                  lineHeight: '1.4'
+                                }}>
+                                  {line}
+                                  <br />
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        
+                        // If no templateMessage, try to get it directly from content blocks
+                        const contentBlocks = getTemplateContentBlocks();
+                        const bodyBlock = contentBlocks.find(block => block.type === "BODY");
+                        console.log("Body block found:", bodyBlock);
+                        
+                        if (bodyBlock?.text) {
+                          return (
+                            <div>
+                              {bodyBlock.text.split('\n').map((line, idx) => (
+                                <p key={idx} style={{ 
+                                  fontFamily: 'sans-serif',
+                                  lineHeight: '1.4'
+                                }}>
+                                  {line}
+                                  <br />
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        
+                        return null;
+                      })()}
 
                       <p className="text-[12px] bg-white text-right text-[#999999] pr-2">2:29</p>
                       

@@ -491,6 +491,60 @@ export async function POST(request) {
   }
 }
 
+export async function PATCH(request) {
+  let connection;
+
+  try {
+    const body = await request.json();
+    const { category_event_id, status } = body;
+
+    if (typeof category_event_id !== 'number' || typeof status !== 'number') {
+      throw new Error('Invalid payload');
+    }
+
+    connection = await pool.getConnection();
+
+    const [result] = await connection.execute(
+      `UPDATE category_event 
+       SET status = ?, updated_at = NOW() 
+       WHERE category_event_id = ?`,
+      [status, category_event_id]
+    );
+
+    const headers = new Headers();
+    setCORSHeaders(headers);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: `Status updated successfully for category_event_id ${category_event_id}`,
+      affectedRows: result.affectedRows
+    }), {
+      status: 200,
+      headers
+    });
+
+  } catch (error) {
+    console.error('PATCH /api/category error:', error);
+
+    const headers = new Headers();
+    setCORSHeaders(headers);
+
+    return new Response(JSON.stringify({
+      success: false,
+      message: 'Failed to update status',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    }), {
+      status: 500,
+      headers
+    });
+
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}
+
 
 // GET endpoint to fetch categories and events for the store
 export async function GET() {
@@ -530,6 +584,7 @@ export async function GET() {
         ce.title, 
         ce.subtitle, 
         ce.delay,
+        ce.status,
         ce.created_at AS event_created_at,
         ce.phonenumber
       FROM category c
@@ -562,6 +617,7 @@ export async function GET() {
           title: row.title,
           subtitle: row.subtitle,
           delay: row.delay,
+          status: row.status,
           template_name: row.template_name,
           template_variables: row.template_variables ? JSON.parse(row.template_variables) : null,
           createdAt: row.event_created_at,
