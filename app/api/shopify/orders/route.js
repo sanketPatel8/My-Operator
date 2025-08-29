@@ -235,10 +235,15 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'Authorization': `Bearer KIM7l16W0ijm6loVbaKoK4gsHJrrFt8LjceH9RyEna`,
-        'X-MYOP-COMPANY-ID': storeData.company_id
+        'X-MYOP-COMPANY-ID': `${storeData.company_id}`
       },
       body: JSON.stringify(messagePayload)
     });
+
+    console.log("comapny id:::", response);
+    console.log("pay load:::", messagePayload);
+    
+    
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
