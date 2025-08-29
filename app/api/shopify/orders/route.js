@@ -208,9 +208,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
         context: {
           template_name: templateName,
           language: "en",
-          "body": {
-        "name": "Krunal"
-      },
+          body: templateContent.body.example || {},
          "buttons": [
         {
           "index": 0,
