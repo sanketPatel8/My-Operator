@@ -298,61 +298,71 @@ export async function POST(req) {
     }
 
     console.log('📞 Extracted phone details:', phoneDetails);
+      // 🔍 3. Get event title based on topic
+      const eventTitle = topic === "orders/create" ? "order placed" : "abandoned cart";
+      console.log("Event title:", eventTitle);
 
-    // 3. Fetch template IDs from category_event based on topic
-    const eventTitle = topic === "orders/create" ? "order placed" : " ";
+      // 🔍 3a. Get phone number from store (store ID = 11)
+      const [storePhoneRows] = await connection.execute(
+        'SELECT phonenumber FROM stores WHERE id = ? LIMIT 1',
+        [11]
+      );
 
-    console.log("event title:::", eventTitle);
-    
+      if (storePhoneRows.length === 0) {
+        throw new Error("No store found with id 11");
+      }
 
-    const [categoryRows] = await connection.execute(
-      'SELECT template_id, template_data_id FROM category_event WHERE title = ? LIMIT 1',
-      [eventTitle]
-    );
+      const storePhoneNumber = storePhoneRows[0].phonenumber;
+      console.log("📞 Store phone number:", storePhoneNumber);
 
-    if (categoryRows.length === 0) {
-      throw new Error(`No category_event mapping found for title: ${eventTitle}`);
-    }
+      // 🔍 3b. Fetch template_id and template_data_id from category_event using title + phone number
+      const [categoryRows] = await connection.execute(
+        'SELECT template_id, template_data_id FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+        [eventTitle, storePhoneNumber]
+      );
 
-    const { template_id, template_data_id } = categoryRows[0];
+      if (categoryRows.length === 0) {
+        throw new Error(`No category_event mapping found for title: ${eventTitle} and phone: ${storePhoneNumber}`);
+      }
 
-    console.log("template ids :::", template_id, template_data_id);
+      const { template_id, template_data_id } = categoryRows[0];
+      console.log("🧩 Template IDs:", template_id, template_data_id);
 
-    // 3a. Fetch template name from template table
-    const [templateRowsMeta] = await connection.execute(
-      'SELECT template_name FROM template WHERE template_id = ?',
-      [template_id]
-    );
+      // 🔍 3c. Fetch template name using template_id + phone number
+      const [templateRowsMeta] = await connection.execute(
+        'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? LIMIT 1',
+        [template_id, storePhoneNumber]
+      );
 
-    if (templateRowsMeta.length === 0) {
-      throw new Error(`No template found with template_id: ${template_id}`);
-    }
+      if (templateRowsMeta.length === 0) {
+        throw new Error(`No template found with template_id: ${template_id} and phone: ${storePhoneNumber}`);
+      }
 
-    const templateName = templateRowsMeta[0].template_name;
+      const templateName = templateRowsMeta[0].template_name;
+      console.log("📛 Template name:", templateName);
 
-    console.log("template name::::::", templateName);
+      // 🔍 3d. Fetch template variables
+      const [templateRows] = await connection.execute(
+        'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+        [template_data_id]
+      );
 
-    // 3b. Fetch template variable rows from template_variable table
-    const [templateRows] = await connection.execute(
-      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-      [template_data_id]
-    );
+      if (templateRows.length === 0) {
+        throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
+      }
 
-    if (templateRows.length === 0) {
-      throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
-    }
+      console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
 
-    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows : ${templateRows}`);
+      // ✅ 4. Build template content
+      const customerName = data.customer?.first_name || 'Customer';
+      const templateContent = buildTemplateContent(templateRows, data, customerName);
 
-    // 4. Build template content
-    const customerName = data.customer?.first_name || 'Customer';
-    const templateContent = buildTemplateContent(templateRows, data, customerName);
+      if (!templateContent) {
+        throw new Error('Failed to build template content');
+      }
 
-    if (!templateContent) {
-      throw new Error('Failed to build template content');
-    }
+      console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
 
-    console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
 
     // 5. Send WhatsApp message
     try {
