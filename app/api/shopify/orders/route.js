@@ -212,7 +212,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
           template_name: "abadoned_cart",
           language: "en",
           body: {
-            name: "Krunal"
+            name: "Nevil"
           },
          buttons: [
             {
