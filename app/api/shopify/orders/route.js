@@ -210,8 +210,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
           language: "en",
           body: templateContent.body || {},
           buttons: templateContent.buttons || [],
-          header: templateContent.header || null,
-          footer: templateContent.footer || null
+
       }
       },
       reply_to: null,
