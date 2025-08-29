@@ -69,7 +69,7 @@ async function getDbConnection() {
 // Helper function to extract phone number and country code from order data
 function extractPhoneDetails(orderData) {
   try {
-    const customer = orderData.data.customer;
+    const customer = orderData;
     
     if (!customer || !customer.phone) {
       console.warn('⚠️ No phone number found in customer data');
@@ -78,9 +78,6 @@ function extractPhoneDetails(orderData) {
     
     let phone = customer.phone;
     
-    // Clean phone number (remove spaces, dashes, etc.)
-    phone = phone.replace(/[\s\-\(\)]/g, '');
-
     phone = phone.slice(-10);
     
     
@@ -260,7 +257,7 @@ export async function POST(req) {
   
   try {
     const topic = req.headers.get("x-shopify-topic");
-    const shopDomain = req.headers.get("x-shopify-shop-domain");
+    const shopDomain = req.headers.get("x-shop");
     const data = await req.json();
     
     console.log(`📦 Order received [${topic}] from shop ${shopDomain}:`, JSON.stringify(data, null, 2));
