@@ -247,18 +247,17 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     throw error;
   }
 }
-
 // ✅ Handle POST (receive new order and send message)
 export async function POST(req) {
   let connection;
-  
+
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shopDomain = req.headers.get("x-shop");
     const data = await req.json();
-    
+
     console.log(`📦 Order received [${topic}] from shop ${shopDomain}:`, JSON.stringify(data, null, 2));
-    
+
     // Store order in memory
     const orderRecord = {
       topic,
@@ -266,26 +265,26 @@ export async function POST(req) {
       data,
       receivedAt: new Date().toISOString()
     };
-    
+
     orders.unshift(orderRecord);
     if (orders.length > 50) orders.pop();
-    
+
     // Get database connection
     connection = await getDbConnection();
-    
+
     // 1. Fetch store data from stores table (id = 11)
     const [storeRows] = await connection.execute(
       'SELECT * FROM stores WHERE id = ?',
       [11]
     );
-    
+
     if (storeRows.length === 0) {
       throw new Error('Store not found with id 11');
     }
-    
+
     const storeData = storeRows[0];
     console.log('🏪 Store data fetched:', storeData);
-    
+
     // 2. Extract phone details from order
     console.log('🔍 Customer data from order:', JSON.stringify(data.customer, null, 2));
     const phoneDetails = extractPhoneDetails(data);
@@ -297,57 +296,85 @@ export async function POST(req) {
         message: "Order received but no phone number found"
       });
     }
-    
+
     console.log('📞 Extracted phone details:', phoneDetails);
+
+    // 3. Fetch template IDs from category_event based on topic
+    const eventTitle = topic === "orders/create" ? "order placed" : " ";
+
+    console.log("event title:::", eventTitle);
     
-    // 3. Fetch template data from template_variable table
-    const templateDataId = 129; // You can make this dynamic based on order type or other criteria
+
+    const [categoryRows] = await connection.execute(
+      'SELECT template_id, template_data_id FROM category_event WHERE title = ? LIMIT 1',
+      [eventTitle]
+    );
+
+    if (categoryRows.length === 0) {
+      throw new Error(`No category_event mapping found for title: ${eventTitle}`);
+    }
+
+    const { template_id, template_data_id } = categoryRows[0];
+
+    console.log("template ids :::", template_id, template_data_id);
+
+    // 3a. Fetch template name from template table
+    const [templateRowsMeta] = await connection.execute(
+      'SELECT template_name FROM template WHERE template_id = ?',
+      [template_id]
+    );
+
+    if (templateRowsMeta.length === 0) {
+      throw new Error(`No template found with template_id: ${template_id}`);
+    }
+
+    const templateName = templateRowsMeta[0].template_name;
+
+    console.log("template name::::::", templateName);
+
+    // 3b. Fetch template variable rows from template_variable table
     const [templateRows] = await connection.execute(
       'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-      [templateDataId]
+      [template_data_id]
     );
-    
+
     if (templateRows.length === 0) {
-      throw new Error(`No template data found for template_data_id: ${templateDataId}`);
+      throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
     }
-    
-    console.log(`📄 Template data fetched: ${templateRows.length} rows`);
-    
-    // 4. Find template name from the template rows
-    const templateName = 'abandoned_cart'; // This should be dynamic based on your template data
-    
-    // 5. Build template content
-    const customerName = data.customer?.first_name || data.billing_address?.first_name || 'Customer';
+
+    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows : ${templateRows}`);
+
+    // 4. Build template content
+    const customerName = data.customer?.first_name || 'Customer';
     const templateContent = buildTemplateContent(templateRows, data, customerName);
-    
+
     if (!templateContent) {
       throw new Error('Failed to build template content');
     }
-    
+
     console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
-    
-    // 6. Send WhatsApp message
+
+    // 5. Send WhatsApp message
     try {
       const messageResult = await sendWhatsAppMessage(
         phoneDetails.phone,
-       
         templateName,
         templateContent,
         storeData
       );
-      
+
       console.log('✅ WhatsApp message sent successfully');
-      
+
       return NextResponse.json({ 
         status: "success", 
         order: data,
         message: "Order received and WhatsApp message sent",
         messageResult: messageResult
       });
-      
+
     } catch (messageError) {
       console.error('❌ Failed to send WhatsApp message:', messageError);
-      
+
       return NextResponse.json({ 
         status: "partial_success", 
         order: data,
@@ -355,7 +382,7 @@ export async function POST(req) {
         error: messageError.message
       });
     }
-    
+
   } catch (err) {
     console.error("❌ Error processing order:", err);
     return NextResponse.json(
