@@ -208,15 +208,10 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
         context: {
           template_name: "abadoned_cart",
           language: "en",
-          body: {
-            name: "Nevil"
-          },
-         buttons: [
-            {
-             index: 0,
-             id: "1"
-            }
-         ]
+          body: templateContent.body || {},
+          buttons: templateContent.buttons || [],
+          header: templateContent.header || null,
+          footer: templateContent.footer || null
       }
       },
       reply_to: null,
