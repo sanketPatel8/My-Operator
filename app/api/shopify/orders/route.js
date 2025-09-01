@@ -317,7 +317,7 @@ export async function POST(req) {
 
       // 🔍 3b. Fetch template_id and template_data_id from category_event using title + phone number
       const [categoryRows] = await connection.execute(
-        'SELECT template_id, template_data_id FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+        'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
         [eventTitle, storePhoneNumber]
       );
 
@@ -325,7 +325,7 @@ export async function POST(req) {
         throw new Error(`No category_event mapping found for title: ${eventTitle} and phone: ${storePhoneNumber}`);
       }
 
-      const { template_id, template_data_id } = categoryRows[0];
+      const { template_id, template_data_id, status } = categoryRows[0];
       console.log("🧩 Template IDs:", template_id, template_data_id);
 
       // 🔍 3c. Fetch template name using template_id + phone number
@@ -366,6 +366,8 @@ export async function POST(req) {
 
     // 5. Send WhatsApp message
     try {
+
+      if(status == 0) {
       const messageResult = await sendWhatsAppMessage(
         phoneDetails.phone,
         templateName,
@@ -381,6 +383,10 @@ export async function POST(req) {
         message: "Order received and WhatsApp message sent",
         messageResult: messageResult
       });
+      } else {
+        console.log("status is disable!:::::", status);
+        
+      }
 
     } catch (messageError) {
       console.error('❌ Failed to send WhatsApp message:', messageError);
