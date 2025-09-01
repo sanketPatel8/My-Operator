@@ -765,46 +765,47 @@ const reloadTemplateDataOptimized = async () => {
                   
 
                   {/* Template Dropdown */}
-                  <div className="flex-1">
-                    <label className="block text-[12px] text-[#555555] mb-[4px]">
-                      Select WhatsApp template
-                    </label>
-                    <Listbox
-                      value={selectedTemplate}
-                      onChange={setSelectedTemplate}
-                    >
-                      <div className="relative">
-                        <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                          {selectedTemplate || "Select a template"}
-                          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                            <FiChevronDown className="h-5 w-5 text-gray-400" />
-                          </span>
-                        </Listbox.Button>
-                        <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                          {templateOptions.map((template, idx) => (
-                            <Listbox.Option
-                              key={idx}
-                              className={({ active }) =>
-                                `cursor-default select-none py-2 pl-4 pr-4 ${
-                                  active ? "bg-gray-100" : ""
-                                }`
-                              }
-                              value={template}
-                            >
-                              {template}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </div>
-                    </Listbox>
-                  </div>
-                  <button
-                    onClick={handleSyncTemplates}
-                    className="absolute ml-[140px] mb-[50px] text-[#4275D6] text-[12px] rounded-[4px] hover:text-[#345bb3]  transition"
-                  >
-                    ⟳ Sync Template
-                  </button>
-                </div>
+                  {/* Template Dropdown with Sync Button */}
+                    <div className="flex-1 relative">
+                      <label className="block text-[12px] text-[#555555] mb-[4px]">
+                        Select WhatsApp template
+                      </label>
+                      <Listbox value={selectedTemplate} onChange={setSelectedTemplate}>
+                        <div className="relative">
+                          <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                            {selectedTemplate || "Select a template"}
+                            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                              <FiChevronDown className="h-5 w-5 text-gray-400" />
+                            </span>
+                          </Listbox.Button>
+                          <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                            {templateOptions.map((template, idx) => (
+                              <Listbox.Option
+                                key={idx}
+                                className={({ active }) =>
+                                  `cursor-default select-none py-2 pl-4 pr-4 ${
+                                    active ? "bg-gray-100" : ""
+                                  }`
+                                }
+                                value={template}
+                              >
+                                {template}
+                              </Listbox.Option>
+                            ))}
+                          </Listbox.Options>
+                        </div>
+                      </Listbox>
+
+                      {/* Sync Button in top-right */}
+                      <button
+                        onClick={handleSyncTemplates}
+                        className="absolute top-[1px] right-[1px] text-[#4275D6] text-[12px] hover:text-[#345bb3] transition"
+                      >
+                        ⟳ Sync Template
+                      </button>
+                    </div>
+                    </div>
+
 
                 {/* Template Variables Section */}
                 <div className="flex mt-[32px]">
