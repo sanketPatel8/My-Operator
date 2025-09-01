@@ -341,28 +341,44 @@ const normalizeTemplateData = (data) => {
     return variables;
   };
 
-  const handleSyncTemplates = async () => {
+  // Add these state variables to your component
+const [syncLoading, setSyncLoading] = useState(false);
+const [syncProgress, setSyncProgress] = useState('');
+
+// Optimized sync function with better error handling and progress feedback
+const handleSyncTemplates = async () => {
   try {
-    // Show loading state
     setLoading(true);
+    setSyncProgress('Initializing sync...');
     
-    // Get store data to extract waba_id and phonenumber
-    const storeId = '11'; // You might want to get this dynamically
+    const storeId = '11';
     
-    // First fetch store data to get waba_id and phonenumber
-    const storeResponse = await fetch(`/api/store-phone`);
-    if (!storeResponse.ok) {
-      throw new Error('Failed to fetch store data');
-    }
+    // Use cached store data if available, or fetch it
+    let storeData = null;
     
-    const storeData = await storeResponse.json();
-    
-    if (!storeData.waba_id || !storeData.phonenumber) {
-      throw new Error('Store missing waba_id or phonenumber. Please configure store settings first.');
+    try {
+      setSyncProgress('Fetching store configuration...');
+      const storeResponse = await fetch(`/api/store-phone`, {
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (!storeResponse.ok) {
+        throw new Error('Failed to fetch store data');
+      }
+      
+      storeData = await storeResponse.json();
+      
+      if (!storeData.waba_id || !storeData.phonenumber) {
+        throw new Error('Store missing waba_id or phonenumber. Please configure store settings first.');
+      }
+    } catch (error) {
+      throw new Error(`Store configuration error: ${error.message}`);
     }
 
-    // Call sync templates API
-    const syncResponse = await fetch('/api/update-store', {
+    // Call optimized sync API
+    setSyncProgress('Syncing templates from WhatsApp...');
+    
+    const syncResponse = await fetch('/api/sync-template', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -371,52 +387,84 @@ const normalizeTemplateData = (data) => {
         store_id: storeId,
         waba_id: storeData.waba_id,
         phonenumber: storeData.phonenumber
-      })
+      }),
+      signal: AbortSignal.timeout(30000) // 30 second timeout for sync
     });
 
     const result = await syncResponse.json();
 
     if (result.success) {
-      // Show success message
-      success(`Templates synced successfully!`);
+      setSyncProgress('Updating local cache...');
       
-      // Reload template data
-      await reloadTemplateData();
+      // Success feedback with details
+      success(`Templates synced Successfully! `);
+      
+      // Reload template data with optimized approach
+      await reloadTemplateDataOptimized();
+      
+      setSyncProgress('Sync completed successfully!');
+      
+      // Clear progress after delay
+      setTimeout(() => setSyncProgress(''), 2000);
     } else {
       throw new Error(result.message || 'Failed to sync templates');
     }
     
   } catch (error) {
     console.error('Template sync error:', error);
-    error(`Failed to sync templates: ${error.message}`);
+    
+    // Better error messages based on error type
+    let errorMessage = 'Failed to sync templates';
+    
+    if (error.name === 'AbortError') {
+      errorMessage = 'Sync request timed out. Please try again.';
+    } else if (error.message.includes('fetch')) {
+      errorMessage = 'Network error. Please check your connection.';
+    } else {
+      errorMessage = `Sync failed: ${error.message}`;
+    }
+    
+    error(errorMessage);
+    setSyncProgress('');
   } finally {
     setLoading(false);
   }
 };
 
-// Helper function to reload template data after sync
-const reloadTemplateData = async () => {
+// Optimized template data reload
+const reloadTemplateDataOptimized = async () => {
   try {
     const storeId = '11';
     
-    // Reload all templates
-    const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`);
+    const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`, {
+      signal: AbortSignal.timeout(10000),
+      headers: {
+        'Cache-Control': 'no-cache' // Force fresh data
+      }
+    });
+    
     if (templateResponse.ok) {
       const templateData = await templateResponse.json();
       
-      if (templateData.templates && templateData.templates.length > 0) {
-        setTemplateOptions(templateData.templates.map(t => t.template_name));
+      if (templateData.templates?.length > 0) {
+        // Update template options
+        const newTemplateNames = templateData.templates.map(t => t.template_name);
+        setTemplateOptions(newTemplateNames);
         setAllTemplatesData(templateData.templates);
         
-        // If no template is currently selected, select the first one
-        if (!selectedTemplate && templateData.templates.length > 0) {
-          setSelectedTemplate(templateData.templates[0].template_name);
+        // Preserve current selection if it still exists, otherwise select first
+        const currentTemplateExists = newTemplateNames.includes(selectedTemplate);
+        if (!currentTemplateExists && newTemplateNames.length > 0) {
+          setSelectedTemplate(newTemplateNames[0]);
         }
+        
+        console.log(`Reloaded ${templateData.templates.length} templates`);
       }
     }
     
   } catch (error) {
     console.error('Failed to reload template data:', error);
+    // Don't show error to user for this background operation
   }
 };
 
