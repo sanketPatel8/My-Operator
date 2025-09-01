@@ -329,9 +329,13 @@ export async function POST(req) {
             case 'Name':
               return data.customer?.first_name || 'Customer';
             case 'Order id':
-              return data.order?.id || '123456';
+              return data?.id || '123456';
             case 'Phone number':
               return data.customer?.phone || '0000000000';
+            case 'Quantity':
+              return data.line_items?.current_quantity || '50';
+            case 'Total price':
+              return data?.current_total_price || '00';
             default:
               return '';
           }

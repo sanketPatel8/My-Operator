@@ -245,13 +245,28 @@ const normalizeTemplateData = (data) => {
       .map(variable => variable.mapping_field)
       .filter(field => field && field.trim() !== '');
     
-    const defaultOptions = ["Name", "Phone number", "Service number", "Order id"];
+    const defaultOptions = ["Name", "Phone number", "Service number", "Order id", "Quantity","Total price"];
     const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
     setMappingFieldOptions(combinedOptions);
     
     // Process template content
     processTemplateContent(contentBlocks, mappingVariables);
   }, [selectedTemplate, allTemplatesData, categoryTemplateData]);
+
+  const [dropdownDirection, setDropdownDirection] = useState({});
+
+  const checkDropdownDirection = (variable, buttonRef) => {
+    if (buttonRef) {
+      const rect = buttonRef.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      
+      setDropdownDirection(prev => ({
+        ...prev,
+        [variable]: spaceBelow < 200 ? 'up' : 'down'
+      }));
+    }
+  };
 
   // Helper function to process template content (header, body, buttons)
   const processTemplateContent = (contentBlocks, mappingVariables) => {
@@ -572,10 +587,12 @@ const reloadTemplateDataOptimized = async () => {
     }
   };
 
-  
+  const buttonRef = useRef(null);
 
   // Rest of your component code remains the same...
   const renderVariableRow = (variable, section) => (
+
+    
     <div key={`${section}-${variable}`} className="flex flex-wrap items-center mb-[16px] gap-3 sm:gap-[20px]">
       <span className="text-[#333333] text-[14px] w-full sm:w-36">
         {`{{${variable}}}`}
@@ -586,14 +603,22 @@ const reloadTemplateDataOptimized = async () => {
         onChange={(value) => updateVariableSetting(variable, 'dropdown', value)}
       >
         <div className="relative w-full sm:w-48">
-          <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+          <Listbox.Button 
+            ref={buttonRef}
+            onClick={() => checkDropdownDirection(variable, buttonRef.current)}
+            className="relative w-full cursor-default rounded-[4px] border border-[#E4E4E4] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none"
+          >
             {variableSettings[variable]?.dropdown || "Name"}
             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center mr-[10px]">
               <FiChevronDown className="h-[20px] w-[20px] text-[#999999]" />
             </span>
           </Listbox.Button>
 
-          <Listbox.Options className="absolute mt-1 max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+          <Listbox.Options 
+            className={`absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-1 px-0.5 text-sm text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-50 ${
+              dropdownDirection[variable] === 'up' ? 'bottom-full mb-1' : 'top-full mt-1'
+            }`}
+          >
             {mappingFieldOptions.map((option, idx) => (
               <Listbox.Option
                 key={idx}
