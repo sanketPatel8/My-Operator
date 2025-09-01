@@ -14,7 +14,7 @@ function Editflow() {
   const params = useParams();
   const { success, error } = useToastContext();
 
-  const [selectedDelay, setSelectedDelay] = useState("1 hour");
+  const [selectedDelay, setSelectedDelay] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [categoryTemplateData, setCategoryTemplateData] = useState(null);
   const [activePart, setActivePart] = useState("template");
