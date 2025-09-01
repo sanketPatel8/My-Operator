@@ -341,6 +341,85 @@ const normalizeTemplateData = (data) => {
     return variables;
   };
 
+  const handleSyncTemplates = async () => {
+  try {
+    // Show loading state
+    setLoading(true);
+    
+    // Get store data to extract waba_id and phonenumber
+    const storeId = '11'; // You might want to get this dynamically
+    
+    // First fetch store data to get waba_id and phonenumber
+    const storeResponse = await fetch(`/api/store-phone`);
+    if (!storeResponse.ok) {
+      throw new Error('Failed to fetch store data');
+    }
+    
+    const storeData = await storeResponse.json();
+    
+    if (!storeData.waba_id || !storeData.phonenumber) {
+      throw new Error('Store missing waba_id or phonenumber. Please configure store settings first.');
+    }
+
+    // Call sync templates API
+    const syncResponse = await fetch('/api/update-store', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        store_id: storeId,
+        waba_id: storeData.waba_id,
+        phonenumber: storeData.phonenumber
+      })
+    });
+
+    const result = await syncResponse.json();
+
+    if (result.success) {
+      // Show success message
+      success(`Templates synced successfully!`);
+      
+      // Reload template data
+      await reloadTemplateData();
+    } else {
+      throw new Error(result.message || 'Failed to sync templates');
+    }
+    
+  } catch (error) {
+    console.error('Template sync error:', error);
+    error(`Failed to sync templates: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
+
+// Helper function to reload template data after sync
+const reloadTemplateData = async () => {
+  try {
+    const storeId = '11';
+    
+    // Reload all templates
+    const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`);
+    if (templateResponse.ok) {
+      const templateData = await templateResponse.json();
+      
+      if (templateData.templates && templateData.templates.length > 0) {
+        setTemplateOptions(templateData.templates.map(t => t.template_name));
+        setAllTemplatesData(templateData.templates);
+        
+        // If no template is currently selected, select the first one
+        if (!selectedTemplate && templateData.templates.length > 0) {
+          setSelectedTemplate(templateData.templates[0].template_name);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Failed to reload template data:', error);
+  }
+};
+
   useEffect(() => {
     window.addEventListener("resize", checkDropdownPosition);
     checkDropdownPosition();
@@ -575,7 +654,9 @@ const normalizeTemplateData = (data) => {
                 <div className="flex flex-col md:flex-row gap-[24px]">
                   {/* Delay Dropdown */}
                   {/* Delay Dropdown - Only show for Abandoned Cart Recovery */}
-                  {(currentWorkflowData?.title === "Reminder 1" || currentWorkflowData?.title === "Reminder 2" || currentWorkflowData?.title === "Reminder 3") && (
+                  {(currentWorkflowData?.title === "Reminder 1" || 
+                  currentWorkflowData?.title === "Reminder 2" || 
+                  currentWorkflowData?.title === "Reminder 3") && (
                     <div className="flex-1">
                       <label className="block text-[12px] text-[#555555] mb-[4px]">
                         Delay
@@ -644,6 +725,12 @@ const normalizeTemplateData = (data) => {
                       </div>
                     </Listbox>
                   </div>
+                  <button
+                    onClick={handleSyncTemplates}
+                    className="absolute ml-[140px] mb-[50px] text-[#4275D6] text-[12px] rounded-[4px] hover:text-[#345bb3]  transition"
+                  >
+                    ⟳ Sync Template
+                  </button>
                 </div>
 
                 {/* Template Variables Section */}

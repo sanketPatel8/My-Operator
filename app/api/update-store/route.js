@@ -3,7 +3,15 @@ import mysql from 'mysql2/promise';
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { id, countrycode, phonenumber, phone_number_id, waba_id } = body;
+    const { store_id, waba_id, phonenumber } = body;
+
+    // Validate required fields
+    if (!store_id || !waba_id || !phonenumber) {
+      return new Response(JSON.stringify({ 
+        success: false,
+        message: 'Missing required fields: store_id, waba_id, and phonenumber are required' 
+      }), { status: 400 });
+    }
 
     const connection = await mysql.createConnection({
       host: process.env.DATABASE_HOST,
@@ -12,18 +20,21 @@ export async function POST(req) {
       database: process.env.DATABASE_NAME,
     });
 
-    // 1. Update store
-    const [updateResult] = await connection.execute(
-      `UPDATE stores SET countrycode = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
-      [countrycode, phonenumber, phone_number_id, waba_id, id]
+    // Verify store exists
+    const [storeExists] = await connection.execute(
+      `SELECT id FROM stores WHERE id = ?`,
+      [store_id]
     );
 
-    if (updateResult.affectedRows === 0) {
+    if (storeExists.length === 0) {
       await connection.end();
-      return new Response(JSON.stringify({ message: 'No matching store found' }), { status: 404 });
+      return new Response(JSON.stringify({ 
+        success: false,
+        message: 'Store not found' 
+      }), { status: 404 });
     }
 
-    // 2. Fetch from API
+    // Fetch templates from external API
     const templateApiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
 
     const response = await fetch(templateApiUrl, {
@@ -36,26 +47,34 @@ export async function POST(req) {
       signal: AbortSignal.timeout(30000),
     });
 
-    console.log("whole response:::", response);
+    console.log("Template sync response status:", response.status);
 
     if (!response.ok) {
       await connection.end();
-      return new Response(JSON.stringify({ message: 'Failed to fetch templates from external API' }), { status: 500 });
+      return new Response(JSON.stringify({ 
+        success: false,
+        message: `Failed to fetch templates from external API. Status: ${response.status}` 
+      }), { status: 500 });
     }
 
     const data = await response.json();
 
     if (!data?.data?.results?.length) {
       await connection.end();
-      return new Response(JSON.stringify({ message: 'No templates found from external API' }), { status: 200 });
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: 'No templates found from external API',
+        templateCount: 0
+      }), { status: 200 });
     }
 
     const templates = data.data.results;
     const seenTemplates = new Set();
     let insertedTemplateCount = 0;
+    let updatedTemplateCount = 0;
     let insertedTemplateDataCount = 0;
-    let updatedTemplateVariableCount = 0;
     let insertedTemplateVariableCount = 0;
+    let updatedTemplateVariableCount = 0;
 
     // Helper function to extract variables from text
     function extractVariables(text) {
@@ -74,34 +93,34 @@ export async function POST(req) {
 
       if (!template_name || !category) continue;
 
-      // Check if template already exists for this store and phone number
+      // Check for duplicates
       const uniqueKey = `${category}::${template_name}::${phonenumber}`;
       if (seenTemplates.has(uniqueKey)) continue;
       seenTemplates.add(uniqueKey);
 
-      // Check if template already exists in database for this store and phone number
+      // Check if template already exists in database
       const [existingTemplate] = await connection.execute(
         `SELECT template_id FROM template WHERE store_id = ? AND category = ? AND template_name = ? AND phonenumber = ?`,
-        [id, category, template_name, phonenumber]
+        [store_id, category, template_name, phonenumber]
       );
 
       let templateId;
 
       if (existingTemplate.length > 0) {
-        // Template exists, use existing ID
+        // Template exists, update timestamp
         templateId = existingTemplate[0].template_id;
         
-        // Update timestamp
         await connection.execute(
           `UPDATE template SET updated_at = CURRENT_TIMESTAMP() WHERE template_id = ?`,
           [templateId]
         );
+        updatedTemplateCount++;
       } else {
-        // Insert new template with phone number
+        // Insert new template
         const [templateInsertResult] = await connection.execute(
           `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at)
            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-          [id, category, template_name, phonenumber]
+          [store_id, category, template_name, phonenumber]
         );
 
         templateId = templateInsertResult.insertId;
@@ -112,7 +131,7 @@ export async function POST(req) {
       if (Array.isArray(components)) {
         const content = JSON.stringify(components);
 
-        console.log("content whole:::", content);
+        console.log("Processing template content:", template_name);
 
         // Check if template_data already exists
         const [existingTemplateData] = await connection.execute(
@@ -142,7 +161,7 @@ export async function POST(req) {
           insertedTemplateDataCount++;
         }
 
-        // Extract and handle variables by component type
+        // Process template variables
         for (const component of components) {
           const { type, format } = component;
 
@@ -155,8 +174,6 @@ export async function POST(req) {
             case 'HEADER':
               if (format === 'TEXT' && component.text) {
                 variables = extractVariables(component.text);
-              } else if (format === 'MEDIA') {
-                variables = [];
               }
               break;
 
@@ -183,9 +200,8 @@ export async function POST(req) {
               break;
           }
 
-          // Handle individual variables for mapping UI
+          // Handle individual variables
           for (const variable of variables) {
-            // Check if variable already exists
             const [existingVariable] = await connection.execute(
               `SELECT template_variable_id, mapping_field, fallback_value FROM template_variable 
                WHERE template_data_id = ? AND variable_name = ? AND component_type = ?`,
@@ -193,7 +209,7 @@ export async function POST(req) {
             );
 
             if (existingVariable.length > 0) {
-              // Variable exists, update only if mapping_field and fallback_value are not set
+              // Variable exists, only update timestamp if no mapping data exists
               const existing = existingVariable[0];
               if (!existing.mapping_field && !existing.fallback_value) {
                 await connection.execute(
@@ -232,10 +248,9 @@ export async function POST(req) {
             }
           }
 
-          // Handle full component data for reference
+          // Handle full component data
           const componentType = `${type}_COMPONENT`;
           
-          // Check if component already exists
           const [existingComponent] = await connection.execute(
             `SELECT template_variable_id FROM template_variable 
              WHERE template_data_id = ? AND type = ?`,
@@ -287,21 +302,26 @@ export async function POST(req) {
     await connection.end();
 
     return new Response(JSON.stringify({
-      message: 'Store and templates updated successfully',
-      templateCount: insertedTemplateCount,
-      templateDataCount: insertedTemplateDataCount,
-      insertedVariableCount: insertedTemplateVariableCount,
-      updatedVariableCount: updatedTemplateVariableCount,
-      phonenumber: phonenumber
+      success: true,
+      message: 'Templates synced successfully',
+      data: {
+        newTemplates: insertedTemplateCount,
+        updatedTemplates: updatedTemplateCount,
+        newTemplateData: insertedTemplateDataCount,
+        newVariables: insertedTemplateVariableCount,
+        updatedVariables: updatedTemplateVariableCount,
+        totalProcessed: templates.length
+      }
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
-    console.error('Update error:', error);
+    console.error('Template sync error:', error);
     return new Response(JSON.stringify({
-      message: 'Error updating store and templates',
+      success: false,
+      message: 'Error syncing templates',
       error: error.message,
     }), {
       status: 500,
