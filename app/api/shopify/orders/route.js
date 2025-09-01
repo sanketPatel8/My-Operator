@@ -367,7 +367,7 @@ export async function POST(req) {
     // 5. Send WhatsApp message
     try {
 
-      if(status == 0) {
+      if(status == 1) {
       const messageResult = await sendWhatsAppMessage(
         phoneDetails.phone,
         templateName,
