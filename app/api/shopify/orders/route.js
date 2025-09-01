@@ -212,7 +212,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
          "buttons": [
         {
           "index": 0,
-          "id": "flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB1ntajYFb8BrveVgSXp/recover?key=7a586990691c87d1dbe5eb89bc0bebd5&locale=en-IN"
+          "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
         }
       ]
 
