@@ -212,7 +212,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
          "buttons": [
         {
           "index": 0,
-          "id": "1"
+          "id": "flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB1ntajYFb8BrveVgSXp/recover?key=7a586990691c87d1dbe5eb89bc0bebd5&locale=en-IN"
         }
       ]
 
@@ -316,6 +316,9 @@ export async function POST(req) {
           break;
         case "customers/create":
           eventTitle = "Welcome Customer";
+          break;
+        case "checkout/create":
+          eventTitle = "Reminder 1";
           break;
         default:
           eventTitle = "unknown event";
