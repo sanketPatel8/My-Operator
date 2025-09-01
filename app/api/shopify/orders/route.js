@@ -333,7 +333,14 @@ export async function POST(req) {
             case 'Phone number':
               return data.customer?.phone || '0000000000';
             case 'Quantity':
-              return String(data.line_items?.[0].current_quantity || '50');
+              if (Array.isArray(data.line_items)) {
+                const totalQuantity = data.line_items.reduce((sum, item) => {
+                  return sum + (item.current_quantity || 0);
+                }, 0);
+                return String(totalQuantity);
+              }
+              return '0';
+
             case 'Total price':
               return data?.current_total_price || '00';
             default:
