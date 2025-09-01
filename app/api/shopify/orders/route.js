@@ -323,80 +323,144 @@ export async function POST(req) {
 
       console.log("Event title:", eventTitle);
 
-      // 🔍 3a. Get phone number from store (store ID = 11)
-      const [storePhoneRows] = await connection.execute(
-        'SELECT phonenumber FROM stores WHERE id = ? LIMIT 1',
-        [11]
-      );
+      // ✅ 1. Helper to map values from DB fields to dynamic data
+        function getMappedValue(mappingField, data) {
+          switch (mappingField) {
+            case 'Name':
+              return data.customer?.first_name || 'Customer';
+            case 'Order id':
+              return data.order?.id || '123456';
+            case 'Phone number':
+              return data.customer?.phone || '0000000000';
+            default:
+              return '';
+          }
+        }
 
-      if (storePhoneRows.length === 0) {
-        throw new Error("No store found with id 11");
-      }
+        // ✅ 2. Function to build WhatsApp template content
+        function buildTemplateContent(templateRows, data) {
+          const templateContent = {
+            header: null,
+            body: null,
+            footer: null,
+            buttons: [],
+          };
 
-      const storePhoneNumber = storePhoneRows[0].phonenumber;
-      console.log("📞 Store phone number:", storePhoneNumber);
+          const bodyExample = {};
 
-      // 🔍 3b. Fetch template_id and template_data_id from category_event using title + phone number
-      const [categoryRows] = await connection.execute(
-        'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
-        [eventTitle, storePhoneNumber]
-      );
+          for (const row of templateRows) {
+            const value = JSON.parse(row.value || '{}');
 
-      if (categoryRows.length === 0) {
-        throw new Error(`No category_event mapping found for title: ${eventTitle} and phone: ${storePhoneNumber}`);
-      }
+            switch (row.component_type) {
+              case 'HEADER':
+                templateContent.header = value;
+                break;
 
-      const { template_id, template_data_id, status } = categoryRows[0];
-      console.log("🧩 Template IDs:", template_id, template_data_id);
+              case 'BODY':
+                templateContent.body = value;
 
-      // 🔍 3c. Fetch template name using template_id + phone number
-      const [templateRowsMeta] = await connection.execute(
-        'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? LIMIT 1',
-        [template_id, storePhoneNumber]
-      );
+                // Inject dynamic values using mapping_field
+                if (row.mapping_field && row.variable_name) {
+                  bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
+                }
+                break;
 
-      if (templateRowsMeta.length === 0) {
-        throw new Error(`No template found with template_id: ${template_id} and phone: ${storePhoneNumber}`);
-      }
+              case 'FOOTER':
+                templateContent.footer = value;
+                break;
 
-      const templateName = templateRowsMeta[0].template_name;
-      console.log("📛 Template name:", templateName);
+              case 'BUTTONS':
+              case 'BUTTONS_COMPONENT':
+                if (value.buttons) {
+                  templateContent.buttons.push(...value.buttons);
+                } else {
+                  templateContent.buttons.push(value);
+                }
+                break;
 
-      // 🔍 3d. Fetch template variables
-      const [templateRows] = await connection.execute(
-        'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-        [template_data_id]
-      );
+              default:
+                break;
+            }
+          }
 
-      if (templateRows.length === 0) {
-        throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
-      }
+          if (templateContent.body) {
+            templateContent.body.example = bodyExample;
+          }
 
-      console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+          return templateContent;
+        }
 
-      // ✅ 4. Build template content
-      const customerName = data.customer?.first_name || 'Customer';
-      const templateContent = buildTemplateContent(templateRows, data, customerName);
+        // 🔍 3a. Get phone number from store (store ID = 11)
+        const [storePhoneRows] = await connection.execute(
+          'SELECT phonenumber FROM stores WHERE id = ? LIMIT 1',
+          [11]
+        );
 
-      if (!templateContent) {
-        throw new Error('Failed to build template content');
-      }
+        if (storePhoneRows.length === 0) {
+          throw new Error("No store found with id 11");
+        }
 
-      console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
+        const storePhoneNumber = storePhoneRows[0].phonenumber;
+        console.log("📞 Store phone number:", storePhoneNumber);
 
+        // 🔍 3b. Fetch template_id and template_data_id from category_event using title + phone number
+        const [categoryRows] = await connection.execute(
+          'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+          [eventTitle, storePhoneNumber]
+        );
 
-    // 5. Send WhatsApp message
-    try {
+        if (categoryRows.length === 0) {
+          throw new Error(`No category_event mapping found for title: ${eventTitle} and phone: ${storePhoneNumber}`);
+        }
 
-      if(status == 1) {
-      const messageResult = await sendWhatsAppMessage(
-        phoneDetails.phone,
-        templateName,
-        templateContent,
-        storeData
-      );
+        const { template_id, template_data_id, status } = categoryRows[0];
+        console.log("🧩 Template IDs:", template_id, template_data_id);
 
-      console.log('✅ WhatsApp message sent successfully');
+        // 🔍 3c. Fetch template name using template_id + phone number
+        const [templateRowsMeta] = await connection.execute(
+          'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? LIMIT 1',
+          [template_id, storePhoneNumber]
+        );
+
+        if (templateRowsMeta.length === 0) {
+          throw new Error(`No template found with template_id: ${template_id} and phone: ${storePhoneNumber}`);
+        }
+
+        const templateName = templateRowsMeta[0].template_name;
+        console.log("📛 Template name:", templateName);
+
+        // 🔍 3d. Fetch template variables
+        const [templateRows] = await connection.execute(
+          'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+          [template_data_id]
+        );
+
+        if (templateRows.length === 0) {
+          throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
+        }
+
+        console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+
+        // ✅ 4. Build template content with mapped data
+        const templateContent = buildTemplateContent(templateRows, data);
+
+        if (!templateContent) {
+          throw new Error('Failed to build template content');
+        }
+
+        console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
+
+        // ✅ 5. Send WhatsApp message
+        try {
+          if (status == 1) {
+            const messageResult = await sendWhatsAppMessage(
+              phoneDetails.phone,
+              templateName,
+              templateContent,
+              storeData
+            );
+
+            console.log('✅ WhatsApp message sent successfully');
 
       return NextResponse.json({ 
         status: "success", 
