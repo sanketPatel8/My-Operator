@@ -299,7 +299,28 @@ export async function POST(req) {
 
     console.log('📞 Extracted phone details:', phoneDetails);
       // 🔍 3. Get event title based on topic
-      const eventTitle = topic === "orders/create" ? "order placed" : "abandoned cart";
+      let eventTitle;
+
+      switch (topic) {
+        case "orders/create":
+          eventTitle = "order placed";
+          break;
+        case "orders/paid":
+          eventTitle = "Payment Received";
+          break;
+        case "orders/cancelled":
+          eventTitle = "Order Cancelled";
+          break;
+        case "orders/fulfilled":
+          eventTitle = "Order Shipped";
+          break;
+        case "customers/create":
+          eventTitle = "Welcome Customer";
+          break;
+        default:
+          eventTitle = "unknown event";
+      }
+
       console.log("Event title:", eventTitle);
 
       // 🔍 3a. Get phone number from store (store ID = 11)
