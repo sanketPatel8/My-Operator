@@ -329,11 +329,11 @@ export async function POST(req) {
             case 'Name':
               return data.customer?.first_name || 'Customer';
             case 'Order id':
-              return data?.id || '123456';
+              return String(data?.id || '123456');
             case 'Phone number':
               return data.customer?.phone || '0000000000';
             case 'Quantity':
-              return data.line_items?.[0].current_quantity || 50;
+              return String(data.line_items?.[0].current_quantity || '50');
             case 'Total price':
               return data?.current_total_price || '00';
             default:
