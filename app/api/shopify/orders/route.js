@@ -48,9 +48,28 @@ function extractPhoneDetails(orderData) {
   }
 }
 
+// Helper function to filter valid buttons
+function filterValidButtons(buttons) {
+  if (!Array.isArray(buttons)) return [];
+  
+  return buttons.filter(button => {
+    return button && 
+           typeof button === 'object' && 
+           Object.keys(button).length > 0 &&
+           button.type && 
+           button.text;
+  }).map((button, index) => ({
+    index: index,
+    id: "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
+  }));
+}
+
 // Helper function to send WhatsApp message
 async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, storeData) {
   try {
+    // Filter out empty/invalid buttons before sending
+    const validButtons = filterValidButtons(templateContent.buttons);
+    
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
       customer_country_code: "91",
@@ -61,13 +80,8 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
         context: {
           template_name: templateName,
           language: "en",
-          body: templateContent.body.example || {},
-         "buttons": [
-        {
-          "index": 0,
-          "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
-        }
-      ]
+          body: templateContent.body?.example || {},
+          buttons: validButtons // Only send valid buttons
         }
       },
       reply_to: null,
@@ -221,7 +235,7 @@ export async function POST(req) {
       }
     }
 
-    // ✅ 2. Function to build WhatsApp template content
+    // ✅ 2. Function to build WhatsApp template content with button filtering
     function buildTemplateContent(templateRows, data) {
       const templateContent = {
         header: null,
@@ -255,9 +269,18 @@ export async function POST(req) {
 
           case 'BUTTONS':
           case 'BUTTONS_COMPONENT':
-            if (value.buttons) {
-              templateContent.buttons.push(...value.buttons);
-            } else {
+            if (value.buttons && Array.isArray(value.buttons)) {
+              // Filter out empty/null button objects
+              const validButtons = value.buttons.filter(button => {
+                return button && 
+                       typeof button === 'object' && 
+                       Object.keys(button).length > 0 &&
+                       button.type && 
+                       button.text;
+              });
+              templateContent.buttons.push(...validButtons);
+            } else if (value && typeof value === 'object' && Object.keys(value).length > 0 && value.type && value.text) {
+              // Single button case - only add if it's valid
               templateContent.buttons.push(value);
             }
             break;
@@ -266,6 +289,15 @@ export async function POST(req) {
             break;
         }
       }
+
+      // ✅ Final filter to ensure no empty buttons make it through
+      templateContent.buttons = templateContent.buttons.filter(button => {
+        return button && 
+               typeof button === 'object' && 
+               Object.keys(button).length > 0 &&
+               button.type && 
+               button.text;
+      });
 
       if (templateContent.body) {
         templateContent.body.example = bodyExample;
