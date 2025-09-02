@@ -223,56 +223,59 @@ export async function POST(req) {
 
     // ✅ 2. Function to build WhatsApp template content
     function buildTemplateContent(templateRows, data) {
-      const templateContent = {
-        header: null,
-        body: null,
-        footer: null,
-        buttons: [],
-      };
+  const templateContent = {
+    header: null,
+    body: null,
+    footer: null,
+    buttons: [],
+  };
 
-      const bodyExample = {};
+  const bodyExample = {};
 
-      for (const row of templateRows) {
-        const value = JSON.parse(row.value || '{}');
+  for (const row of templateRows) {
+    const value = JSON.parse(row.value || '{}');
 
-        switch (row.component_type) {
-          case 'HEADER':
-            templateContent.header = value;
-            break;
+    switch (row.component_type) {
+      case "HEADER":
+        templateContent.header = value;
+        break;
 
-          case 'BODY':
-            templateContent.body = value;
+      case "BODY":
+        templateContent.body = value;
 
-            // Inject dynamic values using mapping_field
-            if (row.mapping_field && row.variable_name) {
-              bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
-            }
-            break;
-
-          case 'FOOTER':
-            templateContent.footer = value;
-            break;
-
-          case 'BUTTONS':
-          case 'BUTTONS_COMPONENT':
-            if (value.buttons) {
-              templateContent.buttons.push(...value.buttons);
-            } else {
-              templateContent.buttons.push(value);
-            }
-            break;
-
-          default:
-            break;
+        // Inject dynamic values using mapping_field
+        if (row.mapping_field && row.variable_name) {
+          bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
         }
-      }
+        break;
 
-      if (templateContent.body) {
-        templateContent.body.example = bodyExample;
-      }
+      case "FOOTER":
+        templateContent.footer = value;
+        break;
 
-      return templateContent;
+      case "BUTTONS":
+      case "BUTTONS_COMPONENT":
+        const buttons = value.buttons || [value];
+
+        // Only push non-null & non-empty objects
+        buttons.forEach((btn) => {
+          if (btn && Object.keys(btn).length > 0) {
+            templateContent.buttons.push(btn);
+          }
+        });
+        break;
+
+      default:
+        break;
     }
+  }
+
+  if (templateContent.body) {
+    templateContent.body.example = bodyExample;
+  }
+
+  return templateContent;
+}
 
     // 🔍 3a. Get phone number from store (store ID = 11)
     const [storePhoneRows] = await connection.execute(
