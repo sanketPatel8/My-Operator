@@ -1,31 +1,22 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from "react";
 
 export default function ConnectShopif() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [StoreName, setStoreName] = useState("");
 
-  const handleClick = () => {
-    // const shop = prompt(
-    //   "Enter your shop domain (e.g. sanket-store01.myshopify.com)"
-    // );
-    if (!StoreName) return;
-
-    const trimmedShop = StoreName.trim().toLowerCase();
-    const isValid = /^[a-z0-9-]+\.myshopify\.com$/.test(trimmedShop);
-
-    if (!isValid) {
-      alert(
-        "Invalid shop domain. Please enter like sanket-store01.myshopify.com"
-      );
-      return;
+  // Fetch shop from URL
+  useEffect(() => {
+    const shopParam = searchParams.get("shop");
+    if (shopParam) {
+      setStoreName(shopParam);
     }
-
-    window.location.href = `/api/shopify/install?shop=${trimmedShop}`;
-  };
+  }, [searchParams]);
+  
 
   return (
     <div className="font-source-sans min-h-screen bg-white px-4 py-10 flex flex-col items-center">
@@ -177,9 +168,7 @@ export default function ConnectShopif() {
                 id="storeUrl"
                 type="text"
                 value={StoreName}
-                onChange={(e) => {
-                  setStoreName(e.target.value);
-                }}
+                readOnly
                 placeholder="your_store.shopify.com"
                 className="w-full px-4 py-2 border pl-8 border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
