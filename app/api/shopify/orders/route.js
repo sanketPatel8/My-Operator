@@ -177,7 +177,6 @@ export async function POST(req) {
           eventTitles = ["Order Cancelled"];
         }
         break;
-        break;
       case "orders/fulfilled":
         eventTitles = ["Order Shipped"];
         break;
@@ -320,6 +319,8 @@ export async function POST(req) {
         if (templateRowsMeta.length === 0) {
           console.log(`⚠️ No template name found for template_id: ${template_id}`);
           continue;
+        } else if (templateRowsMeta.length > 1) {
+          console.warn(`⚠️ Multiple templates found for template_id: ${template_id}, using first one`);
         }
 
         const templateName = templateRowsMeta[0].template_name;
