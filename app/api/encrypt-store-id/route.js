@@ -45,7 +45,7 @@ export async function GET(req) {
     const [rows] = await connection.execute(
       "SELECT id FROM stores WHERE shop = ?",
       [shop]
-    );
+    ); 
 
     await connection.end();
 

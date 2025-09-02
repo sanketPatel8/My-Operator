@@ -15,7 +15,7 @@ export default function ConnectShopif() {
       const params = new URLSearchParams(window.location.search);
       const shopParam = params.get("shop");
 
-      if (shopParam) {
+      if (shopParam) { 
         setStoreName(shopParam);
 
         // 🔹 Call backend to fetch encrypted id
