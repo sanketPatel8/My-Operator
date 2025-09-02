@@ -14,6 +14,9 @@ export default function WorkflowList() {
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [loadingToggles, setLoadingToggles] = useState([]);
+
+
   const [deleteLoading, setDeleteLoading] = useState(null); // Track which item is being deleted
   const storeId = 11; // ⬅️ Replace this with the actual store ID dynamically if needed
 
@@ -90,7 +93,9 @@ export default function WorkflowList() {
   const handleToggle = async (workflowId, reminderId) => {
   if (!workflowId || !reminderId) return;
 
-  // Find the current status of the toggle
+  const toggleKey = `${workflowId}:${reminderId}`;
+  setLoadingToggles((prev) => [...prev, toggleKey]);
+
   const currentReminder = workflows
     .find(wf => wf.category_id === workflowId)
     ?.events.find(ev => ev.category_event_id === reminderId);
@@ -99,12 +104,9 @@ export default function WorkflowList() {
   const newStatus = currentStatus === 1 ? 0 : 1;
 
   try {
-    // Update backend status
     const res = await fetch('/api/category', {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         category_event_id: reminderId,
         status: newStatus,
@@ -136,8 +138,12 @@ export default function WorkflowList() {
   } catch (error) {
     console.error('❌ Error updating toggle status:', error.message);
     alert('Failed to update toggle status. Please try again.');
+  } finally {
+    // Remove toggle key from loading
+    setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
   }
 };
+
 
 
   const handleEyeClick = (reminder) => {
@@ -369,7 +375,8 @@ export default function WorkflowList() {
                     MoreIcon={FiMoreVertical}
                     onEditFlow={handleEditFlow} // Pass the edit handler
                     onDeleteFlow={handleDeleteFlow} // Pass the DELETE handler
-                    deleteLoading={deleteLoading} // Pass loading state
+                    deleteLoading={deleteLoading}
+                    loadingToggles={loadingToggles} // Pass loading state
                     buttonText={config.buttonText}
                     onClickButton={config.onClickButton}
                   />
