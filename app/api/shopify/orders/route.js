@@ -168,7 +168,15 @@ export async function POST(req) {
         eventTitles = ["Payment Received"];
         break;
       case "orders/cancelled":
-        eventTitles = ["Order Cancelled"];
+        if (
+          Array.isArray(data.payment_gateway_names) &&
+          data.payment_gateway_names.includes("Cash on Delivery (COD)")
+        ) {
+          eventTitles = ["Order Cancelled", "COD Order Cancellation Event Triggered"];
+        } else {
+          eventTitles = ["Order Cancelled"];
+        }
+        break;
         break;
       case "orders/fulfilled":
         eventTitles = ["Order Shipped"];
