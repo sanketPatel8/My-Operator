@@ -105,6 +105,8 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     throw error;
   }
 }
+
+
 // ✅ Handle POST (receive new order and send message)
 export async function POST(req) {
   let connection;
@@ -337,27 +339,27 @@ export async function POST(req) {
 
             console.log('✅ WhatsApp message sent successfully');
 
-      return NextResponse.json({ 
-        status: "success", 
-        order: data,
-        message: "Order received and WhatsApp message sent",
-        messageResult: messageResult
-      });
-      } else {
-        console.log("status is disable!:::::", status);
-        
-      }
+            return NextResponse.json({ 
+              status: "success", 
+              order: data,
+              message: "Order received and WhatsApp message sent",
+              messageResult: messageResult
+            });
+          } else {
+            console.log("status is disable!:::::", status);
+            
+          }
 
-    } catch (messageError) {
-      console.error('❌ Failed to send WhatsApp message:', messageError);
+        } catch (messageError) {
+          console.error('❌ Failed to send WhatsApp message:', messageError);
 
-      return NextResponse.json({ 
-        status: "partial_success", 
-        order: data,
-        message: "Order received but failed to send WhatsApp message",
-        error: messageError.message
-      });
-    }
+          return NextResponse.json({ 
+            status: "partial_success", 
+            order: data,
+            message: "Order received but failed to send WhatsApp message",
+            error: messageError.message
+          });
+        }
 
   } catch (err) {
     console.error("❌ Error processing order:", err);
