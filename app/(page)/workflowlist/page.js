@@ -94,14 +94,34 @@ export default function WorkflowList() {
   if (!workflowId || !reminderId) return;
 
   const toggleKey = `${workflowId}:${reminderId}`;
-  setLoadingToggles((prev) => [...prev, toggleKey]);
-
+  
+  // Find current reminder and status
   const currentReminder = workflows
     .find(wf => wf.category_id === workflowId)
     ?.events.find(ev => ev.category_event_id === reminderId);
 
   const currentStatus = currentReminder?.status ?? 0;
   const newStatus = currentStatus === 1 ? 0 : 1;
+
+  // 🚀 OPTIMISTIC UPDATE: Update UI immediately
+  setWorkflows((prev) =>
+    prev.map((workflow) => {
+      if (workflow.category_id === workflowId) {
+        return {
+          ...workflow,
+          events: workflow.events.map((event) =>
+            event.category_event_id === reminderId
+              ? { ...event, status: newStatus }
+              : event
+          )
+        };
+      }
+      return workflow;
+    })
+  );
+
+  // Add loading state for visual feedback (optional spinner/disabled state)
+  setLoadingToggles((prev) => [...prev, toggleKey]);
 
   try {
     const res = await fetch('/api/category', {
@@ -119,7 +139,13 @@ export default function WorkflowList() {
       throw new Error(result.message || 'Failed to update status');
     }
 
-    // Update local state
+    // ✅ Success - UI is already updated, just log or show success feedback
+    console.log('✅ Toggle updated successfully:', result);
+    
+  } catch (error) {
+    console.error('❌ Error updating toggle status:', error.message);
+    
+    // 🔄 ROLLBACK: Revert the optimistic update on error
     setWorkflows((prev) =>
       prev.map((workflow) => {
         if (workflow.category_id === workflowId) {
@@ -127,7 +153,7 @@ export default function WorkflowList() {
             ...workflow,
             events: workflow.events.map((event) =>
               event.category_event_id === reminderId
-                ? { ...event, status: newStatus }
+                ? { ...event, status: currentStatus } // Revert to original status
                 : event
             )
           };
@@ -135,11 +161,12 @@ export default function WorkflowList() {
         return workflow;
       })
     );
-  } catch (error) {
-    console.error('❌ Error updating toggle status:', error.message);
+    
+    // Show error message to user
     alert('Failed to update toggle status. Please try again.');
+    
   } finally {
-    // Remove toggle key from loading
+    // Remove loading state
     setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
   }
 };
