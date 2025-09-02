@@ -9,7 +9,6 @@ const dbConfig = {
   database: process.env.DATABASE_NAME
 };
 
-
 // ✅ In-memory orders store
 let orders = [];
 
@@ -38,13 +37,10 @@ function extractPhoneDetails(orderData) {
     
     phone = phone.slice(-10);
     
-    
-    
     console.log(`📞 Extracted - Phone: ${phone},`);
     
     return {
       phone: phone,
-      
     };
   } catch (error) {
     console.error('❌ Error extracting phone details:', error);
@@ -52,9 +48,8 @@ function extractPhoneDetails(orderData) {
   }
 }
 
-
 // Helper function to send WhatsApp message
-async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, storeData) {
+async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, storeData) {
   try {
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
@@ -73,8 +68,7 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
           "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
         }
       ]
-
-      }
+        }
       },
       reply_to: null,
       myop_ref_id: "csat_123"
@@ -94,8 +88,6 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
       body: JSON.stringify(messagePayload)
     });
     
-    
-    
     const result = await response.json();
     console.log('✅ Message sent successfully:', result);
     return result;
@@ -105,7 +97,6 @@ async function sendWhatsAppMessage(phoneNumber,  templateName, templateContent, 
     throw error;
   }
 }
-
 
 // ✅ Handle POST (receive new order and send message)
 export async function POST(req) {
@@ -158,217 +149,231 @@ export async function POST(req) {
     }
 
     console.log('📞 Extracted phone details:', phoneDetails);
-      // 🔍 3. Get event title based on topic
-      let eventTitle;
+    
+    // 🔍 3. Get event titles based on topic
+    let eventTitles = [];
 
-      switch (topic) {
-        case "orders/create":
-          if (
-            Array.isArray(data.payment_gateway_names) &&
-            data.payment_gateway_names.includes("Cash on Delivery (COD)")
-          ) {
-            eventTitle = ["order placed", "COD Order Confirmation or Cancel"];
-          } else {
-            eventTitle = ["order placed"];
+    switch (topic) {
+      case "orders/create":
+        if (
+          Array.isArray(data.payment_gateway_names) &&
+          data.payment_gateway_names.includes("Cash on Delivery (COD)")
+        ) {
+          eventTitles = ["order placed", "COD Order Confirmation or Cancel"];
+        } else {
+          eventTitles = ["order placed"];
+        }
+        break;
+      case "orders/paid":
+        eventTitles = ["Payment Received"];
+        break;
+      case "orders/cancelled":
+        eventTitles = ["Order Cancelled"];
+        break;
+      case "orders/fulfilled":
+        eventTitles = ["Order Shipped"];
+        break;
+      case "customers/create":
+        eventTitles = ["Welcome Customer"];
+        break;
+      case "checkouts/create":
+        eventTitles = ["Reminder 1"];
+        break;
+      case "orders/updated":
+        if (data.financial_status === "refunded") {
+          eventTitles = ["Refund Create"];
+        }
+        break;
+      default:
+        eventTitles = ["unknown event"];
+    }
+
+    console.log("Event titles:", eventTitles);
+
+    // ✅ 1. Helper to map values from DB fields to dynamic data
+    function getMappedValue(mappingField, data) {
+      switch (mappingField) {
+        case 'Name':
+          return data.billing_address?.first_name || 'Customer';
+        case 'Order id':
+          return String(data?.id || '123456');
+        case 'Phone number':
+          return data.customer?.phone || '0000000000';
+        case 'Quantity':
+          if (Array.isArray(data.line_items)) {
+            const totalQuantity = data.line_items.reduce((sum, item) => {
+              return sum + (item.current_quantity || 0);
+            }, 0);
+            return String(totalQuantity);
           }
-          break;
-        case "orders/paid":
-          eventTitle = "Payment Received";
-          break;
-        case "orders/cancelled":
-          eventTitle = "Order Cancelled";
-          break;
-        case "orders/fulfilled":
-          eventTitle = "Order Shipped";
-          break;
-        case "customers/create":
-          eventTitle = "Welcome Customer";
-          break;
-        case "checkouts/create":
-          eventTitle = "Reminder 1";
-          break;
-        case "orders/updated":
-          if (data.financial_status === "refunded") {
-            eventTitle = "Refund Create";
-          }
-          break;
+          return '0';
+        case 'Total price':
+          return data?.current_total_price || '00';
         default:
-          eventTitle = "unknown event";
+          return '';
+      }
+    }
+
+    // ✅ 2. Function to build WhatsApp template content
+    function buildTemplateContent(templateRows, data) {
+      const templateContent = {
+        header: null,
+        body: null,
+        footer: null,
+        buttons: [],
+      };
+
+      const bodyExample = {};
+
+      for (const row of templateRows) {
+        const value = JSON.parse(row.value || '{}');
+
+        switch (row.component_type) {
+          case 'HEADER':
+            templateContent.header = value;
+            break;
+
+          case 'BODY':
+            templateContent.body = value;
+
+            // Inject dynamic values using mapping_field
+            if (row.mapping_field && row.variable_name) {
+              bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
+            }
+            break;
+
+          case 'FOOTER':
+            templateContent.footer = value;
+            break;
+
+          case 'BUTTONS':
+          case 'BUTTONS_COMPONENT':
+            if (value.buttons) {
+              templateContent.buttons.push(...value.buttons);
+            } else {
+              templateContent.buttons.push(value);
+            }
+            break;
+
+          default:
+            break;
+        }
       }
 
-      console.log("Event title:", eventTitle);
+      if (templateContent.body) {
+        templateContent.body.example = bodyExample;
+      }
 
-      // ✅ 1. Helper to map values from DB fields to dynamic data
-        function getMappedValue(mappingField, data) {
-          switch (mappingField) {
-            case 'Name':
-              return data.billing_address?.first_name || 'Customer';
-            case 'Order id':
-              return String(data?.id || '123456');
-            case 'Phone number':
-              return data.customer?.phone || '0000000000';
-            case 'Quantity':
-              if (Array.isArray(data.line_items)) {
-                const totalQuantity = data.line_items.reduce((sum, item) => {
-                  return sum + (item.current_quantity || 0);
-                }, 0);
-                return String(totalQuantity);
-              }
-              return '0';
+      return templateContent;
+    }
 
-            case 'Total price':
-              return data?.current_total_price || '00';
-            default:
-              return '';
-          }
-        }
+    // 🔍 3a. Get phone number from store (store ID = 11)
+    const [storePhoneRows] = await connection.execute(
+      'SELECT phonenumber FROM stores WHERE id = ? LIMIT 1',
+      [11]
+    );
 
-        // ✅ 2. Function to build WhatsApp template content
-        function buildTemplateContent(templateRows, data) {
-          const templateContent = {
-            header: null,
-            body: null,
-            footer: null,
-            buttons: [],
-          };
+    if (storePhoneRows.length === 0) {
+      throw new Error("No store found with id 11");
+    }
 
-          const bodyExample = {};
+    const storePhoneNumber = storePhoneRows[0].phonenumber;
+    console.log("📞 Store phone number:", storePhoneNumber);
 
-          for (const row of templateRows) {
-            const value = JSON.parse(row.value || '{}');
+    // 🔍 3b. Try each event title until we find a matching template
+    let template_id, template_data_id, status, templateName;
+    let foundTemplate = false;
 
-            switch (row.component_type) {
-              case 'HEADER':
-                templateContent.header = value;
-                break;
+    for (const eventTitle of eventTitles) {
+      console.log(`🔍 Trying to find template for event: ${eventTitle}`);
+      
+      // Fetch template_id and template_data_id from category_event using title + phone number
+      const [categoryRows] = await connection.execute(
+        'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+        [eventTitle, storePhoneNumber]
+      );
 
-              case 'BODY':
-                templateContent.body = value;
+      if (categoryRows.length > 0) {
+        ({ template_id, template_data_id, status } = categoryRows[0]);
+        console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
 
-                // Inject dynamic values using mapping_field
-                if (row.mapping_field && row.variable_name) {
-                  bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
-                }
-                break;
-
-              case 'FOOTER':
-                templateContent.footer = value;
-                break;
-
-              case 'BUTTONS':
-              case 'BUTTONS_COMPONENT':
-                if (value.buttons) {
-                  templateContent.buttons.push(...value.buttons);
-                } else {
-                  templateContent.buttons.push(value);
-                }
-                break;
-
-              default:
-                break;
-            }
-          }
-
-          if (templateContent.body) {
-            templateContent.body.example = bodyExample;
-          }
-
-          return templateContent;
-        }
-
-        // 🔍 3a. Get phone number from store (store ID = 11)
-        const [storePhoneRows] = await connection.execute(
-          'SELECT phonenumber FROM stores WHERE id = ? LIMIT 1',
-          [11]
-        );
-
-        if (storePhoneRows.length === 0) {
-          throw new Error("No store found with id 11");
-        }
-
-        const storePhoneNumber = storePhoneRows[0].phonenumber;
-        console.log("📞 Store phone number:", storePhoneNumber);
-
-        // 🔍 3b. Fetch template_id and template_data_id from category_event using title + phone number
-        const [categoryRows] = await connection.execute(
-          'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
-          [eventTitle, storePhoneNumber]
-        );
-
-        if (categoryRows.length === 0) {
-          throw new Error(`No category_event mapping found for title: ${eventTitle} and phone: ${storePhoneNumber}`);
-        }
-
-        const { template_id, template_data_id, status } = categoryRows[0];
-        console.log("🧩 Template IDs:", template_id, template_data_id);
-
-        // 🔍 3c. Fetch template name using template_id + phone number
+        // Fetch template name using template_id + phone number
         const [templateRowsMeta] = await connection.execute(
           'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? LIMIT 1',
           [template_id, storePhoneNumber]
         );
 
-        if (templateRowsMeta.length === 0) {
-          throw new Error(`No template found with template_id: ${template_id} and phone: ${storePhoneNumber}`);
+        if (templateRowsMeta.length > 0) {
+          templateName = templateRowsMeta[0].template_name;
+          console.log(`📛 Template name found: ${templateName}`);
+          foundTemplate = true;
+          break;
         }
+      }
+    }
 
-        const templateName = templateRowsMeta[0].template_name;
-        console.log("📛 Template name:", templateName);
+    if (!foundTemplate) {
+      throw new Error(`No template found for any of the event titles: ${eventTitles.join(', ')} with phone: ${storePhoneNumber}`);
+    }
 
-        // 🔍 3d. Fetch template variables
-        const [templateRows] = await connection.execute(
-          'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-          [template_data_id]
+    // 🔍 3d. Fetch template variables
+    const [templateRows] = await connection.execute(
+      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+      [template_data_id]
+    );
+
+    if (templateRows.length === 0) {
+      throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
+    }
+
+    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+
+    // ✅ 4. Build template content with mapped data
+    const templateContent = buildTemplateContent(templateRows, data);
+
+    if (!templateContent) {
+      throw new Error('Failed to build template content');
+    }
+
+    console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
+
+    // ✅ 5. Send WhatsApp message
+    try {
+      if (status == 1) {
+        const messageResult = await sendWhatsAppMessage(
+          phoneDetails.phone,
+          templateName,
+          templateContent,
+          storeData
         );
 
-        if (templateRows.length === 0) {
-          throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
-        }
+        console.log('✅ WhatsApp message sent successfully');
 
-        console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+        return NextResponse.json({ 
+          status: "success", 
+          order: data,
+          message: "Order received and WhatsApp message sent",
+          messageResult: messageResult
+        });
+      } else {
+        console.log("Status is disabled:", status);
+        return NextResponse.json({ 
+          status: "success", 
+          order: data,
+          message: "Order received but messaging is disabled"
+        });
+      }
 
-        // ✅ 4. Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data);
+    } catch (messageError) {
+      console.error('❌ Failed to send WhatsApp message:', messageError);
 
-        if (!templateContent) {
-          throw new Error('Failed to build template content');
-        }
-
-        console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
-
-        // ✅ 5. Send WhatsApp message
-        try {
-          if (status == 1) {
-            const messageResult = await sendWhatsAppMessage(
-              phoneDetails.phone,
-              templateName,
-              templateContent,
-              storeData
-            );
-
-            console.log('✅ WhatsApp message sent successfully');
-
-            return NextResponse.json({ 
-              status: "success", 
-              order: data,
-              message: "Order received and WhatsApp message sent",
-              messageResult: messageResult
-            });
-          } else {
-            console.log("status is disable!:::::", status);
-            
-          }
-
-        } catch (messageError) {
-          console.error('❌ Failed to send WhatsApp message:', messageError);
-
-          return NextResponse.json({ 
-            status: "partial_success", 
-            order: data,
-            message: "Order received but failed to send WhatsApp message",
-            error: messageError.message
-          });
-        }
+      return NextResponse.json({ 
+        status: "partial_success", 
+        order: data,
+        message: "Order received but failed to send WhatsApp message",
+        error: messageError.message
+      });
+    }
 
   } catch (err) {
     console.error("❌ Error processing order:", err);
