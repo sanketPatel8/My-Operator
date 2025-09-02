@@ -14,7 +14,23 @@ export default function ConnectShopif() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const shopParam = params.get("shop");
-      if (shopParam) setStoreName(shopParam);
+
+      if (shopParam) {
+        setStoreName(shopParam);
+
+        // 🔹 Call backend to fetch encrypted id
+        fetch(`/api/encrypt-store-id?shop=${shopParam}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.encryptedId) {
+              localStorage.setItem("storeToken", data.encryptedId);
+              console.log("Encrypted store id saved to localStorage ✅");
+            } else {
+              console.warn("No encrypted id returned:", data);
+            }
+          })
+          .catch((err) => console.error("Error fetching encrypted id:", err));
+      }
     }
   }, []);
   
