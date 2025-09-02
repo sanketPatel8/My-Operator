@@ -12,7 +12,7 @@ function encrypt(text) {
   return `${iv.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
-function decrypt(token) {
+export function decrypt(token) {
   const [ivHex, encryptedData] = token.split(":");
   const iv = Buffer.from(ivHex, "hex");
   const encryptedText = Buffer.from(encryptedData, "hex");
@@ -45,7 +45,7 @@ export async function GET(req) {
     const [rows] = await connection.execute(
       "SELECT id FROM stores WHERE shop = ?",
       [shop]
-    ); 
+    );
 
     await connection.end();
 

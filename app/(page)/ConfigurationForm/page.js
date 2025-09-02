@@ -214,6 +214,28 @@ function ConfigurationForm({ searchParams }) {
     }
   };
 
+  useEffect(() => {
+    const fetchStoreId = async () => {
+      try {
+        const token = localStorage.getItem("storeToken");
+
+        const res = await fetch("/api/encrypt-store-id", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+
+        const data = await res.json();
+        console.log("Decrypted Store ID:", data.id);
+      } catch (err) {
+        console.error("Error fetching store ID:", err);
+      }
+    };
+
+    fetchStoreId();
+  }, []);
+
+
   
 
   // Fetch the stored WhatsApp number from database
