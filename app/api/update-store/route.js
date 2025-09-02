@@ -51,11 +51,29 @@ export async function POST(req) {
     }
 
     const templates = data.data.results;
+    
+    // Filter only approved templates
+    const approvedTemplates = templates.filter(template => 
+      template.waba_template_status === 'approved'
+    );
+
+    console.log(`Total templates: ${templates.length}, Approved templates: ${approvedTemplates.length}`);
+
+    if (approvedTemplates.length === 0) {
+      await connection.end();
+      return new Response(JSON.stringify({ 
+        message: 'No approved templates found',
+        totalTemplates: templates.length,
+        approvedTemplates: 0
+      }), { status: 200 });
+    }
+
     const seenTemplates = new Set();
     let insertedTemplateCount = 0;
     let insertedTemplateDataCount = 0;
     let updatedTemplateVariableCount = 0;
     let insertedTemplateVariableCount = 0;
+    let skippedTemplateCount = 0;
 
     // Helper function to extract variables from text
     function extractVariables(text) {
@@ -69,8 +87,15 @@ export async function POST(req) {
       return variables;
     }
 
-    for (const template of templates) {
-      const { name: template_name, category, components } = template;
+    for (const template of approvedTemplates) {
+      const { name: template_name, category, components, waba_template_status } = template;
+
+      // Double check the status (redundant but safe)
+      if (waba_template_status !== 'approved') {
+        skippedTemplateCount++;
+        console.log(`Skipping template ${template_name} with status: ${waba_template_status}`);
+        continue;
+      }
 
       if (!template_name || !category) continue;
 
@@ -288,6 +313,9 @@ export async function POST(req) {
 
     return new Response(JSON.stringify({
       message: 'Store and templates updated successfully',
+      totalTemplatesFromAPI: templates.length,
+      approvedTemplates: approvedTemplates.length,
+      skippedTemplates: skippedTemplateCount,
       templateCount: insertedTemplateCount,
       templateDataCount: insertedTemplateDataCount,
       insertedVariableCount: insertedTemplateVariableCount,

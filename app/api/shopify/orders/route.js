@@ -316,8 +316,9 @@ export async function POST(req) {
           [template_id, storePhoneNumber]
         );
 
-        if (templateRowsMeta.length > 1) {
-          console.warn(`⚠️ Multiple templates found for template_id: ${template_id}, using first one`);
+        if (templateRowsMeta.length === 0) {
+          console.log(`⚠️ No template name found for template_id: ${template_id}`);
+          continue;
         }
 
         const templateName = templateRowsMeta[0].template_name;

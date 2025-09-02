@@ -83,6 +83,8 @@ export async function POST(req) {
         success: true,
         message: 'No templates found',
         data: { 
+          totalFromAPI: 0,
+          approvedTemplates: 0,
           newTemplates: 0, 
           updatedTemplates: 0, 
           totalProcessed: 0,
@@ -95,7 +97,32 @@ export async function POST(req) {
     }
 
     const templates = data.data.results;
-    console.log(`Processing ${templates.length} templates`);
+    console.log(`Total templates from API: ${templates.length}`);
+    
+    // Filter only approved templates
+    const approvedTemplates = templates.filter(template => 
+      template.waba_template_status === 'approved'
+    );
+
+    console.log(`Approved templates: ${approvedTemplates.length}, Rejected/Other: ${templates.length - approvedTemplates.length}`);
+
+    if (approvedTemplates.length === 0) {
+      return new Response(JSON.stringify({ 
+        success: true,
+        message: 'No approved templates found',
+        data: { 
+          totalFromAPI: templates.length,
+          approvedTemplates: 0,
+          newTemplates: 0, 
+          updatedTemplates: 0, 
+          totalProcessed: 0,
+          executionTime: `${Date.now() - startTime}ms`
+        }
+      }), { 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     
     // Get existing templates for comparison
     const [existingTemplates] = await connection.execute(
@@ -121,12 +148,18 @@ export async function POST(req) {
       return matches ? matches.map(match => match.replace(/[{}]/g, '').trim()) : [];
     };
 
-    // Process templates
+    // Process only approved templates
     const templateInserts = [];
     const templateUpdates = [];
 
-    for (const template of templates) {
-      const { name: template_name, category, components } = template;
+    for (const template of approvedTemplates) {
+      const { name: template_name, category, components, waba_template_status } = template;
+
+      // Double check the status (redundant but safe)
+      if (waba_template_status !== 'approved') {
+        console.log(`Skipping template ${template_name} with status: ${waba_template_status}`);
+        continue;
+      }
 
       if (!template_name || !category) continue;
 
@@ -203,9 +236,12 @@ export async function POST(req) {
         success: true,
         message: 'Templates synced successfully',
         data: {
+          totalFromAPI: templates.length,
+          approvedTemplates: approvedTemplates.length,
+          rejectedTemplates: templates.length - approvedTemplates.length,
           newTemplates: insertedCount,
           updatedTemplates: updatedCount,
-          totalProcessed: templates.length,
+          totalProcessed: approvedTemplates.length,
           executionTime: `${executionTime}ms`
         }
       }), {
