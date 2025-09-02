@@ -180,8 +180,10 @@ export async function POST(req) {
         case "checkouts/create":
           eventTitle = "Reminder 1";
           break;
-        case "refunds/create":
-          eventTitle = "Refund Create";
+        case "orders/updated":
+          if (data.financial_status === "refunded") {
+            eventTitle = "Refund Create";
+          }
           break;
         default:
           eventTitle = "unknown event";
