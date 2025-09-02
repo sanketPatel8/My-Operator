@@ -280,21 +280,27 @@ export async function POST(req) {
     const storePhoneNumber = storePhoneRows[0].phonenumber;
     console.log("📞 Store phone number:", storePhoneNumber);
 
-    // 🔍 3b. Try each event title until we find a matching template
-    let template_id, template_data_id, status, templateName;
-    let foundTemplate = false;
+    // 🔍 3b. Process each event title and send messages for all matching templates
+    const messageResults = [];
+    const sentMessages = [];
+    let hasAnyTemplate = false;
 
     for (const eventTitle of eventTitles) {
       console.log(`🔍 Trying to find template for event: ${eventTitle}`);
       
-      // Fetch template_id and template_data_id from category_event using title + phone number
-      const [categoryRows] = await connection.execute(
-        'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
-        [eventTitle, storePhoneNumber]
-      );
+      try {
+        // Fetch template_id and template_data_id from category_event using title + phone number
+        const [categoryRows] = await connection.execute(
+          'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+          [eventTitle, storePhoneNumber]
+        );
 
-      if (categoryRows.length > 0) {
-        ({ template_id, template_data_id, status } = categoryRows[0]);
+        if (categoryRows.length === 0) {
+          console.log(`⚠️ No template found for event: ${eventTitle}`);
+          continue;
+        }
+
+        const { template_id, template_data_id, status } = categoryRows[0];
         console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
 
         // Fetch template name using template_id + phone number
@@ -303,75 +309,113 @@ export async function POST(req) {
           [template_id, storePhoneNumber]
         );
 
-        if (templateRowsMeta.length > 0) {
-          templateName = templateRowsMeta[0].template_name;
-          console.log(`📛 Template name found: ${templateName}`);
-          foundTemplate = true;
-          break;
+        if (templateRowsMeta.length === 0) {
+          console.log(`⚠️ No template name found for template_id: ${template_id}`);
+          continue;
         }
-      }
-    }
 
-    if (!foundTemplate) {
-      throw new Error(`No template found for any of the event titles: ${eventTitles.join(', ')} with phone: ${storePhoneNumber}`);
-    }
+        const templateName = templateRowsMeta[0].template_name;
+        console.log(`📛 Template name found: ${templateName}`);
+        hasAnyTemplate = true;
 
-    // 🔍 3d. Fetch template variables
-    const [templateRows] = await connection.execute(
-      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-      [template_data_id]
-    );
+        // Check if this template is enabled
+        if (status != 1) {
+          console.log(`⚠️ Template "${templateName}" is disabled (status: ${status})`);
+          continue;
+        }
 
-    if (templateRows.length === 0) {
-      throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
-    }
-
-    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
-
-    // ✅ 4. Build template content with mapped data
-    const templateContent = buildTemplateContent(templateRows, data);
-
-    if (!templateContent) {
-      throw new Error('Failed to build template content');
-    }
-
-    console.log('📝 Template content built:', JSON.stringify(templateContent, null, 2));
-
-    // ✅ 5. Send WhatsApp message
-    try {
-      if (status == 1) {
-        const messageResult = await sendWhatsAppMessage(
-          phoneDetails.phone,
-          templateName,
-          templateContent,
-          storeData
+        // 🔍 Fetch template variables
+        const [templateRows] = await connection.execute(
+          'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+          [template_data_id]
         );
 
-        console.log('✅ WhatsApp message sent successfully');
+        if (templateRows.length === 0) {
+          console.log(`⚠️ No template variables found for template_data_id: ${template_data_id}`);
+          continue;
+        }
 
-        return NextResponse.json({ 
-          status: "success", 
-          order: data,
-          message: "Order received and WhatsApp message sent",
-          messageResult: messageResult
-        });
-      } else {
-        console.log("Status is disabled:", status);
-        return NextResponse.json({ 
-          status: "success", 
-          order: data,
-          message: "Order received but messaging is disabled"
+        console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+
+        // ✅ Build template content with mapped data
+        const templateContent = buildTemplateContent(templateRows, data);
+
+        if (!templateContent) {
+          console.log(`⚠️ Failed to build template content for: ${templateName}`);
+          continue;
+        }
+
+        console.log(`📝 Template content built for "${templateName}":`, JSON.stringify(templateContent, null, 2));
+
+        // ✅ Send WhatsApp message
+        try {
+          const messageResult = await sendWhatsAppMessage(
+            phoneDetails.phone,
+            templateName,
+            templateContent,
+            storeData
+          );
+
+          console.log(`✅ WhatsApp message sent successfully for "${templateName}"`);
+          messageResults.push({
+            eventTitle,
+            templateName,
+            status: 'success',
+            result: messageResult
+          });
+          sentMessages.push(templateName);
+
+        } catch (messageError) {
+          console.error(`❌ Failed to send WhatsApp message for "${templateName}":`, messageError);
+          messageResults.push({
+            eventTitle,
+            templateName,
+            status: 'error',
+            error: messageError.message
+          });
+        }
+
+      } catch (templateError) {
+        console.error(`❌ Error processing template for "${eventTitle}":`, templateError);
+        messageResults.push({
+          eventTitle,
+          templateName: null,
+          status: 'error',
+          error: templateError.message
         });
       }
+    }
 
-    } catch (messageError) {
-      console.error('❌ Failed to send WhatsApp message:', messageError);
+    if (!hasAnyTemplate) {
+      throw new Error(`No templates found for any of the event titles: ${eventTitles.join(', ')} with phone: ${storePhoneNumber}`);
+    }
 
+    // ✅ Return response based on results
+    const successCount = messageResults.filter(r => r.status === 'success').length;
+    const totalAttempts = messageResults.length;
+
+    if (successCount === 0) {
       return NextResponse.json({ 
         status: "partial_success", 
         order: data,
-        message: "Order received but failed to send WhatsApp message",
-        error: messageError.message
+        message: "Order received but failed to send any WhatsApp messages",
+        messageResults: messageResults
+      });
+    } else if (successCount === totalAttempts) {
+      return NextResponse.json({ 
+        status: "success", 
+        order: data,
+        message: `Order received and ${successCount} WhatsApp message(s) sent successfully`,
+        sentTemplates: sentMessages,
+        messageResults: messageResults
+      });
+    } else {
+      return NextResponse.json({ 
+        status: "partial_success", 
+        order: data,
+        message: `Order received. ${successCount} of ${totalAttempts} messages sent successfully`,
+        sentTemplates: sentMessages,
+        messageResults: messageResults
       });
     }
 
