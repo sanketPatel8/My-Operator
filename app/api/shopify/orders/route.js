@@ -163,7 +163,14 @@ export async function POST(req) {
 
       switch (topic) {
         case "orders/create":
-          eventTitle = "order placed";
+          if (
+            Array.isArray(data.payment_gateway_names) &&
+            data.payment_gateway_names.includes("Cash on Delivery (COD)")
+          ) {
+            eventTitle = ["order placed", "COD Order Confirmation or Cancel"];
+          } else {
+            eventTitle = ["order placed"];
+          }
           break;
         case "orders/paid":
           eventTitle = "Payment Received";
