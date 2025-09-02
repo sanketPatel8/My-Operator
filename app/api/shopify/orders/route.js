@@ -278,6 +278,9 @@ export async function POST(req) {
         case "checkouts/create":
           eventTitle = "Reminder 1";
           break;
+        case "refunds/create":
+          eventTitle = "Refund Create";
+          break;
         default:
           eventTitle = "unknown event";
       }
