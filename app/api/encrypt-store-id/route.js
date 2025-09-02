@@ -62,7 +62,7 @@ export async function GET(req) {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (error) {
+  } catch (error) { 
     console.error("Encrypt error:", error);
     return new Response(
       JSON.stringify({ message: "Internal server error" }),
