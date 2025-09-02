@@ -159,9 +159,9 @@ export async function POST(req) {
           Array.isArray(data.payment_gateway_names) &&
           data.payment_gateway_names.includes("Cash on Delivery (COD)")
         ) {
-          eventTitles = ["order placed", "COD Order Confirmation or Cancel"];
+          eventTitles = ["Order Placed", "COD Order Confirmation or Cancel"];
         } else {
-          eventTitles = ["order placed"];
+          eventTitles = ["Order Placed"];
         }
         break;
       case "orders/paid":
