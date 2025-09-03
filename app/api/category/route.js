@@ -1,4 +1,23 @@
 import pool from "@/lib/db";
+import { NextResponse } from 'next/server';
+import crypto from "crypto";
+
+const ALGORITHM = "aes-256-cbc";
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
+
+function decrypt(token) {
+  try {
+    const [ivHex, encryptedData] = token.split(":");
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = Buffer.from(encryptedData, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    throw new Error("Invalid token");
+  }
+}
 
 const normalizePhone = (phone) => phone?.replace(/\D/g, '').slice(-10);
 
@@ -61,7 +80,7 @@ const WelcomeData = {
   ]
 };
 // Your test store ID
-const STORE_ID = 11;
+
 
 // Enhanced PUT endpoint for storing comma-separated template_variable_ids and updating template variables
 export async function PUT(request) {
@@ -70,6 +89,7 @@ export async function PUT(request) {
   try {
     const body = await request.json();
     const { 
+      storeToken,
       category_id, 
       category_event_id, 
       delay, 
@@ -79,6 +99,18 @@ export async function PUT(request) {
       template_data_id,      // Single template data ID
       template_variable_id   // Comma-separated string of variable IDs
     } = body;
+
+    if (!storeToken) {
+          return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+        }
+    
+        // Decrypt the token to get the store ID
+        let STORE_ID;
+        try {
+          STORE_ID = decrypt(storeToken);
+        } catch (error) {
+          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+        }
 
     // Validate required fields
     if (!category_id || !category_event_id) {
@@ -328,9 +360,24 @@ export async function PUT(request) {
 
 // POST endpoint to initialize/sync workflow categories and events
 export async function POST(request) {
+  const body = await request.json();
+  const { storeToken } = body;
   let connection;
 
+
   try {
+    if(!storeToken) {
+        return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
+    
+    // Decrypt the token to get the store ID
+    let STORE_ID;
+    try {
+      STORE_ID = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
+
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -496,7 +543,19 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json();
-    const { category_event_id, status } = body;
+    const { storeToken, category_event_id, status } = body;
+
+    if (!storeToken) {
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
+       
+    // Decrypt the token to get the store ID
+    let STORE_ID;
+    try {
+      STORE_ID = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
 
     if (typeof category_event_id !== 'number' || typeof status !== 'number') {
       throw new Error('Invalid payload');
@@ -548,9 +607,22 @@ export async function PATCH(request) {
 
 // GET endpoint to fetch categories and events for the store
 export async function GET() {
+  const storeToken = searchParams.get('storeToken');
   let connection;
   
   try {
+    if (!storeToken) {
+          return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+        }
+    
+        // Decrypt the token to get the store ID
+        let STORE_ID;
+        try {
+          STORE_ID = decrypt(storeToken);
+        } catch (error) {
+          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+        }
+
     connection = await pool.getConnection();
 
     // Get current store phone number
@@ -666,7 +738,19 @@ export async function DELETE(request) {
 
   try {
     const body = await request.json();
-    const { category_event_id } = body;
+    const { storeToken, category_event_id } = body;
+
+    if (!storeToken) {
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
+       
+    // Decrypt the token to get the store ID
+    let STORE_ID;
+    try {
+      STORE_ID = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
 
     // Validate required fields
     if (!category_event_id) {

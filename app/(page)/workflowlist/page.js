@@ -31,12 +31,14 @@ export default function WorkflowList() {
 
    const initializeWorkflows = async () => {
       try {
+        const storeToken = localStorage.getItem("storeToken");
         // ✅ Always POST first to sync/update categories
         const initRes = await fetch('/api/category', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
+          body: JSON.stringify({ storeToken })
         });
 
         if (!initRes.ok) {
@@ -94,6 +96,7 @@ export default function WorkflowList() {
   if (!workflowId || !reminderId) return;
 
   const toggleKey = `${workflowId}:${reminderId}`;
+  const storeToken = localStorage.getItem("storeToken");
   
   // Find current reminder and status
   const currentReminder = workflows
@@ -128,6 +131,7 @@ export default function WorkflowList() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        storeToken: storeToken,
         category_event_id: reminderId,
         status: newStatus,
       }),
@@ -183,6 +187,7 @@ export default function WorkflowList() {
 
   // Handle delete flow - NEW FUNCTION
   const handleDeleteFlow = async (reminder) => {
+    const storeToken = localStorage.getItem("storeToken");
     console.log("Delete flow for reminder:", reminder);
     
     if (!reminder.category_event_id) {
@@ -206,6 +211,7 @@ export default function WorkflowList() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          storeToken: storeToken,
           category_event_id: reminder.category_event_id
         })
       });

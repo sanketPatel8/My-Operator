@@ -1,9 +1,6 @@
 import mysql from 'mysql2/promise';
-
 import { NextResponse } from 'next/server';
 import crypto from "crypto";
-
-
 
 const ALGORITHM = "aes-256-cbc";
 const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes

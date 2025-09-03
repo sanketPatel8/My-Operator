@@ -1,4 +1,23 @@
 import mysql from 'mysql2/promise';
+import { NextResponse } from 'next/server';
+import crypto from "crypto";
+
+const ALGORITHM = "aes-256-cbc";
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
+
+function decrypt(token) {
+  try {
+    const [ivHex, encryptedData] = token.split(":");
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = Buffer.from(encryptedData, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    throw new Error("Invalid token");
+  }
+}
 
 export async function POST(req) {
   let connection = null;
@@ -6,7 +25,19 @@ export async function POST(req) {
   
   try {
     const body = await req.json();
-    const { store_id, waba_id, phonenumber } = body;
+    const { storeToken, waba_id, phonenumber } = body;
+
+    if (!storeToken) {
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
+       
+    // Decrypt the token to get the store ID
+    let store_id;
+    try {
+      store_id = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
 
     // Validate required fields
     if (!store_id || !waba_id || !phonenumber) {

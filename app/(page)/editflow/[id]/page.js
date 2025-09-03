@@ -66,10 +66,10 @@ const normalizeTemplateData = (data) => {
   useEffect(() => {
     async function loadAllData() {
       try {
-        const storeId = '11';
+        const storeToken = localStorage.getItem("storeToken");
         
         // 1. Get the current workflow data
-        const workflowRes = await fetch('/api/category');
+        const workflowRes = await fetch(`/api/category?storeToken=${encodeURIComponent(storeToken)}`);
         if (!workflowRes.ok) throw new Error('Failed to fetch workflow data');
         
         const workflowData = await workflowRes.json();
@@ -93,7 +93,7 @@ const normalizeTemplateData = (data) => {
         }
 
         // 2. Load all templates for dropdown
-        const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`);
+        const templateResponse = await fetch(`/api/template-data?storeToken=${encodeURIComponent(storeToken)}`);
         if (!templateResponse.ok) throw new Error('Failed to fetch all templates');
         
         const templateData = await templateResponse.json();
@@ -366,7 +366,7 @@ const handleSyncTemplates = async () => {
     setLoading(true);
     setSyncProgress('Initializing sync...');
     
-    const storeId = '11';
+    const storeToken = localStorage.getItem("storeToken");
     
     // Use cached store data if available, or fetch it
     let storeData = null;
@@ -399,7 +399,7 @@ const handleSyncTemplates = async () => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        store_id: storeId,
+        storeToken: storeToken,
         waba_id: storeData.waba_id,
         phonenumber: storeData.phonenumber
       }),
@@ -505,6 +505,7 @@ const reloadTemplateDataOptimized = async () => {
         alert("Workflow data not found");
         return;
       }
+      const storeToken = localStorage.getItem("storeToken");
 
       let selectedTemplateObj;
       let templateDataObj = null;
@@ -554,6 +555,7 @@ const reloadTemplateDataOptimized = async () => {
       const templateVariableIdsString = uniqueVariableIds.length > 0 ? uniqueVariableIds.join(',') : null;
 
       const updateData = {
+        storeToken: storeToken,
         category_id: currentWorkflowData.category_id,
         category_event_id: currentWorkflowData.category_event_id,
         delay: selectedDelay,
