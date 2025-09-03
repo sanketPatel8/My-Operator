@@ -613,7 +613,10 @@ useEffect(() => {
                 className="px-[24px] py-[10px] text-[14px] font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
               >
                 {loading1 ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="flex items-center justify-center gap-2">
+                  <span className='text-[#DFDFDF]'>please wait...</span>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                </div>
               ) : (
                 'Save changes'
               )}
