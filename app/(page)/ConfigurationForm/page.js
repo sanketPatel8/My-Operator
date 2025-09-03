@@ -43,9 +43,10 @@ function ConfigurationForm({ searchParams }) {
   // API service functions for fetching WhatsApp numbers
   const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
     const maxRetries = 3;
+    const storeToken = localStorage.getItem("storeToken");
     
     try {
-      const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account`;
+      const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${encodeURIComponent(storeToken)}`;
       console.log('Fetching from:', url);
       
       const response = await fetch(url, {
@@ -201,7 +202,7 @@ function ConfigurationForm({ searchParams }) {
       
       if (phoneNumbers.length === 0) {
         console.warn("⚠️ No phone numbers found in API response");
-        return ["+91 9319371489"];
+        return;
       }
       
       return phoneNumbers;
@@ -210,32 +211,9 @@ function ConfigurationForm({ searchParams }) {
       console.error("❌ Error fetching WhatsApp phone numbers:", error);
       // ✅ Show error toast
       error("Failed to fetch WhatsApp numbers");
-      return [{ countryCode: "+91", number: "9319371489" }];
+      return ;
     }
   };
-
-  useEffect(() => {
-    const fetchStoreId = async () => {
-      try {
-        const token = localStorage.getItem("storeToken");
-
-        const res = await fetch("/api/encrypt-store-id", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token }),
-        });
-
-        const data = await res.json();
-        console.log("Decrypted Store ID:", data.id);
-      } catch (err) {
-        console.error("Error fetching store ID:", err);
-      }
-    };
-
-    fetchStoreId();
-  }, []);
-
-
   
 
   // Fetch the stored WhatsApp number from database
@@ -358,6 +336,8 @@ useEffect(() => {
         return;
       }
 
+      const storeToken = localStorage.getItem("storeToken");
+
       const matchedAccount = whatsappAccounts.find((account) =>
         account.phone === selectedNumber.number && 
         account.countryCode === selectedNumber.countryCode
@@ -367,7 +347,7 @@ useEffect(() => {
       console.log("🔍 Matched account:", matchedAccount);
 
       const payload = {
-        id: "11",
+        storeToken: storeToken,
         countrycode: selectedNumber.countryCode,
         phonenumber: selectedNumber.number,
         phone_number_id: selectedNumber.phone_number_id || matchedAccount?.phoneNumberId || "",

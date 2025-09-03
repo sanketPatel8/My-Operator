@@ -3,13 +3,7 @@ import mysql from 'mysql2/promise';
 import { NextResponse } from 'next/server';
 import crypto from "crypto";
 
-// DB connection config
-const dbConfig = {
-  host: process.env.DATABASE_HOST,
-  user: process.env.DATABASE_USER,
-  password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME,
-};
+
 
 const ALGORITHM = "aes-256-cbc";
 const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
