@@ -378,7 +378,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
               className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto"
             >
               {loading1 ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto">set up your account</div>
               ) : (
                 'Verify & Continue'
               )}
