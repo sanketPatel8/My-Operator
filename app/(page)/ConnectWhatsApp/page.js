@@ -228,7 +228,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
     setLoading1(true);
     const selected = accounts.find(a => a.id === selectedAccount);
     if (!selected) {
-      alert('Please select an account.');
+      error('Please select an account.');
       return;
     }
     const storeToken = localStorage.getItem("storeToken");
@@ -261,7 +261,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
       router.push('/ConfigurationForm');
     } catch (err) {
       console.error('Error updating store:', err);
-      alert('Failed to update store. Please try again.');
+      error('Failed to update store. Please try again.');
     }
   };
 

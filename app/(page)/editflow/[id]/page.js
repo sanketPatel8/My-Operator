@@ -509,7 +509,7 @@ const reloadTemplateDataOptimized = async () => {
     try {
       setLoading1(true);
       if (!currentWorkflowData) {
-        alert("Workflow data not found");
+        error("Workflow data not found");
         return;
       }
       const storeToken = localStorage.getItem("storeToken");
@@ -535,7 +535,7 @@ const reloadTemplateDataOptimized = async () => {
         );
 
         if (!selectedTemplateObj) {
-          alert("Selected template not found");
+          error("Selected template not found");
           return;
         }
 
@@ -593,7 +593,7 @@ const reloadTemplateDataOptimized = async () => {
       
     } catch (error) {
       console.error("Error updating workflow:", error);
-      alert(`Failed to update workflow: ${error.message}`);
+      error(`Failed to update workflow: ${error.message}`);
     }
   };
 

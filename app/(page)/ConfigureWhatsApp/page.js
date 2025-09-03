@@ -52,7 +52,7 @@ function ConfigureWhatsApp() {
       router.push("/ConnectWhatsApp");
     } catch (error) {
       console.error("❌ API error:", error.response?.data || error.message);
-      alert("Failed to verify. Please check the inputs and try again.");
+      error("Failed to verify. Please check the inputs and try again.");
     }
   };
 

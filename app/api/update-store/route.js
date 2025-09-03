@@ -36,7 +36,16 @@ export async function POST(req) {
   
   try {
     const body = await req.json();
-    const { storeToken, brandName, publicUrl, countrycode, phonenumber, phone_number_id, waba_id } = body;
+    let {
+          storeToken,
+          brandName = null,
+          publicUrl = null,
+          countrycode,
+          phonenumber,
+          phone_number_id,
+          waba_id
+        } = body;
+
 
     if (!storeToken) {
       return NextResponse.json({ message: 'Store token is required' }, { status: 400 });

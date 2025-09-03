@@ -6,14 +6,16 @@ import DropDown from "@/component/DropDown";
 import { useRouter } from "next/navigation";
 import { FiEye, FiMoreVertical } from 'react-icons/fi';
 import { useWorkflow } from "@/component/WorkflowContext";
+import { useToastContext } from "@/component/Toast";
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
+  const { success, error } = useToastContext();
 
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error1, setError] = useState(null);
   const [loadingToggles, setLoadingToggles] = useState([]);
 
 
@@ -174,7 +176,7 @@ export default function WorkflowList() {
     );
     
     // Show error message to user
-    alert('Failed to update toggle status. Please try again.');
+    error('Failed to update toggle status. Please try again.');
     
   } finally {
     // Remove loading state
@@ -251,15 +253,15 @@ export default function WorkflowList() {
         );
         
         // Show success message
-        alert('Template data deleted successfully!');
+        error('Template data deleted successfully!');
         
       } else {
         console.error('❌ Failed to delete template data:', result.message);
-        alert(`Failed to delete template data: ${result.message}`);
+        error(`Failed to delete template data: ${result.message}`);
       }
     } catch (error) {
       console.error('❌ Error deleting template data:', error);
-      alert('An error occurred while deleting template data. Please try again.');
+      error('An error occurred while deleting template data. Please try again.');
     } finally {
       setDeleteLoading(null);
     }
