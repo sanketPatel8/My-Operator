@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import crypto from "crypto";
 
 const ALGORITHM = "aes-256-cbc";
-const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex");
 
 function decrypt(token) {
   try {
@@ -19,22 +19,29 @@ function decrypt(token) {
   }
 }
 
+// Helper function to extract variables from text
+function extractVariables(text) {
+  if (!text) return [];
+  const regex = /\{\{([^}]+)\}\}/g;
+  const variables = [];
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    variables.push(match[1].trim());
+  }
+  return variables;
+}
+
 export async function POST(req) {
+  let connection;
+  
   try {
     const body = await req.json();
     const { storeToken, brandName, publicUrl, countrycode, phonenumber, phone_number_id, waba_id } = body;
 
-    const connection = await mysql.createConnection({
-      host: process.env.DATABASE_HOST,
-      user: process.env.DATABASE_USER,
-      password: process.env.DATABASE_PASSWORD,
-      database: process.env.DATABASE_NAME,
-    });
-
     if (!storeToken) {
       return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
     }
-         
+
     // Decrypt the token to get the store ID
     let storeId;
     try {
@@ -43,336 +50,303 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
     }
 
+    // Create database connection
+    connection = await mysql.createConnection({
+      host: process.env.DATABASE_HOST,
+      user: process.env.DATABASE_USER,
+      password: process.env.DATABASE_PASSWORD,
+      database: process.env.DATABASE_NAME,
+    });
+
+    // Fetch store data
     const [rows] = await connection.execute(
       'SELECT company_id, whatsapp_api_key FROM stores WHERE id = ?',
       [storeId]
     );
 
-    const company_id = rows[0].company_id;
-    const whatsapp_api_key = rows[0].whatsapp_api_key;
-
-    // 1. Update store
-    const [updateResult] = await connection.execute(
-      `UPDATE stores SET countrycode = ?, public_shop_url = ?, brand_name = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
-      [countrycode, publicUrl, brandName, phonenumber, phone_number_id, waba_id, storeId]
-    );
-
-    if (updateResult.affectedRows === 0) {
+    if (rows.length === 0) {
       await connection.end();
-      return new Response(JSON.stringify({ message: 'No matching store found' }), { status: 404 });
+      return NextResponse.json({ message: 'Store not found' }, { status: 404 });
     }
 
-    // 2. Fetch from API
-    const templateApiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
+    const { company_id, whatsapp_api_key } = rows[0];
 
-    const response = await fetch(templateApiUrl, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${whatsapp_api_key}`,
-        'X-MYOP-COMPANY-ID': `${company_id}`,
-      },
-      signal: AbortSignal.timeout(30000),
-    });
+    // Start transaction
+    await connection.beginTransaction();
 
-    console.log("whole response:::", response);
-
-    if (!response.ok) {
-      await connection.end();
-      return new Response(JSON.stringify({ message: 'Failed to fetch templates from external API' }), { status: 500 });
-    }
-
-    const data = await response.json();
-
-    if (!data?.data?.results?.length) {
-      await connection.end();
-      return new Response(JSON.stringify({ message: 'No templates found from external API' }), { status: 200 });
-    }
-
-    const templates = data.data.results;
-    
-    // Filter only approved templates
-    const approvedTemplates = templates.filter(template => 
-      template.waba_template_status === 'approved'
-    );
-
-    console.log(`Total templates: ${templates.length}, Approved templates: ${approvedTemplates.length}`);
-
-    if (approvedTemplates.length === 0) {
-      await connection.end();
-      return new Response(JSON.stringify({ 
-        message: 'No approved templates found',
-        totalTemplates: templates.length,
-        approvedTemplates: 0
-      }), { status: 200 });
-    }
-
-    const seenTemplates = new Set();
-    let insertedTemplateCount = 0;
-    let insertedTemplateDataCount = 0;
-    let updatedTemplateVariableCount = 0;
-    let insertedTemplateVariableCount = 0;
-    let skippedTemplateCount = 0;
-
-    // Helper function to extract variables from text
-    function extractVariables(text) {
-      if (!text) return [];
-      const regex = /\{\{([^}]+)\}\}/g;
-      const variables = [];
-      let match;
-      while ((match = regex.exec(text)) !== null) {
-        variables.push(match[1].trim());
-      }
-      return variables;
-    }
-
-    for (const template of approvedTemplates) {
-      const { name: template_name, category, components, waba_template_status } = template;
-
-      // Double check the status (redundant but safe)
-      if (waba_template_status !== 'approved') {
-        skippedTemplateCount++;
-        console.log(`Skipping template ${template_name} with status: ${waba_template_status}`);
-        continue;
-      }
-
-      if (!template_name || !category) continue;
-
-      // Check if template already exists for this store and phone number
-      const uniqueKey = `${category}::${template_name}::${phonenumber}`;
-      if (seenTemplates.has(uniqueKey)) continue;
-      seenTemplates.add(uniqueKey);
-
-      // Check if template already exists in database for this store and phone number
-      const [existingTemplate] = await connection.execute(
-        `SELECT template_id FROM template WHERE store_id = ? AND category = ? AND template_name = ? AND phonenumber = ?`,
-        [storeId, category, template_name, phonenumber]
+    try {
+      // 1. Update store
+      const [updateResult] = await connection.execute(
+        `UPDATE stores SET countrycode = ?, public_shop_url = ?, brand_name = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
+        [countrycode, publicUrl, brandName, phonenumber, phone_number_id, waba_id, storeId]
       );
 
-      let templateId;
-
-      if (existingTemplate.length > 0) {
-        // Template exists, use existing ID
-        templateId = existingTemplate[0].template_id;
-        
-        // Update timestamp
-        await connection.execute(
-          `UPDATE template SET updated_at = CURRENT_TIMESTAMP() WHERE template_id = ?`,
-          [templateId]
-        );
-      } else {
-        // Insert new template with phone number
-        const [templateInsertResult] = await connection.execute(
-          `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at)
-           VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-          [storeId, category, template_name, phonenumber]
-        );
-
-        templateId = templateInsertResult.insertId;
-        insertedTemplateCount++;
+      if (updateResult.affectedRows === 0) {
+        await connection.rollback();
+        await connection.end();
+        return NextResponse.json({ message: 'No matching store found' }, { status: 404 });
       }
 
-      // Handle template_data
-      if (Array.isArray(components)) {
-        const content = JSON.stringify(components);
+      // 2. Fetch from API
+      const templateApiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
-        console.log("content whole:::", content);
+      let response;
+      try {
+        response = await fetch(templateApiUrl, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+            Authorization: `Bearer ${whatsapp_api_key}`,
+            'X-MYOP-COMPANY-ID': `${company_id}`,
+          },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
 
-        // Check if template_data already exists
-        const [existingTemplateData] = await connection.execute(
-          `SELECT template_data_id FROM template_data WHERE template_id = ?`,
-          [templateId]
-        );
+      if (!response.ok) {
+        await connection.rollback();
+        await connection.end();
+        return NextResponse.json({ message: 'Failed to fetch templates from external API' }, { status: 500 });
+      }
 
-        let templateDataId;
+      const data = await response.json();
 
-        if (existingTemplateData.length > 0) {
-          // Update existing template_data
-          templateDataId = existingTemplateData[0].template_data_id;
-          
-          await connection.execute(
-            `UPDATE template_data SET content = ?, updated_at = CURRENT_TIMESTAMP() WHERE template_data_id = ?`,
-            [content, templateDataId]
-          );
-        } else {
-          // Insert new template_data
-          const [templateDataInsertResult] = await connection.execute(
-            `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at)
-             VALUES (?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-            [templateId, content, phonenumber]
-          );
+      if (!data?.data?.results?.length) {
+        await connection.commit();
+        await connection.end();
+        return NextResponse.json({ message: 'No templates found from external API' }, { status: 200 });
+      }
 
-          templateDataId = templateDataInsertResult.insertId;
-          insertedTemplateDataCount++;
-        }
+      const templates = data.data.results;
+      const approvedTemplates = templates.filter(template => 
+        template.waba_template_status === 'approved'
+      );
 
-        // Extract and handle variables by component type
-        for (const component of components) {
-          const { type, format } = component;
+      console.log(`Total templates: ${templates.length}, Approved templates: ${approvedTemplates.length}`);
 
-          if (!type) continue;
+      if (approvedTemplates.length === 0) {
+        await connection.commit();
+        await connection.end();
+        return NextResponse.json({ 
+          message: 'No approved templates found',
+          totalTemplates: templates.length,
+          approvedTemplates: 0
+        }, { status: 200 });
+      }
 
-          let variables = [];
+      // 3. Get existing templates to avoid duplicates
+      const [existingTemplates] = await connection.execute(
+        `SELECT template_id, category, template_name FROM template WHERE store_id = ? AND phonenumber = ?`,
+        [storeId, phonenumber]
+      );
 
-          // Extract variables based on component type
-          switch (type) {
-            case 'HEADER':
-              if (format === 'TEXT' && component.text) {
-                variables = extractVariables(component.text);
-              } else if (format === 'MEDIA') {
-                variables = [];
-              }
-              break;
+      const existingTemplateMap = new Map();
+      existingTemplates.forEach(row => {
+        const key = `${row.category}::${row.template_name}`;
+        existingTemplateMap.set(key, row.template_id);
+      });
 
-            case 'BODY':
-              if (component.text) {
-                variables = extractVariables(component.text);
-              }
-              break;
+      // Counters
+      let insertedTemplateCount = 0;
+      let insertedTemplateDataCount = 0;
+      let insertedVariableCount = 0;
+      let updatedVariableCount = 0;
+      let skippedTemplateCount = 0;
 
-            case 'BUTTONS':
-              if (component.buttons && Array.isArray(component.buttons)) {
-                component.buttons.forEach(button => {
-                  if (button.text) {
-                    variables.push(button.text);
-                  }
-                });
-              }
-              break;
+      const seenTemplates = new Set();
 
-            default:
-              if (component.text) {
-                variables = extractVariables(component.text);
-              }
-              break;
+      // 4. Process each approved template
+      for (const template of approvedTemplates) {
+        try {
+          const { name: template_name, category, components, waba_template_status } = template;
+
+          if (waba_template_status !== 'approved' || !template_name || !category) {
+            skippedTemplateCount++;
+            continue;
           }
 
-          // Handle individual variables for mapping UI
-          for (const variable of variables) {
-            // Check if variable already exists
-            const [existingVariable] = await connection.execute(
-              `SELECT template_variable_id, mapping_field, fallback_value FROM template_variable 
-               WHERE template_data_id = ? AND variable_name = ? AND component_type = ?`,
-              [templateDataId, variable, type]
+          const uniqueKey = `${category}::${template_name}`;
+          if (seenTemplates.has(uniqueKey)) continue;
+          seenTemplates.add(uniqueKey);
+
+          let templateId = existingTemplateMap.get(uniqueKey);
+
+          if (templateId) {
+            // Update existing template timestamp
+            await connection.execute(
+              `UPDATE template SET updated_at = NOW() WHERE template_id = ?`,
+              [templateId]
+            );
+          } else {
+            // Insert new template
+            const [templateInsertResult] = await connection.execute(
+              `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at) 
+               VALUES (?, ?, ?, ?, NOW(), NOW())`,
+              [storeId, category, template_name, phonenumber]
+            );
+            templateId = templateInsertResult.insertId;
+            insertedTemplateCount++;
+          }
+
+          // 5. Handle template_data
+          if (Array.isArray(components)) {
+            const content = JSON.stringify(components);
+
+            // Check if template_data exists
+            const [existingTemplateData] = await connection.execute(
+              `SELECT template_data_id FROM template_data WHERE template_id = ?`,
+              [templateId]
             );
 
-            if (existingVariable.length > 0) {
-              // Variable exists, update only if mapping_field and fallback_value are not set
-              const existing = existingVariable[0];
-              if (!existing.mapping_field && !existing.fallback_value) {
-                await connection.execute(
-                  `UPDATE template_variable SET updated_at = CURRENT_TIMESTAMP() WHERE template_variable_id = ?`,
-                  [existing.template_variable_id]
-                );
-                updatedTemplateVariableCount++;
-              }
+            let templateDataId;
+
+            if (existingTemplateData.length > 0) {
+              // Update existing template_data
+              templateDataId = existingTemplateData[0].template_data_id;
+              await connection.execute(
+                `UPDATE template_data SET content = ?, updated_at = NOW() WHERE template_data_id = ?`,
+                [content, templateDataId]
+              );
             } else {
-              // Insert new variable
+              // Insert new template_data
+              const [templateDataInsertResult] = await connection.execute(
+                `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) 
+                 VALUES (?, ?, ?, NOW(), NOW())`,
+                [templateId, content, phonenumber]
+              );
+              templateDataId = templateDataInsertResult.insertId;
+              insertedTemplateDataCount++;
+            }
+
+            // 6. Clear existing variables for this template_data
+            await connection.execute(
+              `DELETE FROM template_variable WHERE template_data_id = ?`,
+              [templateDataId]
+            );
+
+            // 7. Process components and insert variables
+            for (const component of components) {
+              const { type, format } = component;
+              if (!type) continue;
+
+              let variables = [];
+
+              // Extract variables based on component type
+              switch (type) {
+                case 'HEADER':
+                  if (format === 'TEXT' && component.text) {
+                    variables = extractVariables(component.text);
+                  }
+                  break;
+                case 'BODY':
+                  if (component.text) {
+                    variables = extractVariables(component.text);
+                  }
+                  break;
+                case 'BUTTONS':
+                  if (component.buttons && Array.isArray(component.buttons)) {
+                    component.buttons.forEach(button => {
+                      if (button.text) {
+                        variables.push(button.text);
+                      }
+                    });
+                  }
+                  break;
+                default:
+                  if (component.text) {
+                    variables = extractVariables(component.text);
+                  }
+                  break;
+              }
+
+              // Insert individual variables
+              for (const variable of variables) {
+                await connection.execute(
+                  `INSERT INTO template_variable (
+                    template_data_id, type, value, variable_name, component_type, 
+                    mapping_field, fallback_value, phonenumber, created_at, updated_at
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                  [
+                    templateDataId,
+                    type,
+                    null,
+                    variable,
+                    type,
+                    null,
+                    null,
+                    phonenumber
+                  ]
+                );
+                insertedVariableCount++;
+              }
+
+              // Insert component data
+              const componentType = `${type}_COMPONENT`;
               await connection.execute(
                 `INSERT INTO template_variable (
-                  template_data_id, 
-                  type, 
-                  value, 
-                  variable_name, 
-                  component_type, 
-                  mapping_field, 
-                  fallback_value,
-                  phonenumber,
-                  created_at, 
-                  updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+                  template_data_id, type, value, variable_name, component_type, 
+                  mapping_field, fallback_value, phonenumber, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
-                  templateDataId, 
-                  type,                    
-                  null,                
-                  variable,                
-                  type,                    
-                  null,                    
+                  templateDataId,
+                  componentType,
+                  JSON.stringify(component),
+                  null,
+                  type,
+                  null,
                   null,
                   phonenumber
                 ]
               );
-              insertedTemplateVariableCount++;
+              insertedVariableCount++;
             }
           }
 
-          // Handle full component data for reference
-          const componentType = `${type}_COMPONENT`;
-          
-          // Check if component already exists
-          const [existingComponent] = await connection.execute(
-            `SELECT template_variable_id FROM template_variable 
-             WHERE template_data_id = ? AND type = ?`,
-            [templateDataId, componentType]
-          );
-
-          if (existingComponent.length > 0) {
-            // Update existing component
-            await connection.execute(
-              `UPDATE template_variable SET 
-               value = ?, 
-               updated_at = CURRENT_TIMESTAMP() 
-               WHERE template_variable_id = ?`,
-              [JSON.stringify(component), existingComponent[0].template_variable_id]
-            );
-            updatedTemplateVariableCount++;
-          } else {
-            // Insert new component
-            await connection.execute(
-              `INSERT INTO template_variable (
-                template_data_id, 
-                type, 
-                value, 
-                variable_name, 
-                component_type, 
-                mapping_field, 
-                fallback_value,
-                phonenumber,
-                created_at, 
-                updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-              [
-                templateDataId, 
-                componentType,     
-                JSON.stringify(component), 
-                null,                    
-                type,                   
-                null,                    
-                null,
-                phonenumber
-              ]
-            );
-            insertedTemplateVariableCount++;
-          }
+        } catch (templateError) {
+          console.error(`Error processing template ${template.name}:`, templateError);
+          skippedTemplateCount++;
+          // Continue with next template instead of failing entirely
         }
       }
+
+      // Commit transaction
+      await connection.commit();
+
+      const result = {
+        message: 'Store and templates updated successfully',
+        totalTemplatesFromAPI: templates.length,
+        approvedTemplates: approvedTemplates.length,
+        skippedTemplates: skippedTemplateCount,
+        templateCount: insertedTemplateCount,
+        templateDataCount: insertedTemplateDataCount,
+        insertedVariableCount: insertedVariableCount,
+        updatedVariableCount: updatedVariableCount,
+        phonenumber: phonenumber
+      };
+
+      return NextResponse.json(result, { status: 200 });
+
+    } catch (error) {
+      await connection.rollback();
+      throw error;
     }
-
-    await connection.end();
-
-    return new Response(JSON.stringify({
-      message: 'Store and templates updated successfully',
-      totalTemplatesFromAPI: templates.length,
-      approvedTemplates: approvedTemplates.length,
-      skippedTemplates: skippedTemplateCount,
-      templateCount: insertedTemplateCount,
-      templateDataCount: insertedTemplateDataCount,
-      insertedVariableCount: insertedTemplateVariableCount,
-      updatedVariableCount: updatedTemplateVariableCount,
-      phonenumber: phonenumber
-    }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
     console.error('Update error:', error);
-    return new Response(JSON.stringify({
+    return NextResponse.json({
       message: 'Error updating store and templates',
       error: error.message,
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    }, { status: 500 });
+  } finally {
+    if (connection) {
+      await connection.end();
+    }
   }
 }
