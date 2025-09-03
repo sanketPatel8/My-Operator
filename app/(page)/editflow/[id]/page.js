@@ -108,7 +108,8 @@ const normalizeTemplateData = (data) => {
         let categorySpecificData = null;
         if (matchedEvent) {
           try {
-            let apiUrl = `/api/category-template?store_id=${storeId}&category_event_id=${matchedEvent.category_event_id}`;
+            const storeToken = localStorage.getItem("storeToken");
+            let apiUrl = `/api/category-template?storeToken=${encodeURIComponent(storeToken)}&category_event_id=${matchedEvent.category_event_id}`;
             const response = await fetch(apiUrl);
             
             if (response.ok) {

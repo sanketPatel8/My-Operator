@@ -31,13 +31,17 @@ export async function POST(req) {
       database: process.env.DATABASE_NAME,
     });
 
+    if (!storeToken) {
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
+         
     // Decrypt the token to get the store ID
-        let storeId;
-        try {
-          storeId = decrypt(storeToken);
-        } catch (error) {
-          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
-        }
+    let storeId;
+    try {
+      storeId = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
 
     const [rows] = await connection.execute(
       'SELECT company_id, whatsapp_api_key FROM stores WHERE id = ?',
