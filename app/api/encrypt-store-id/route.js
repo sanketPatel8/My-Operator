@@ -12,15 +12,7 @@ function encrypt(text) {
   return `${iv.toString("hex")}:${encrypted.toString("hex")}`;
 }
 
-export function decrypt(token) {
-  const [ivHex, encryptedData] = token.split(":");
-  const iv = Buffer.from(ivHex, "hex");
-  const encryptedText = Buffer.from(encryptedData, "hex");
-  const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
-}
+
 
 // 🔹 GET: find store by shop → return encrypted id
 export async function GET(req) {
@@ -71,29 +63,4 @@ export async function GET(req) {
   }
 }
 
-// 🔹 POST: decrypt from token → return real id
-export async function POST(req) {
-  try {
-    const body = await req.json();
-    const { token } = body;
 
-    if (!token) {
-      return new Response(JSON.stringify({ message: "Missing token" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const decryptedId = decrypt(token);
-
-    return new Response(JSON.stringify({ id: decryptedId }), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ message: "Invalid token" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
-    );
-  }
-}
