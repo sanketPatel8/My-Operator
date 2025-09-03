@@ -16,6 +16,8 @@ function ConfigurationForm({ searchParams }) {
   const [edit, setEdit] = useState(false);
   const [activeTab, setActiveTab] = useState("/ConfigurationForm");
   const [whatsappAccounts, setWhatsappAccounts] = useState([]);
+  const [brandName, setBrandName] = useState([]);
+  const [publicUrl, setPublicUrl] = useState([]);
 
   // ✅ Initialize toast
   const { success, error } = useToastContext();
@@ -348,6 +350,8 @@ useEffect(() => {
 
       const payload = {
         storeToken: storeToken,
+        brandName: brandName,
+        publicUrl: publicUrl,
         countrycode: selectedNumber.countryCode,
         phonenumber: selectedNumber.number,
         phone_number_id: selectedNumber.phone_number_id || matchedAccount?.phoneNumberId || "",
@@ -512,8 +516,8 @@ useEffect(() => {
             <input
               name="brandName"
               disabled={!edit}
-              value={formData.brandName}
-              onChange={handleChange}
+              value={brandName}
+              onChange={(e) => setBrandName(e.target.value)}
               className="w-full border border-[#E9E9E9] rounded-[4px] bg-[#F3F5F6] px-[16px] py-[10px] text-[#1A1A1A] text-[14px]"
               placeholder="Brand name"
             />
@@ -526,8 +530,8 @@ useEffect(() => {
             <input
               name="publicUrl"
               disabled={!edit}
-              value={formData.publicUrl}
-              onChange={handleChange}
+              value={publicUrl}
+              onChange={(e) => setPublicUrl(e.target.value)}
               className="w-full border border-[#E9E9E9] rounded-[4px] bg-[#F3F5F6] px-[16px] py-[10px] text-[#1A1A1A] text-[14px]"
               placeholder="Public shop URL"
             />

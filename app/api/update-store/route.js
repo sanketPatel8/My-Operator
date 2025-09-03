@@ -22,7 +22,7 @@ function decrypt(token) {
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { storeToken, countrycode, phonenumber, phone_number_id, waba_id } = body;
+    const { storeToken, brandName, publicUrl, countrycode, phonenumber, phone_number_id, waba_id } = body;
 
     const connection = await mysql.createConnection({
       host: process.env.DATABASE_HOST,
@@ -53,8 +53,8 @@ export async function POST(req) {
 
     // 1. Update store
     const [updateResult] = await connection.execute(
-      `UPDATE stores SET countrycode = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
-      [countrycode, phonenumber, phone_number_id, waba_id, storeId]
+      `UPDATE stores SET countrycode = ?, publicUrl = ?, brandName = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
+      [countrycode, publicUrl, brandName, phonenumber, phone_number_id, waba_id, storeId]
     );
 
     if (updateResult.affectedRows === 0) {
