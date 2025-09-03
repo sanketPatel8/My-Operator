@@ -88,7 +88,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
       throw new Error("Store token not found");
     }
 
-    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${encodeURIComponent(storeToken)}`;
+    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${storeToken}`;
     console.log('Fetching from:', url);
     
     const response = await fetch(url, {

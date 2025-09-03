@@ -70,7 +70,7 @@ const normalizeTemplateData = (data) => {
         const storeToken = localStorage.getItem("storeToken");
         
         // 1. Get the current workflow data
-        const workflowRes = await fetch(`/api/category?storeToken=${encodeURIComponent(storeToken)}`);
+        const workflowRes = await fetch(`/api/category?storeToken=${storeToken}`);
         if (!workflowRes.ok) throw new Error('Failed to fetch workflow data');
         
         const workflowData = await workflowRes.json();
@@ -94,7 +94,7 @@ const normalizeTemplateData = (data) => {
         }
 
         // 2. Load all templates for dropdown
-        const templateResponse = await fetch(`/api/template-data?storeToken=${encodeURIComponent(storeToken)}`);
+        const templateResponse = await fetch(`/api/template-data?storeToken=${storeToken}`);
         if (!templateResponse.ok) throw new Error('Failed to fetch all templates');
         
         const templateData = await templateResponse.json();
@@ -110,7 +110,7 @@ const normalizeTemplateData = (data) => {
         if (matchedEvent) {
           try {
             const storeToken = localStorage.getItem("storeToken");
-            let apiUrl = `/api/category-template?storeToken=${encodeURIComponent(storeToken)}&category_event_id=${matchedEvent.category_event_id}`;
+            let apiUrl = `/api/category-template?storeToken=${storeToken}&category_event_id=${matchedEvent.category_event_id}`;
             const response = await fetch(apiUrl);
             
             if (response.ok) {
@@ -457,7 +457,7 @@ const reloadTemplateDataOptimized = async () => {
   try {
     const storeToken = localStorage.getItem("storeToken");
     
-    const templateResponse = await fetch(`/api/template-data?storeToken=${encodeURIComponent(storeToken)}`, {
+    const templateResponse = await fetch(`/api/template-data?storeToken=${storeToken}`, {
       signal: AbortSignal.timeout(10000),
       headers: {
         'Cache-Control': 'no-cache' // Force fresh data

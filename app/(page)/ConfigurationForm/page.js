@@ -48,7 +48,7 @@ function ConfigurationForm({ searchParams }) {
     const storeToken = localStorage.getItem("storeToken");
     
     try {
-      const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${encodeURIComponent(storeToken)}`;
+      const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${storeToken}`;
       console.log('Fetching from:', url);
       
       const response = await fetch(url, {
