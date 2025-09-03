@@ -17,25 +17,7 @@ function ConfigureWhatsApp() {
   const [CreatedCompanyID, setCreatedCompanyID] = useState("");
   const router = useRouter();
 
-  const VerifyCo = async (accessToken, company_id) => {
-    try {
-      const response = await axios.post("/api/verify-store-id", {
-        accessToken,
-        company_id,
-      });
-
-      console.log("✅ Success:", response.data);
-      setTimeout(() => {
-        router.push("/ConnectWhatsApp");
-      }, 5000);
-    } catch (error) {
-      if (error.response) {
-        console.error("❌ Error:", error.response.data.message);
-      } else {
-        console.error("❌ Unexpected error:", error.message);
-      }
-    }
-  };
+  
 
   // Get query params on page load
   useEffect(() => {
@@ -47,6 +29,8 @@ function ConfigureWhatsApp() {
   }, [searchParams]);
 
   const handleVerify = async () => {
+
+    const storeToken = localStorage.getItem("storeToken");
     if (!CreatedCompanyID || !token) {
       error("Please enter both Company ID and Access Token");
       return;
@@ -59,6 +43,7 @@ function ConfigureWhatsApp() {
         body: JSON.stringify({
           company_id: CreatedCompanyID,
           whatsapp_api_key: token,
+          storeToken: storeToken,
         }),
       });
 

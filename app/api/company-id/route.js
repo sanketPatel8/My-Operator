@@ -1,9 +1,30 @@
 import mysql from 'mysql2/promise';
+import { NextResponse } from 'next/server';
+import { query } from '@/lib/db';
+import crypto from "crypto";
+
+const ALGORITHM = "aes-256-cbc";
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
+
+function decrypt(token) {
+  try {
+    const [ivHex, encryptedData] = token.split(":");
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = Buffer.from(encryptedData, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    throw new Error("Invalid token");
+  }
+}
+
 
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { company_id, whatsapp_api_key } = body;
+    const { company_id, whatsapp_api_key, storeToken } = body;
 
     if (!company_id || !whatsapp_api_key) {
       return new Response(JSON.stringify({ message: 'Missing company_id or whatsapp_api_key' }), {
@@ -11,6 +32,13 @@ export async function POST(req) {
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    let storeId;
+        try {
+          storeId = decrypt(storeToken);
+        } catch (error) {
+          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+        }
 
     const connection = await mysql.createConnection({
       host: process.env.DATABASE_HOST,
@@ -21,17 +49,13 @@ export async function POST(req) {
 
     const shop = "sanket-store01.myshopify.com";
 
-    // Check if store already exists with this company_id
-    const [existingRows] = await connection.execute(
-      'SELECT id FROM stores WHERE shop = ?',
-      [shop]
-    );
+  
 
-    if (existingRows.length > 0) {
+  
       // Update existing store
       await connection.execute(
-        'UPDATE stores SET whatsapp_api_key = ?, company_id = ?, updated_at = NOW() WHERE shop = ?',
-        [whatsapp_api_key, company_id, shop]
+        'UPDATE stores SET whatsapp_api_key = ?, company_id = ?, updated_at = NOW() WHERE id = ?',
+        [whatsapp_api_key, company_id, storeId]
       );
 
       await connection.end();
@@ -43,24 +67,7 @@ export async function POST(req) {
           headers: { 'Content-Type': 'application/json' },
         }
       );
-    } else {
-      // Insert new store
-      await connection.execute(
-        `INSERT INTO stores (company_id, whatsapp_api_key, installed_at, updated_at)
-         VALUES (?, ?, NOW(), NOW())`,
-        [company_id, whatsapp_api_key]
-      );
-
-      await connection.end();
-
-      return new Response(
-        JSON.stringify({ message: 'Store inserted successfully' }),
-        {
-          status: 201,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
-    }
+   
   } catch (error) {
     console.error('Store insert/update error:', error);
 
