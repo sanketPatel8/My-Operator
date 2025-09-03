@@ -254,7 +254,7 @@ export default function WorkflowList() {
         );
         
         // Show success message
-        error('Template data deleted successfully!');
+        success('Template data deleted successfully!');
         
       } else {
         console.error('❌ Failed to delete template data:', result.message);
@@ -339,7 +339,7 @@ export default function WorkflowList() {
     );
   }
 
-  if (error) {
+  if (error1) {
     return (
       <div className="font-source-sans flex flex-col min-h-screen">
         <DashboardHeaader />
@@ -349,7 +349,7 @@ export default function WorkflowList() {
             <div className="text-center">
               <div className="text-red-600 mb-4">
                 <p className="text-lg font-semibold">Error loading workflows</p>
-                <p className="text-sm">{error}</p>
+                <p className="text-sm">{error1}</p>
               </div>
               <button 
                 onClick={() => window.location.reload()} 
