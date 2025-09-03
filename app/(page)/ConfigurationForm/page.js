@@ -499,7 +499,7 @@ useEffect(() => {
     </div>
 
       {/* Account Information */}
-      <div className="bg-white border rounded-[6px]  p-[16px] md:ml-[32px] md:mt-[20px]">
+      <div className="bg-white border border-[#E3E7EB] rounded-[6px]  p-[16px] md:ml-[32px] md:mt-[20px]">
         <h3 className="text-[16px] font-semibold text-[#1A1A1A] mb-[20px]">
           Account Information
         </h3>
