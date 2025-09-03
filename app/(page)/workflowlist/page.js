@@ -49,7 +49,7 @@ export default function WorkflowList() {
         
 
         // ✅ Then fetch the updated workflows
-        const updatedRes = await fetch('/api/category');
+        const updatedRes = await fetch(`/api/category?storeToken=${encodeURIComponent(storeToken)}`);
         if (!updatedRes.ok) {
           throw new Error(`Failed to fetch categories after POST: ${updatedRes.status}`);
         }
