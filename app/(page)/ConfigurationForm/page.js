@@ -239,79 +239,94 @@ function ConfigurationForm({ searchParams }) {
   
 
   // Fetch the stored WhatsApp number from database
-  useEffect(() => {
-    async function fetchStored() {
-      if (!shop) {
-        console.warn("⚠️ No shop parameter provided");
+  // Updated fetchStored function in your ConfigurationForm component
+// Updated fetchStored function in your ConfigurationForm component
+useEffect(() => {
+  async function fetchStored() {
+    try {
+      // Get the store token from localStorage
+      const storeToken = localStorage.getItem("storeToken");
+      
+      if (!storeToken) {
+        console.warn("⚠️ No store token found in localStorage");
         setLoading(false);
         return;
       }
 
-      try {
-        console.log("🔄 Fetching stored phone for shop:", shop);
-        const res = await fetch(`/api/store-phone?shop=${encodeURIComponent(shop)}`);
-        
-        if (!res.ok) {
-          if (res.status === 404) {
-            console.log("📭 No stored phone number found for this shop");
-            setLoading(false);
-            return;
-          }
-          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-        }
-        
-        const data = await res.json();
-        console.log("💾 Database response:", data);
-        
-        const countryCode = data.countrycode || "91";
-        const storedPhone = data.phonenumber;
-        const shopurl = data.shop;
-        const waba_id = data.waba_id;
-        const phone_number_id = data.phone_number_id;
-
-        console.log("shop url:::", shopurl);
-        setShopUrl(shopurl);
-
-        if (storedPhone) {
-          const fullNumber = `${countryCode} ${storedPhone}`;
-          setFormData((f) => ({ ...f, whatsapp: fullNumber }));
-
-          const matched = whatsappNumbers.find(
-            (item) =>
-              item.number === storedPhone &&
-              item.countryCode === countryCode &&
-              item.waba_id === waba_id &&
-              item.phone_number_id === phone_number_id
-          );
-
-          if (matched) {
-            setSelectedNumber(matched);
-          } else {
-            setSelectedNumber({
-              countryCode,
-              number: storedPhone,
-              phone_number_id: phone_number_id,
-              waba_id: waba_id,
-            });
-          }
-        } else {
-          console.log("📭 No phone number in database response");
-        }
-        
-      } catch (err) {
-        console.error("❌ Error fetching stored phone:", err);
-        // ✅ Show error toast
-        error("Failed to load stored configuration");
-      } finally {
-        setLoading(false);
-      }
-    }
-    
-  
-      fetchStored();
+      console.log("🔄 Fetching stored phone with token", storeToken);
       
-    
-  }, [shop, whatsappNumbers]);
+      // Make POST request with store token in body
+      const res = await fetch(`/api/store-phone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ storeToken })
+      });
+      
+      if (!res.ok) {
+        if (res.status === 404) {
+          console.log("📭 No stored phone number found for this store");
+          setLoading(false);
+          return;
+        }
+        if (res.status === 401) {
+          console.log("🔒 Invalid store token");
+          setLoading(false);
+          return;
+        }
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      }
+      
+      const data = await res.json();
+      console.log("💾 Database response:", data);
+      
+      const countryCode = data.countrycode || "91";
+      const storedPhone = data.phonenumber;
+      const shopurl = data.shop;
+      const waba_id = data.waba_id;
+      const phone_number_id = data.phone_number_id;
+
+      console.log("shop url:::", shopurl);
+      setShopUrl(shopurl);
+
+      if (storedPhone) {
+        const fullNumber = `${countryCode} ${storedPhone}`;
+        setFormData((f) => ({ ...f, whatsapp: fullNumber }));
+
+        const matched = whatsappNumbers.find(
+          (item) =>
+            item.number === storedPhone &&
+            item.countryCode === countryCode &&
+            item.waba_id === waba_id &&
+            item.phone_number_id === phone_number_id
+        );
+
+        if (matched) {
+          setSelectedNumber(matched);
+        } else {
+          setSelectedNumber({
+            countryCode,
+            number: storedPhone,
+            phone_number_id: phone_number_id,
+            waba_id: waba_id,
+          });
+        }
+      } else {
+        console.log("📭 No phone number in database response");
+      }
+      
+    } catch (err) {
+      console.error("❌ Error fetching stored phone:", err);
+      error("Failed to load stored configuration");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchStored();
+}, [whatsappNumbers]); // Removed 'shop' dependency since we no longer need it
+
 
   // Close dropdown on click outside
   useEffect(() => {
