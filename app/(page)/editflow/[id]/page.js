@@ -455,9 +455,9 @@ const handleSyncTemplates = async () => {
 // Optimized template data reload
 const reloadTemplateDataOptimized = async () => {
   try {
-    const storeId = '11';
+    const storeToken = localStorage.getItem("storeToken");
     
-    const templateResponse = await fetch(`/api/template-data?store_id=${storeId}`, {
+    const templateResponse = await fetch(`/api/template-data?storeToken=${encodeURIComponent(storeToken)}`, {
       signal: AbortSignal.timeout(10000),
       headers: {
         'Cache-Control': 'no-cache' // Force fresh data
