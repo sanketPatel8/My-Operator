@@ -349,96 +349,120 @@ export async function POST(req) {
         existingTemplateDataMap.set(row.template_id, row.template_data_id);
       });
 
-      // Prepare template_data operations
-      const allTemplateVariables = [];
-
+      // 7. Handle template_data operations
       for (const [templateId, data] of templateDataMap.entries()) {
         const existingDataId = existingTemplateDataMap.get(templateId);
-        let templateDataId;
 
         if (existingDataId) {
           // Update existing template_data
-          templateDataId = existingDataId;
-          templateDataToUpdate.push([data.content, templateDataId]);
+          templateDataToUpdate.push([data.content, existingDataId]);
         } else {
           // Insert new template_data
           templateDataToInsert.push([templateId, data.content, phonenumber]);
           insertedTemplateDataCount++;
-          templateDataId = `temp_data_${templateDataToInsert.length - 1}`;
         }
 
-        // Process variables for this template
-        const variables = processTemplateComponents(data.components, templateDataId, phonenumber);
-        allTemplateVariables.push(...variables);
+        // Process variables for this template (we'll handle this after getting actual template_data_ids)
+        const variables = processTemplateComponents(data.components, existingDataId || 'temp', phonenumber);
+        allTemplateVariables.push({
+          templateId: templateId,
+          templateDataId: existingDataId,
+          variables: variables
+        });
       }
 
-      // 7. BATCH operations for template_data
+      // 8. BATCH operations for template_data
       if (templateDataToInsert.length > 0) {
-        const insertQuery = `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) VALUES ?`;
-        const insertValues = templateDataToInsert.map(row => [...row, new Date(), new Date()]);
-        await connection.query(insertQuery, [insertValues]);
+        // Insert template_data one by one to avoid bulk insert issues
+        for (const row of templateDataToInsert) {
+          await connection.execute(
+            `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())`,
+            row
+          );
+        }
       }
 
       if (templateDataToUpdate.length > 0) {
-        const updatePromises = templateDataToUpdate.map(([content, id]) =>
-          connection.execute(
-            `UPDATE template_data SET content = ?, updated_at = CURRENT_TIMESTAMP() WHERE template_data_id = ?`,
+        for (const [content, id] of templateDataToUpdate) {
+          await connection.execute(
+            `UPDATE template_data SET content = ?, updated_at = NOW() WHERE template_data_id = ?`,
             [content, id]
-          )
-        );
-        await Promise.all(updatePromises);
+          );
+        }
       }
 
-      // 8. Get actual template_data IDs for newly inserted records
+      // 9. Get actual template_data IDs for newly inserted records
+      const newTemplateDataMap = new Map();
       if (templateDataToInsert.length > 0) {
         const [newTemplateData] = await connection.execute(
           `SELECT template_data_id, template_id FROM template_data WHERE template_id IN (${templateIds.map(() => '?').join(',')})`,
           templateIds
         );
 
-        // Update template variables with actual template_data_ids
-        const actualDataIdMap = new Map();
         newTemplateData.forEach(row => {
-          actualDataIdMap.set(row.template_id, row.template_data_id);
-        });
-
-        allTemplateVariables.forEach(variable => {
-          if (typeof variable.template_data_id === 'string' && variable.template_data_id.startsWith('temp_data_')) {
-            const index = parseInt(variable.template_data_id.split('_')[2]);
-            const templateId = templateDataToInsert[index][0];
-            variable.template_data_id = actualDataIdMap.get(templateId) || existingTemplateDataMap.get(templateId);
-          }
+          newTemplateDataMap.set(row.template_id, row.template_data_id);
         });
       }
 
-      // 9. Handle template variables - delete existing and insert new (simpler than complex upsert logic)
-      if (templateIds.length > 0) {
-        await connection.execute(
-          `DELETE FROM template_variable WHERE template_data_id IN (
-            SELECT template_data_id FROM template_data WHERE template_id IN (${templateIds.map(() => '?').join(',')})
-          )`,
-          templateIds
-        );
-      }
-
-      // 10. BATCH INSERT template variables
-      let insertedVariableCount = 0;
-      if (allTemplateVariables.length > 0) {
-        const validVariables = allTemplateVariables.filter(v => v.template_data_id);
+      // 10. Process template variables with correct template_data_ids
+      const finalTemplateVariables = [];
+      
+      for (const item of allTemplateVariables) {
+        const actualTemplateDataId = item.templateDataId || newTemplateDataMap.get(item.templateId) || existingTemplateDataMap.get(item.templateId);
         
-        if (validVariables.length > 0) {
-          const insertQuery = `INSERT INTO template_variable (
-            template_data_id, type, value, variable_name, component_type, 
-            mapping_field, fallback_value, phonenumber, created_at, updated_at
-          ) VALUES ?`;
-          
-          const insertValues = validVariables.map(v => [
-            v.template_data_id, v.type, v.value, v.variable_name, v.component_type,
-            v.mapping_field, v.fallback_value, v.phonenumber, v.created_at, v.updated_at
-          ]);
-          
-          await connection.query(insertQuery, [insertValues]);
-          insertedVariableCount = validVariables.length;
+        if (actualTemplateDataId) {
+          for (const variable of item.variables) {
+            finalTemplateVariables.push({
+              template_data_id: actualTemplateDataId,
+              type: variable.type,
+              value: variable.value,
+              variable_name: variable.variable_name,
+              component_type: variable.component_type,
+              mapping_field: variable.mapping_field,
+              fallback_value: variable.fallback_value,
+              phonenumber: variable.phonenumber
+            });
+          }
+        }
+      }
+
+      // 11. Handle template variables - delete existing and insert new
+      if (templateIds.length > 0) {
+        const templateDataIds = [...existingTemplateDataMap.values(), ...newTemplateDataMap.values()];
+        if (templateDataIds.length > 0) {
+          await connection.execute(
+            `DELETE FROM template_variable WHERE template_data_id IN (${templateDataIds.map(() => '?').join(',')})`,
+            templateDataIds
+          );
+        }
+      }
+
+      // 12. INSERT template variables
+      let insertedVariableCount = 0;
+      if (finalTemplateVariables.length > 0) {
+        for (const variable of finalTemplateVariables) {
+          try {
+            await connection.execute(
+              `INSERT INTO template_variable (
+                template_data_id, type, value, variable_name, component_type, 
+                mapping_field, fallback_value, phonenumber, created_at, updated_at
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+              [
+                variable.template_data_id,
+                variable.type,
+                variable.value,
+                variable.variable_name,
+                variable.component_type,
+                variable.mapping_field,
+                variable.fallback_value,
+                variable.phonenumber
+              ]
+            );
+            insertedVariableCount++;
+          } catch (varError) {
+            console.error('Error inserting variable:', varError);
+            // Continue with other variables
+          }
         }
       }
 
