@@ -606,7 +606,8 @@ export async function PATCH(request) {
 
 
 // GET endpoint to fetch categories and events for the store
-export async function GET() {
+export async function GET(request) {
+  const { searchParams } = new URL(request.url);
   const storeToken = searchParams.get('storeToken');
   let connection;
   
