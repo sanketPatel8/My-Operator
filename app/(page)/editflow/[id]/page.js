@@ -376,7 +376,11 @@ const handleSyncTemplates = async () => {
     try {
       setSyncProgress('Fetching store configuration...');
       const storeResponse = await fetch(`/api/store-phone`, {
-        signal: AbortSignal.timeout(5000) // 5 second timeout
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ storeToken })
       });
       
       if (!storeResponse.ok) {

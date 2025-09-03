@@ -62,9 +62,11 @@ export async function POST(req) {
 
     // Quick store verification
     const [storeExists] = await connection.execute(
-      `SELECT id FROM stores WHERE id = ? LIMIT 1`,
+      `SELECT company_id = ?, whatsapp_api_key = ?, FROM stores WHERE id = ? LIMIT 1`,
       [store_id]
     );
+
+    const { company_id, whatsapp_api_key } = storeExists[0];
 
     if (storeExists.length === 0) {
       return new Response(JSON.stringify({ 
@@ -88,8 +90,8 @@ export async function POST(req) {
         method: 'GET',
         headers: {
           Accept: 'application/json',
-          Authorization: `Bearer KIM7l16W0ijm6loVbaKoK4gsHJrrFt8LjceH9RyEna`,
-          'X-MYOP-COMPANY-ID': '5cd40f6554442586',
+          Authorization: `Bearer ${whatsapp_api_key}`,
+          'X-MYOP-COMPANY-ID': `${company_id}`,
         },
         signal: controller.signal,
       });
