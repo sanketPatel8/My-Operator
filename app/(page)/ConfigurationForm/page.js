@@ -264,11 +264,15 @@ useEffect(() => {
       const countryCode = data.countrycode || "91";
       const storedPhone = data.phonenumber;
       const shopurl = data.shop;
+      const brand_name = data.brand_name;
+      const public_shop_url = data.public_shop_url;
       const waba_id = data.waba_id;
       const phone_number_id = data.phone_number_id;
 
       console.log("shop url:::", shopurl);
       setShopUrl(shopurl);
+      setBrandName(brand_name);
+      setPublicUrl(public_shop_url);
 
       if (storedPhone) {
         const fullNumber = `${countryCode} ${storedPhone}`;

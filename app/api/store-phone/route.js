@@ -38,7 +38,7 @@ export async function POST(request) {
 
     // Query the database using the decrypted store ID
     const rows = await query(
-      `SELECT id, shop, countrycode, phonenumber, waba_id, phone_number_id, company_id, installed_at 
+      `SELECT id, shop, brand_name, public_shop_url, countrycode, phonenumber, waba_id, phone_number_id, company_id, installed_at 
        FROM stores 
        WHERE id = ? 
        LIMIT 1`,
