@@ -68,6 +68,9 @@ export async function POST(req) {
       database: process.env.DATABASE_NAME,
     });
 
+    console.log("store id:::::", storeId);
+    
+
     // Update existing store
     const [result] = await connection.execute(
       'UPDATE stores SET whatsapp_api_key = ?, company_id = ?, updated_at = NOW() WHERE id = ?',
