@@ -12,7 +12,8 @@ export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
   const { success, error } = useToastContext();
-   const storeToken = localStorage.getItem("storeToken");
+  let storeToken;
+    
 
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ export default function WorkflowList() {
 
   // Initialize workflow data on first load
   useEffect(() => {
+    storeToken = localStorage.getItem("storeToken");
     console.log("🟡 useEffect ran. fetched =", hasFetched.current);
     if (hasFetched.current) return;
 
