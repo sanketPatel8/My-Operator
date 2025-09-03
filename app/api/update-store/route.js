@@ -31,81 +31,6 @@ function extractVariables(text) {
   return variables;
 }
 
-// Process template components and extract variables
-function processTemplateComponents(components, templateDataId, phonenumber) {
-  const templateVariables = [];
-  
-  if (!Array.isArray(components)) return templateVariables;
-
-  for (const component of components) {
-    const { type, format } = component;
-    if (!type) continue;
-
-    let variables = [];
-
-    // Extract variables based on component type
-    switch (type) {
-      case 'HEADER':
-        if (format === 'TEXT' && component.text) {
-          variables = extractVariables(component.text);
-        }
-        break;
-      case 'BODY':
-        if (component.text) {
-          variables = extractVariables(component.text);
-        }
-        break;
-      case 'BUTTONS':
-        if (component.buttons && Array.isArray(component.buttons)) {
-          component.buttons.forEach(button => {
-            if (button.text) {
-              variables.push(button.text);
-            }
-          });
-        }
-        break;
-      default:
-        if (component.text) {
-          variables = extractVariables(component.text);
-        }
-        break;
-    }
-
-    // Add individual variables
-    for (const variable of variables) {
-      templateVariables.push({
-        template_data_id: templateDataId,
-        type: type,
-        value: null,
-        variable_name: variable,
-        component_type: type,
-        mapping_field: null,
-        fallback_value: null,
-        phonenumber: phonenumber,
-        created_at: new Date(),
-        updated_at: new Date()
-      });
-    }
-
-    // Add component data
-    const componentType = `${type}_COMPONENT`;
-    templateVariables.push({
-      template_data_id: templateDataId,
-      type: componentType,
-      value: JSON.stringify(component),
-      variable_name: null,
-      component_type: type,
-      mapping_field: null,
-      fallback_value: null,
-      phonenumber: phonenumber,
-      created_at: new Date(),
-      updated_at: new Date()
-    });
-  }
-
-  return templateVariables;
-}
-
 export async function POST(req) {
   let connection;
   
@@ -125,15 +50,12 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
     }
 
-    // Create database connection with optimized settings
+    // Create database connection
     connection = await mysql.createConnection({
       host: process.env.DATABASE_HOST,
       user: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      // Optimization: Enable multiple statements and increase packet size
-      multipleStatements: true,
-      maxAllowedPacket: 1024 * 1024 * 16, // 16MB
     });
 
     // Fetch store data
@@ -149,11 +71,11 @@ export async function POST(req) {
 
     const { company_id, whatsapp_api_key } = rows[0];
 
-    // Start transaction for better performance and data consistency
+    // Start transaction
     await connection.beginTransaction();
 
     try {
-      // 1. Update store (single query)
+      // 1. Update store
       const [updateResult] = await connection.execute(
         `UPDATE stores SET countrycode = ?, public_shop_url = ?, brand_name = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
         [countrycode, publicUrl, brandName, phonenumber, phone_number_id, waba_id, storeId]
@@ -165,11 +87,11 @@ export async function POST(req) {
         return NextResponse.json({ message: 'No matching store found' }, { status: 404 });
       }
 
-      // 2. Fetch from API with timeout
+      // 2. Fetch from API
       const templateApiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
 
       let response;
       try {
@@ -219,250 +141,178 @@ export async function POST(req) {
         }, { status: 200 });
       }
 
-      // 3. OPTIMIZATION: Get existing templates in one query
-      const templateNames = approvedTemplates.map(t => t.name).filter(Boolean);
-      const categories = approvedTemplates.map(t => t.category).filter(Boolean);
-      
+      // 3. Get existing templates to avoid duplicates
       const [existingTemplates] = await connection.execute(
-        `SELECT template_id, category, template_name, phonenumber 
-         FROM template 
-         WHERE store_id = ? AND phonenumber = ? 
-         AND template_name IN (${templateNames.map(() => '?').join(',')}) 
-         AND category IN (${categories.map(() => '?').join(',')})`,
-        [storeId, phonenumber, ...templateNames, ...categories]
+        `SELECT template_id, category, template_name FROM template WHERE store_id = ? AND phonenumber = ?`,
+        [storeId, phonenumber]
       );
 
-      // Create lookup maps for existing data
       const existingTemplateMap = new Map();
       existingTemplates.forEach(row => {
-        const key = `${row.category}::${row.template_name}::${row.phonenumber}`;
+        const key = `${row.category}::${row.template_name}`;
         existingTemplateMap.set(key, row.template_id);
       });
 
-      // Prepare batch insert arrays
-      const templatesToInsert = [];
-      const templateDataToInsert = [];
-      const templateDataToUpdate = [];
-      const templatesToUpdate = [];
-      
+      // Counters
       let insertedTemplateCount = 0;
       let insertedTemplateDataCount = 0;
-      let skippedTemplateCount = 0;
-      
-      const seenTemplates = new Set();
-      const templateDataMap = new Map(); // To store templateDataId for variables
-
-      // Process templates
-      for (const template of approvedTemplates) {
-        const { name: template_name, category, components, waba_template_status } = template;
-
-        if (waba_template_status !== 'approved' || !template_name || !category) {
-          skippedTemplateCount++;
-          continue;
-        }
-
-        const uniqueKey = `${category}::${template_name}::${phonenumber}`;
-        if (seenTemplates.has(uniqueKey)) continue;
-        seenTemplates.add(uniqueKey);
-
-        const existingTemplateId = existingTemplateMap.get(uniqueKey);
-        let templateId;
-
-        if (existingTemplateId) {
-          // Template exists, prepare for update
-          templateId = existingTemplateId;
-          templatesToUpdate.push([templateId]);
-        } else {
-          // New template, prepare for insert
-          templateId = `temp_${insertedTemplateCount}`; // Temporary ID
-          templatesToInsert.push([storeId, category, template_name, phonenumber]);
-          insertedTemplateCount++;
-        }
-
-        // Handle template_data
-        if (Array.isArray(components)) {
-          const content = JSON.stringify(components);
-          templateDataMap.set(templateId, {
-            content,
-            components,
-            isNew: !existingTemplateId
-          });
-        }
-      }
-
-      // 4. BATCH INSERT/UPDATE templates
-      if (templatesToInsert.length > 0) {
-        const insertQuery = `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at) VALUES ?`;
-        const insertValues = templatesToInsert.map(row => [...row, new Date(), new Date()]);
-        await connection.query(insertQuery, [insertValues]);
-      }
-
-      if (templatesToUpdate.length > 0) {
-        const updateQuery = `UPDATE template SET updated_at = CURRENT_TIMESTAMP() WHERE template_id IN (${templatesToUpdate.map(() => '?').join(',')})`;
-        await connection.execute(updateQuery, templatesToUpdate.flat());
-      }
-
-      // 5. Get template IDs for newly inserted templates
-      if (templatesToInsert.length > 0) {
-        const [newTemplates] = await connection.execute(
-          `SELECT template_id, category, template_name, phonenumber 
-           FROM template 
-           WHERE store_id = ? AND phonenumber = ? 
-           AND template_name IN (${templateNames.map(() => '?').join(',')})`,
-          [storeId, phonenumber, ...templateNames]
-        );
-
-        // Update the template data map with actual IDs
-        const newTemplateDataMap = new Map();
-        for (const [tempId, data] of templateDataMap.entries()) {
-          if (typeof tempId === 'string' && tempId.startsWith('temp_')) {
-            // Find the actual template ID
-            const index = parseInt(tempId.split('_')[1]);
-            const templateRow = templatesToInsert[index];
-            const actualTemplate = newTemplates.find(t => 
-              t.category === templateRow[1] && 
-              t.template_name === templateRow[2] && 
-              t.phonenumber === templateRow[3]
-            );
-            if (actualTemplate) {
-              newTemplateDataMap.set(actualTemplate.template_id, data);
-            }
-          } else {
-            newTemplateDataMap.set(tempId, data);
-          }
-        }
-        templateDataMap.clear();
-        for (const [k, v] of newTemplateDataMap.entries()) {
-          templateDataMap.set(k, v);
-        }
-      }
-
-      // 6. Get existing template_data
-      const templateIds = Array.from(templateDataMap.keys());
-      const [existingTemplateData] = await connection.execute(
-        `SELECT template_data_id, template_id FROM template_data WHERE template_id IN (${templateIds.map(() => '?').join(',')})`,
-        templateIds
-      );
-
-      const existingTemplateDataMap = new Map();
-      existingTemplateData.forEach(row => {
-        existingTemplateDataMap.set(row.template_id, row.template_data_id);
-      });
-
-      // 7. Handle template_data operations
-      for (const [templateId, data] of templateDataMap.entries()) {
-        const existingDataId = existingTemplateDataMap.get(templateId);
-
-        if (existingDataId) {
-          // Update existing template_data
-          templateDataToUpdate.push([data.content, existingDataId]);
-        } else {
-          // Insert new template_data
-          templateDataToInsert.push([templateId, data.content, phonenumber]);
-          insertedTemplateDataCount++;
-        }
-
-        // Process variables for this template (we'll handle this after getting actual template_data_ids)
-        const variables = processTemplateComponents(data.components, existingDataId || 'temp', phonenumber);
-        allTemplateVariables.push({
-          templateId: templateId,
-          templateDataId: existingDataId,
-          variables: variables
-        });
-      }
-
-      // 8. BATCH operations for template_data
-      if (templateDataToInsert.length > 0) {
-        // Insert template_data one by one to avoid bulk insert issues
-        for (const row of templateDataToInsert) {
-          await connection.execute(
-            `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())`,
-            row
-          );
-        }
-      }
-
-      if (templateDataToUpdate.length > 0) {
-        for (const [content, id] of templateDataToUpdate) {
-          await connection.execute(
-            `UPDATE template_data SET content = ?, updated_at = NOW() WHERE template_data_id = ?`,
-            [content, id]
-          );
-        }
-      }
-
-      // 9. Get actual template_data IDs for newly inserted records
-      const newTemplateDataMap = new Map();
-      if (templateDataToInsert.length > 0) {
-        const [newTemplateData] = await connection.execute(
-          `SELECT template_data_id, template_id FROM template_data WHERE template_id IN (${templateIds.map(() => '?').join(',')})`,
-          templateIds
-        );
-
-        newTemplateData.forEach(row => {
-          newTemplateDataMap.set(row.template_id, row.template_data_id);
-        });
-      }
-
-      // 10. Process template variables with correct template_data_ids
-      const finalTemplateVariables = [];
-      
-      for (const item of allTemplateVariables) {
-        const actualTemplateDataId = item.templateDataId || newTemplateDataMap.get(item.templateId) || existingTemplateDataMap.get(item.templateId);
-        
-        if (actualTemplateDataId) {
-          for (const variable of item.variables) {
-            finalTemplateVariables.push({
-              template_data_id: actualTemplateDataId,
-              type: variable.type,
-              value: variable.value,
-              variable_name: variable.variable_name,
-              component_type: variable.component_type,
-              mapping_field: variable.mapping_field,
-              fallback_value: variable.fallback_value,
-              phonenumber: variable.phonenumber
-            });
-          }
-        }
-      }
-
-      // 11. Handle template variables - delete existing and insert new
-      if (templateIds.length > 0) {
-        const templateDataIds = [...existingTemplateDataMap.values(), ...newTemplateDataMap.values()];
-        if (templateDataIds.length > 0) {
-          await connection.execute(
-            `DELETE FROM template_variable WHERE template_data_id IN (${templateDataIds.map(() => '?').join(',')})`,
-            templateDataIds
-          );
-        }
-      }
-
-      // 12. INSERT template variables
       let insertedVariableCount = 0;
-      if (finalTemplateVariables.length > 0) {
-        for (const variable of finalTemplateVariables) {
-          try {
-            await connection.execute(
-              `INSERT INTO template_variable (
-                template_data_id, type, value, variable_name, component_type, 
-                mapping_field, fallback_value, phonenumber, created_at, updated_at
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-              [
-                variable.template_data_id,
-                variable.type,
-                variable.value,
-                variable.variable_name,
-                variable.component_type,
-                variable.mapping_field,
-                variable.fallback_value,
-                variable.phonenumber
-              ]
-            );
-            insertedVariableCount++;
-          } catch (varError) {
-            console.error('Error inserting variable:', varError);
-            // Continue with other variables
+      let updatedVariableCount = 0;
+      let skippedTemplateCount = 0;
+
+      const seenTemplates = new Set();
+
+      // 4. Process each approved template
+      for (const template of approvedTemplates) {
+        try {
+          const { name: template_name, category, components, waba_template_status } = template;
+
+          if (waba_template_status !== 'approved' || !template_name || !category) {
+            skippedTemplateCount++;
+            continue;
           }
+
+          const uniqueKey = `${category}::${template_name}`;
+          if (seenTemplates.has(uniqueKey)) continue;
+          seenTemplates.add(uniqueKey);
+
+          let templateId = existingTemplateMap.get(uniqueKey);
+
+          if (templateId) {
+            // Update existing template timestamp
+            await connection.execute(
+              `UPDATE template SET updated_at = NOW() WHERE template_id = ?`,
+              [templateId]
+            );
+          } else {
+            // Insert new template
+            const [templateInsertResult] = await connection.execute(
+              `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at) 
+               VALUES (?, ?, ?, ?, NOW(), NOW())`,
+              [storeId, category, template_name, phonenumber]
+            );
+            templateId = templateInsertResult.insertId;
+            insertedTemplateCount++;
+          }
+
+          // 5. Handle template_data
+          if (Array.isArray(components)) {
+            const content = JSON.stringify(components);
+
+            // Check if template_data exists
+            const [existingTemplateData] = await connection.execute(
+              `SELECT template_data_id FROM template_data WHERE template_id = ?`,
+              [templateId]
+            );
+
+            let templateDataId;
+
+            if (existingTemplateData.length > 0) {
+              // Update existing template_data
+              templateDataId = existingTemplateData[0].template_data_id;
+              await connection.execute(
+                `UPDATE template_data SET content = ?, updated_at = NOW() WHERE template_data_id = ?`,
+                [content, templateDataId]
+              );
+            } else {
+              // Insert new template_data
+              const [templateDataInsertResult] = await connection.execute(
+                `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) 
+                 VALUES (?, ?, ?, NOW(), NOW())`,
+                [templateId, content, phonenumber]
+              );
+              templateDataId = templateDataInsertResult.insertId;
+              insertedTemplateDataCount++;
+            }
+
+            // 6. Clear existing variables for this template_data
+            await connection.execute(
+              `DELETE FROM template_variable WHERE template_data_id = ?`,
+              [templateDataId]
+            );
+
+            // 7. Process components and insert variables
+            for (const component of components) {
+              const { type, format } = component;
+              if (!type) continue;
+
+              let variables = [];
+
+              // Extract variables based on component type
+              switch (type) {
+                case 'HEADER':
+                  if (format === 'TEXT' && component.text) {
+                    variables = extractVariables(component.text);
+                  }
+                  break;
+                case 'BODY':
+                  if (component.text) {
+                    variables = extractVariables(component.text);
+                  }
+                  break;
+                case 'BUTTONS':
+                  if (component.buttons && Array.isArray(component.buttons)) {
+                    component.buttons.forEach(button => {
+                      if (button.text) {
+                        variables.push(button.text);
+                      }
+                    });
+                  }
+                  break;
+                default:
+                  if (component.text) {
+                    variables = extractVariables(component.text);
+                  }
+                  break;
+              }
+
+              // Insert individual variables
+              for (const variable of variables) {
+                await connection.execute(
+                  `INSERT INTO template_variable (
+                    template_data_id, type, value, variable_name, component_type, 
+                    mapping_field, fallback_value, phonenumber, created_at, updated_at
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                  [
+                    templateDataId,
+                    type,
+                    null,
+                    variable,
+                    type,
+                    null,
+                    null,
+                    phonenumber
+                  ]
+                );
+                insertedVariableCount++;
+              }
+
+              // Insert component data
+              const componentType = `${type}_COMPONENT`;
+              await connection.execute(
+                `INSERT INTO template_variable (
+                  template_data_id, type, value, variable_name, component_type, 
+                  mapping_field, fallback_value, phonenumber, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                [
+                  templateDataId,
+                  componentType,
+                  JSON.stringify(component),
+                  null,
+                  type,
+                  null,
+                  null,
+                  phonenumber
+                ]
+              );
+              insertedVariableCount++;
+            }
+          }
+
+        } catch (templateError) {
+          console.error(`Error processing template ${template.name}:`, templateError);
+          skippedTemplateCount++;
+          // Continue with next template instead of failing entirely
         }
       }
 
@@ -477,7 +327,7 @@ export async function POST(req) {
         templateCount: insertedTemplateCount,
         templateDataCount: insertedTemplateDataCount,
         insertedVariableCount: insertedVariableCount,
-        updatedVariableCount: 0, // We're doing delete/insert instead of update
+        updatedVariableCount: updatedVariableCount,
         phonenumber: phonenumber
       };
 
