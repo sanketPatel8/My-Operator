@@ -62,7 +62,7 @@ export async function POST(req) {
 
     // Quick store verification
     const [storeExists] = await connection.execute(
-      `SELECT company_id = ?, whatsapp_api_key = ?, FROM stores WHERE id = ? LIMIT 1`,
+      `SELECT company_id = ?, whatsapp_api_key = ?, id = ? FROM stores WHERE id = ? LIMIT 1`,
       [store_id]
     );
 
