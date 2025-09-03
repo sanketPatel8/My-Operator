@@ -22,6 +22,7 @@ function Editflow() {
   const [matchingMapVab, SetMatchingMapVab] = useState([]);
   const [allTemplatesData, setAllTemplatesData] = useState([]);
   const [templateOptions, setTemplateOptions] = useState([]);
+  const [loading1, setLoading1] = useState(false);
   const [loading, setLoading] = useState(true);
   const [buttons, setButtons] = useState([]);
 
@@ -502,6 +503,7 @@ const reloadTemplateDataOptimized = async () => {
 
   const handleUpdateWorkflow = async () => {
     try {
+      setLoading1(true);
       if (!currentWorkflowData) {
         alert("Workflow data not found");
         return;
@@ -579,6 +581,7 @@ const reloadTemplateDataOptimized = async () => {
 
       if (response.ok && result.success) {
         success("Workflow updated successfully!");
+        setLoading1(false);
         router.push("/workflowlist");
       } else {
         throw new Error(result.message || 'Failed to update workflow');
@@ -943,7 +946,11 @@ const reloadTemplateDataOptimized = async () => {
                         onClick={handleUpdateWorkflow}
                         className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
                       >
-                        Update workflow
+                        {loading1 ? (
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+                        ) : (
+                          'Update workflow'
+                        )}
                       </button>
                     </div>
                   </div>
