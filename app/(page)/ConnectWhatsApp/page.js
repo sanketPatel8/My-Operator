@@ -379,7 +379,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
             >
               {loading1 ? (
                 <div className="flex items-center justify-center gap-2">
-                  <span>Set up your account</span>
+                  <span className='text-[#DFDFDF]'>set up your account</span>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
