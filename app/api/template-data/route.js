@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import pool from "@/lib/db";
 import { NextResponse } from 'next/server';
 import crypto from "crypto";
 
@@ -24,19 +25,19 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const storeToken = searchParams.get('storeToken');
 
-   if (!storeToken) {
+    if (!storeToken) {
       return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
     }
-       
+     
     // Decrypt the token to get the store ID
     let storeId;
     try {
-      storeId = decrypt(storeToken);
+    storeId = decrypt(storeToken);
     } catch (error) {
-      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
     }
 
-    
+   
 
     const connection = await mysql.createConnection({
       host: process.env.DATABASE_HOST,
@@ -80,9 +81,9 @@ export async function GET(req) {
     let queryParams = [storeId];
 
     // If specific phone number is requested, add additional filter
-    if (phonenumber) {
+    if (currentStorePhoneNumber) {
       query += ` AND t.phonenumber = ?`;
-      queryParams.push(phonenumber);
+      queryParams.push(currentStorePhoneNumber);
     }
 
     // Get templates for this store (filtered by matching phone numbers)
