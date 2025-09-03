@@ -53,7 +53,7 @@ export async function POST(req) {
 
     // 1. Update store
     const [updateResult] = await connection.execute(
-      `UPDATE stores SET countrycode = ?, publicUrl = ?, brandName = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
+      `UPDATE stores SET countrycode = ?, public_shop_url = ?, brand_name = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
       [countrycode, publicUrl, brandName, phonenumber, phone_number_id, waba_id, storeId]
     );
 
