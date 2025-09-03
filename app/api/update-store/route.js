@@ -1,9 +1,37 @@
 import mysql from 'mysql2/promise';
 
+import { NextResponse } from 'next/server';
+import crypto from "crypto";
+
+// DB connection config
+const dbConfig = {
+  host: process.env.DATABASE_HOST,
+  user: process.env.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD,
+  database: process.env.DATABASE_NAME,
+};
+
+const ALGORITHM = "aes-256-cbc";
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
+
+function decrypt(token) {
+  try {
+    const [ivHex, encryptedData] = token.split(":");
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = Buffer.from(encryptedData, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    throw new Error("Invalid token");
+  }
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { id, countrycode, phonenumber, phone_number_id, waba_id } = body;
+    const { storeToken, countrycode, phonenumber, phone_number_id, waba_id } = body;
 
     const connection = await mysql.createConnection({
       host: process.env.DATABASE_HOST,
@@ -12,10 +40,26 @@ export async function POST(req) {
       database: process.env.DATABASE_NAME,
     });
 
+    // Decrypt the token to get the store ID
+        let storeId;
+        try {
+          storeId = decrypt(storeToken);
+        } catch (error) {
+          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+        }
+
+    const [rows] = await connection.execute(
+      'SELECT company_id, whatsapp_api_key FROM stores WHERE id = ?',
+      [storeId]
+    );
+
+    const company_id = rows[0].company_id;
+    const whatsapp_api_key = rows[0].whatsapp_api_key;
+
     // 1. Update store
     const [updateResult] = await connection.execute(
       `UPDATE stores SET countrycode = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
-      [countrycode, phonenumber, phone_number_id, waba_id, id]
+      [countrycode, phonenumber, phone_number_id, waba_id, storeId]
     );
 
     if (updateResult.affectedRows === 0) {
@@ -30,8 +74,8 @@ export async function POST(req) {
       method: 'GET',
       headers: {
         Accept: 'application/json',
-        Authorization: `Bearer KIM7l16W0ijm6loVbaKoK4gsHJrrFt8LjceH9RyEna`,
-        'X-MYOP-COMPANY-ID': '5cd40f6554442586',
+        Authorization: `Bearer ${whatsapp_api_key}`,
+        'X-MYOP-COMPANY-ID': `${company_id}`,
       },
       signal: AbortSignal.timeout(30000),
     });
@@ -107,7 +151,7 @@ export async function POST(req) {
       // Check if template already exists in database for this store and phone number
       const [existingTemplate] = await connection.execute(
         `SELECT template_id FROM template WHERE store_id = ? AND category = ? AND template_name = ? AND phonenumber = ?`,
-        [id, category, template_name, phonenumber]
+        [storeId, category, template_name, phonenumber]
       );
 
       let templateId;
@@ -126,7 +170,7 @@ export async function POST(req) {
         const [templateInsertResult] = await connection.execute(
           `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at)
            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-          [id, category, template_name, phonenumber]
+          [storeId, category, template_name, phonenumber]
         );
 
         templateId = templateInsertResult.insertId;

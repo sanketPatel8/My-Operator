@@ -75,13 +75,20 @@ const transformApiDataToAccounts = (apiData) => {
   }));
 };
 
-  const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
+  // Updated fetchWhatsAppNumbers function in your ConfigurationForm component
+const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
   const maxRetries = 3;
- 
   
   try {
-    // Use Next.js API route to avoid CORS issues
-    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account`;
+    // Get the store token from localStorage
+    const storeToken = localStorage.getItem("storeToken");
+    
+    if (!storeToken) {
+      console.error("⚠️ No store token found in localStorage");
+      throw new Error("Store token not found");
+    }
+
+    const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${encodeURIComponent(storeToken)}`;
     console.log('Fetching from:', url);
     
     const response = await fetch(url, {
@@ -90,21 +97,16 @@ const transformApiDataToAccounts = (apiData) => {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
-      // Add timeout for client-side request
       signal: AbortSignal.timeout(30000)
     });
 
     console.log('Response status:', response.status);
 
-    if(response.status == 403){
-      error("company id or whatsapp api key is invalid. Go back and enter valid id and key.");
-    }
-
     if (!response.ok) {
       let errorData = null;
       try {
         const contentType = response.headers.get('content-type');
-        if (contentType && contentType?.includes('application/json')) {
+        if (contentType && contentType.includes('application/json')) {
           errorData = await response.json();
         } else {
           errorData = { message: await response.text() };
@@ -121,23 +123,21 @@ const transformApiDataToAccounts = (apiData) => {
     const data = await response.json();
     console.log('Success response:', data);
     
-    // Validate response structure
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response format received');
     }
     
     return data;
-  } catch (err) {
+  } catch (error) {
+    console.error('Error fetching WhatsApp numbers:', error);
     
-    
-    // Retry logic for network errors
-    if (retryCount < maxRetries && (err?.name === 'AbortError' || err?.message?.includes('fetch'))) {
+    if (retryCount < maxRetries && (error.name === 'AbortError' || error.message.includes('fetch'))) {
       console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
-      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1))); // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
       return fetchWhatsAppNumbers(limit, offset, retryCount + 1);
     }
     
-    throw err;
+    throw error;
   }
 };
 
@@ -231,6 +231,7 @@ const transformApiDataToAccounts = (apiData) => {
       alert('Please select an account.');
       return;
     }
+    const storeToken = localStorage.getItem("storeToken");
 
     try {
       const response = await fetch('/api/update-store', {
@@ -239,7 +240,7 @@ const transformApiDataToAccounts = (apiData) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: "11",
+          storeToken: storeToken,
           countrycode: selected.countryCode,
           phonenumber: selected.phone,
           phone_number_id: selected.phoneNumberId,
