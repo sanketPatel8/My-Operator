@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mysql from 'mysql2/promise';
 import cron from 'node-cron';
-
+ 
 // Database connection configuration
 const dbConfig = {
   host: process.env.DATABASE_HOST,
