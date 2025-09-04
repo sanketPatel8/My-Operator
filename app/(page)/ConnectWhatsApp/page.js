@@ -102,6 +102,10 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
 
     console.log('Response status:', response.status);
 
+     if (response.status === 403) {
+        error('Company ID or  API Key is incorrect, Go back enter correct IDs');
+      }
+
     if (!response.ok) {
       let errorData = null;
       try {
