@@ -228,7 +228,10 @@ async function scheduleReminderMessages(checkoutData, storeData, storePhoneNumbe
 
       // Calculate delay time
       const delayMinutes = delay || 60; // Default 1 hour if not set
-      const checkoutTime = new Date(checkoutData.created_at || checkoutData.timestamp || Date.now());
+      const checkoutTime = data.created_at 
+  ? new Date(data.created_at) 
+  : new Date(data.timestamp || Date.now());
+
       const reminderTime = new Date(checkoutTime.getTime() + (delayMinutes * 60 * 1000));
       
       console.log(`⏰ Scheduling "${eventTitle}" for ${reminderTime.toISOString()} (delay: ${delayMinutes} minutes)`);
@@ -371,6 +374,7 @@ export async function POST(req) {
 
     // 3. Save checkout to database with current timestamp
     const currentTimestamp = new Date().toISOString();
+
     
     try {
       await connection.execute(
@@ -407,10 +411,12 @@ export async function POST(req) {
 
     // 4. Schedule reminder messages
     const enrichedCheckoutData = {
-      ...data,
-      timestamp: currentTimestamp,
-      shop_url: shopDomain
-    };
+        ...data,
+        created_at: data.created_at || currentTimestamp,
+        timestamp: currentTimestamp,
+        shop_url: shopDomain
+        };
+
 
     await scheduleReminderMessages(enrichedCheckoutData, storeData, storePhoneNumber);
 
