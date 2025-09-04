@@ -46,6 +46,7 @@ export async function POST(req) {
           waba_id
         } = body;
 
+
     if (!storeToken) {
       return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
     }
@@ -95,25 +96,7 @@ export async function POST(req) {
         return NextResponse.json({ message: 'No matching store found' }, { status: 404 });
       }
 
-      // 2. Check if templates already exist for this phone number (regardless of store_id)
-      const [existingPhoneTemplates] = await connection.execute(
-        `SELECT COUNT(*) as template_count FROM template WHERE phonenumber = ?`,
-        [phonenumber]
-      );
-
-      // If templates already exist for this phone number, skip template processing
-      if (existingPhoneTemplates[0].template_count > 0) {
-        await connection.commit();
-        await connection.end();
-        return NextResponse.json({
-          message: 'Store updated successfully. Templates already exist for this phone number.',
-          templatesSkipped: true,
-          existingTemplateCount: existingPhoneTemplates[0].template_count,
-          phonenumber: phonenumber
-        }, { status: 200 });
-      }
-
-      // 3. Fetch from API (only if no templates exist for this phone number)
+      // 2. Fetch from API
       const templateApiUrl = `${process.env.NEXT_PUBLIC_BASEURL}/chat/templates?waba_id=${waba_id}&limit=100&offset=0`;
       
       const controller = new AbortController();
@@ -167,18 +150,28 @@ export async function POST(req) {
         }, { status: 200 });
       }
 
-      // 4. Since we already confirmed no templates exist for this phone number,
-      // we can proceed with insertion without checking for duplicates
+      // 3. Get existing templates to avoid duplicates
+      const [existingTemplates] = await connection.execute(
+        `SELECT template_id, category, template_name FROM template WHERE phonenumber = ?`,
+        [ phonenumber]
+      );
+
+      const existingTemplateMap = new Map();
+      existingTemplates.forEach(row => {
+        const key = `${row.category}::${row.template_name}`;
+        existingTemplateMap.set(key, row.template_id);
+      });
 
       // Counters
       let insertedTemplateCount = 0;
       let insertedTemplateDataCount = 0;
       let insertedVariableCount = 0;
+      let updatedVariableCount = 0;
       let skippedTemplateCount = 0;
 
       const seenTemplates = new Set();
 
-      // 5. Process each approved template
+      // 4. Process each approved template
       for (const template of approvedTemplates) {
         try {
           const { name: template_name, category, components, waba_template_status } = template;
@@ -192,27 +185,60 @@ export async function POST(req) {
           if (seenTemplates.has(uniqueKey)) continue;
           seenTemplates.add(uniqueKey);
 
-          // Insert new template (no need to check for existing since we confirmed none exist)
-          const [templateInsertResult] = await connection.execute(
-            `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at) 
-             VALUES (?, ?, ?, ?, NOW(), NOW())`,
-            [storeId, category, template_name, phonenumber]
-          );
-          const templateId = templateInsertResult.insertId;
-          insertedTemplateCount++;
+          let templateId = existingTemplateMap.get(uniqueKey);
 
-          // 6. Handle template_data
+          if (templateId) {
+            // Update existing template timestamp
+            await connection.execute(
+              `UPDATE template SET updated_at = NOW() WHERE template_id = ?`,
+              [templateId]
+            );
+          } else {
+            // Insert new template
+            const [templateInsertResult] = await connection.execute(
+              `INSERT INTO template (store_id, category, template_name, phonenumber, created_at, updated_at) 
+               VALUES (?, ?, ?, ?, NOW(), NOW())`,
+              [storeId, category, template_name, phonenumber]
+            );
+            templateId = templateInsertResult.insertId;
+            insertedTemplateCount++;
+          }
+
+          // 5. Handle template_data
           if (Array.isArray(components)) {
             const content = JSON.stringify(components);
 
-            // Insert new template_data
-            const [templateDataInsertResult] = await connection.execute(
-              `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) 
-               VALUES (?, ?, ?, NOW(), NOW())`,
-              [templateId, content, phonenumber]
+            // Check if template_data exists
+            const [existingTemplateData] = await connection.execute(
+              `SELECT template_data_id FROM template_data WHERE template_id = ?`,
+              [templateId]
             );
-            const templateDataId = templateDataInsertResult.insertId;
-            insertedTemplateDataCount++;
+
+            let templateDataId;
+
+            if (existingTemplateData.length > 0) {
+              // Update existing template_data
+              templateDataId = existingTemplateData[0].template_data_id;
+              await connection.execute(
+                `UPDATE template_data SET content = ?, updated_at = NOW() WHERE template_data_id = ?`,
+                [content, templateDataId]
+              );
+            } else {
+              // Insert new template_data
+              const [templateDataInsertResult] = await connection.execute(
+                `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) 
+                 VALUES (?, ?, ?, NOW(), NOW())`,
+                [templateId, content, phonenumber]
+              );
+              templateDataId = templateDataInsertResult.insertId;
+              insertedTemplateDataCount++;
+            }
+
+            // 6. Clear existing variables for this template_data
+            await connection.execute(
+              `DELETE FROM template_variable WHERE template_data_id = ?`,
+              [templateDataId]
+            );
 
             // 7. Process components and insert variables
             for (const component of components) {
@@ -310,8 +336,8 @@ export async function POST(req) {
         templateCount: insertedTemplateCount,
         templateDataCount: insertedTemplateDataCount,
         insertedVariableCount: insertedVariableCount,
-        phonenumber: phonenumber,
-        firstTimeInsert: true
+        updatedVariableCount: updatedVariableCount,
+        phonenumber: phonenumber
       };
 
       return NextResponse.json(result, { status: 200 });
