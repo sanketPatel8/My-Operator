@@ -123,14 +123,14 @@ export async function POST(req) {
     // Get database connection
     connection = await getDbConnection();
 
-    // 1. Fetch store data from stores table (id = 11)
+    // 1. Fetch store data from stores table 
     const [storeRows] = await connection.execute(
-      'SELECT * FROM stores WHERE id = ?',
-      [11]
+      'SELECT * FROM stores WHERE shop = ?',
+      [shopDomain]
     );
 
     if (storeRows.length === 0) {
-      throw new Error('Store not found with id 11');
+      throw new Error('Store not found with id ');
     }
 
     const storeData = storeRows[0];
@@ -277,14 +277,14 @@ export async function POST(req) {
   return templateContent;
 }
 
-    // 🔍 3a. Get phone number from store (store ID = 11)
+    // 🔍 3a. Get phone number from store 
     const [storePhoneRows] = await connection.execute(
-      'SELECT phonenumber FROM stores WHERE id = ? LIMIT 1',
-      [11]
+      'SELECT phonenumber FROM stores WHERE shop = ? LIMIT 1',
+      [shopDomain]
     );
 
     if (storePhoneRows.length === 0) {
-      throw new Error("No store found with id 11");
+      throw new Error("No store found with id");
     }
 
     const storePhoneNumber = storePhoneRows[0].phonenumber;
