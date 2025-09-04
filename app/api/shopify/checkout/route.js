@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import mysql from 'mysql2/promise';
 import cron from 'node-cron';
- 
+
 // Database connection configuration
 const dbConfig = {
   host: process.env.DATABASE_HOST,
@@ -605,8 +605,11 @@ async function processPendingReminders() {
                 storeData
               );
               
-              // Mark as sent in memory
-              sentReminders.add(reminderKey);
+              // Mark as sent
+              await connection.execute(
+                'INSERT INTO sent_reminders (checkout_token, event_title, template_name, sent_at) VALUES (?, ?, ?, ?)',
+                [checkout.checkout_token, eventTitle, templateName, new Date()]
+              );
               
               processedReminders.push({
                 checkoutToken: checkout.checkout_token,
