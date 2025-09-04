@@ -229,8 +229,8 @@ async function scheduleReminderMessages(checkoutData, storeData, storePhoneNumbe
       // Calculate delay time
       const delayMinutes = delay || 60; // Default 1 hour if not set
       const checkoutTime = data.created_at 
-  ? new Date(data.created_at) 
-  : new Date(data.timestamp || Date.now());
+            ? new Date(data.created_at) 
+            : new Date(data.timestamp || Date.now());
 
       const reminderTime = new Date(checkoutTime.getTime() + (delayMinutes * 60 * 1000));
       
@@ -331,9 +331,9 @@ export async function POST(req) {
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shopDomain = req.headers.get("x-shop");
-    const data = await req.json();
+    const checkoutData  = await req.json();
 
-    console.log(`🛒 Checkout received [${topic}] from shop ${shopDomain}:`, JSON.stringify(data, null, 2));
+    console.log(`🛒 Checkout received [${topic}] from shop ${shopDomain}:`, JSON.stringify(checkoutData , null, 2));
 
     // Only process checkout creation events
     if (topic !== "checkouts/create") {
@@ -411,7 +411,7 @@ export async function POST(req) {
 
     // 4. Schedule reminder messages
     const enrichedCheckoutData = {
-        ...data,
+        ...checkoutData ,
         created_at: data.created_at || currentTimestamp,
         timestamp: currentTimestamp,
         shop_url: shopDomain
