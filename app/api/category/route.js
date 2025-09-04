@@ -79,8 +79,6 @@ const WelcomeData = {
     { title: 'Welcome Customer', subtitle: 'Send an automated welcome message when a new account is created.' }
   ]
 };
-// Your test store ID
-
 
 // Enhanced PUT endpoint for storing comma-separated template_variable_ids and updating template variables
 export async function PUT(request) {
@@ -101,16 +99,16 @@ export async function PUT(request) {
     } = body;
 
     if (!storeToken) {
-          return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
-        }
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
     
-        // Decrypt the token to get the store ID
-        let STORE_ID;
-        try {
-          STORE_ID = decrypt(storeToken);
-        } catch (error) {
-          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
-        }
+    // Decrypt the token to get the store ID
+    let STORE_ID;
+    try {
+      STORE_ID = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
 
     // Validate required fields
     if (!category_id || !category_event_id) {
@@ -135,13 +133,13 @@ export async function PUT(request) {
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
 
-    // Verify the event exists
+    // Verify the event exists using store_id and phonenumber
     const [existingEvent] = await connection.execute(`
       SELECT ce.category_event_id, ce.category_id, c.category_name
       FROM category_event ce
       JOIN category c ON ce.category_id = c.category_id
-      WHERE ce.category_event_id = ? AND ce.category_id = ? AND ce.phonenumber = ?
-    `, [category_event_id, category_id, currentPhoneNumber]);
+      WHERE ce.category_event_id = ? AND ce.category_id = ? AND ce.store_id = ? AND ce.phonenumber = ?
+    `, [category_event_id, category_id, STORE_ID, currentPhoneNumber]);
 
     if (existingEvent.length === 0) {
       throw new Error('Workflow event not found for this store');
@@ -152,7 +150,6 @@ export async function PUT(request) {
     console.log('Variable Settings:', variableSettings);
 
     // Update category_event with comma-separated template_variable_id
-    // Only updating columns that exist in the category_event table
     const updateQuery = `
       UPDATE category_event 
       SET 
@@ -160,7 +157,7 @@ export async function PUT(request) {
         template_id = ?,
         template_data_id = ?,
         template_variable_id = ?
-      WHERE category_event_id = ? AND category_id = ? AND phonenumber = ?
+      WHERE category_event_id = ? AND category_id = ? AND store_id = ? AND phonenumber = ?
     `;
 
     const [updateResult] = await connection.execute(updateQuery, [
@@ -170,6 +167,7 @@ export async function PUT(request) {
       template_variable_id || null, // This will be a comma-separated string like "1109,1110,1111"
       category_event_id,
       category_id,
+      STORE_ID,
       currentPhoneNumber
     ]);
 
@@ -295,8 +293,8 @@ export async function PUT(request) {
       SELECT ce.*, c.category_name
       FROM category_event ce
       JOIN category c ON ce.category_id = c.category_id
-      WHERE ce.category_event_id = ? AND ce.phonenumber = ?
-    `, [category_event_id, currentPhoneNumber]);
+      WHERE ce.category_event_id = ? AND ce.store_id = ? AND ce.phonenumber = ?
+    `, [category_event_id, STORE_ID, currentPhoneNumber]);
 
     // Parse the comma-separated template_variable_id back to array for response
     const eventData = updatedEvent[0];
@@ -357,17 +355,15 @@ export async function PUT(request) {
   }
 }
 
-
 // POST endpoint to initialize/sync workflow categories and events
 export async function POST(request) {
   const body = await request.json();
   const { storeToken } = body;
   let connection;
 
-
   try {
     if(!storeToken) {
-        return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
     }
     
     // Decrypt the token to get the store ID
@@ -394,21 +390,21 @@ export async function POST(request) {
     // Normalize the phone number
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber?.trim());
 
-    // Check if any events already exist for this phone number
+    // Check if any events already exist for this store_id and phone number combination
     const [existingEvents] = await connection.execute(
-      `SELECT COUNT(*) as count FROM category_event WHERE phonenumber = ?`,
-      [currentPhoneNumber]
+      `SELECT COUNT(*) as count FROM category_event WHERE store_id = ? AND phonenumber = ?`,
+      [STORE_ID, currentPhoneNumber]
     );
 
     if (existingEvents[0].count > 0) {
-      await connection.rollback(); // rollback in case the transaction already started
+      await connection.rollback();
 
       const headers = new Headers();
       setCORSHeaders(headers);
 
       return new Response(JSON.stringify({
         success: true,
-        message: 'Category events already exist for this store. Skipping initialization.'
+        message: 'Category events already exist for this store and phone number combination. Skipping initialization.'
       }), {
         status: 200,
         headers
@@ -448,7 +444,7 @@ export async function POST(request) {
         category_id = insertResult.insertId;
       }
 
-      // Insert new events
+      // Insert new events with store_id and phonenumber combination
       let inserted = 0;
       for (const event of data.events) {
         const title = event.title?.trim();
@@ -458,20 +454,21 @@ export async function POST(request) {
         const delay = event.delay || null;
 
         try {
-          await connection.execute(
-            `INSERT IGNORE INTO category_event 
-              (category_id, title, subtitle, delay, phonenumber, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-            [category_id, title, subtitle, delay, currentPhoneNumber]
-          );
-
-          const [checkInserted] = await connection.execute(
+          // Check if this specific combination exists
+          const [existingEvent] = await connection.execute(
             `SELECT category_event_id FROM category_event 
-             WHERE category_id = ? AND LOWER(TRIM(title)) = ? LIMIT 1`,
-            [category_id, title.toLowerCase()]
+             WHERE category_id = ? AND LOWER(TRIM(title)) = ? AND store_id = ? AND phonenumber = ?
+             LIMIT 1`,
+            [category_id, title.toLowerCase(), STORE_ID, currentPhoneNumber]
           );
 
-          if (checkInserted.length > 0) {
+          if (existingEvent.length === 0) {
+            await connection.execute(
+              `INSERT INTO category_event 
+                (category_id, title, subtitle, delay, store_id, phonenumber, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+              [category_id, title, subtitle, delay, STORE_ID, currentPhoneNumber]
+            );
             inserted++;
           }
 
@@ -563,11 +560,23 @@ export async function PATCH(request) {
 
     connection = await pool.getConnection();
 
+    // Get store phone number
+    const [storeRows] = await connection.execute(
+      `SELECT phonenumber FROM stores WHERE id = ? LIMIT 1`,
+      [STORE_ID]
+    );
+
+    if (storeRows.length === 0) {
+      throw new Error('Store not found');
+    }
+
+    const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
+
     const [result] = await connection.execute(
       `UPDATE category_event 
        SET status = ?, updated_at = NOW() 
-       WHERE category_event_id = ?`,
-      [status, category_event_id]
+       WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?`,
+      [status, category_event_id, STORE_ID, currentPhoneNumber]
     );
 
     const headers = new Headers();
@@ -604,7 +613,6 @@ export async function PATCH(request) {
   }
 }
 
-
 // GET endpoint to fetch categories and events for the store
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -613,16 +621,16 @@ export async function GET(request) {
   
   try {
     if (!storeToken) {
-          return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
-        }
+      return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
+    }
     
-        // Decrypt the token to get the store ID
-        let STORE_ID;
-        try {
-          STORE_ID = decrypt(storeToken);
-        } catch (error) {
-          return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
-        }
+    // Decrypt the token to get the store ID
+    let STORE_ID;
+    try {
+      STORE_ID = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+    }
 
     connection = await pool.getConnection();
 
@@ -646,7 +654,7 @@ export async function GET(request) {
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
 
-    // Fetch categories and events for this store's phone number
+    // Fetch categories and events for this store's store_id and phone number combination
     const [rows] = await connection.execute(`
       SELECT 
         c.category_id, 
@@ -659,16 +667,18 @@ export async function GET(request) {
         ce.delay,
         ce.status,
         ce.created_at AS event_created_at,
+        ce.store_id,
         ce.phonenumber
       FROM category c
-      LEFT JOIN category_event ce ON c.category_id = ce.category_id AND ce.phonenumber = ?
+      LEFT JOIN category_event ce ON c.category_id = ce.category_id 
+        AND ce.store_id = ? AND ce.phonenumber = ?
       WHERE c.category_id IN (
         SELECT DISTINCT category_id 
         FROM category_event 
-        WHERE phonenumber = ?
+        WHERE store_id = ? AND phonenumber = ?
       )
       ORDER BY c.category_id, ce.category_event_id
-    `, [currentPhoneNumber, currentPhoneNumber]);
+    `, [STORE_ID, currentPhoneNumber, STORE_ID, currentPhoneNumber]);
 
     // Group by categories
     const categoriesMap = {};
@@ -694,6 +704,7 @@ export async function GET(request) {
           template_name: row.template_name,
           template_variables: row.template_variables ? JSON.parse(row.template_variables) : null,
           createdAt: row.event_created_at,
+          storeId: row.store_id,
           phoneNumber: row.phonenumber
         });
       }
@@ -705,6 +716,7 @@ export async function GET(request) {
     return new Response(JSON.stringify({ 
       success: true, 
       categories: Object.values(categoriesMap),
+      store_id: STORE_ID,
       store_phone: currentPhoneNumber 
     }), {
       status: 200,
@@ -732,8 +744,7 @@ export async function GET(request) {
   }
 }
 
-// Add this DELETE method to your existing /api/category/route.js file
-
+// DELETE method to clean template data
 export async function DELETE(request) {
   let connection;
 
@@ -780,8 +791,8 @@ export async function DELETE(request) {
     const [eventRows] = await connection.execute(`
       SELECT category_event_id, category_id, template_variable_id
       FROM category_event 
-      WHERE category_event_id = ? AND phonenumber = ?
-    `, [category_event_id, currentPhoneNumber]);
+      WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?
+    `, [category_event_id, STORE_ID, currentPhoneNumber]);
 
     if (eventRows.length === 0) {
       throw new Error('Workflow event not found for this store');
@@ -822,7 +833,7 @@ export async function DELETE(request) {
         template_data_id = NULL,
         template_variable_id = NULL,
         updated_at = NOW()
-      WHERE category_event_id = ? AND phonenumber = ?
+      WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?
     `;
 
     const [updateResult] = await connection.execute(updateEventQuery, [

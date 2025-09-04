@@ -152,8 +152,8 @@ export async function POST(req) {
 
       // 3. Get existing templates to avoid duplicates
       const [existingTemplates] = await connection.execute(
-        `SELECT template_id, category, template_name FROM template WHERE phonenumber = ?`,
-        [ phonenumber]
+        `SELECT template_id, category, template_name FROM template WHERE store_id = ? AND phonenumber = ?`,
+        [storeId, phonenumber]
       );
 
       const existingTemplateMap = new Map();
