@@ -18,6 +18,37 @@ async function getDbConnection() {
   return mysql.createConnection(dbConfig);
 }
 
+// 🔹 Reminder scheduler
+function scheduleReminderMessages(checkout, delayMinutes, eventTitle, templateName, templateRows, storeData) {
+  console.log(
+    `Scheduling reminder for checkout ID=${checkout.id} in ${delayMinutes} minutes...`
+  );
+
+  const scheduledFor = new Date(Date.now() + delayMinutes * 60 * 1000);
+
+  const timeout = setTimeout(async () => {
+    console.log(`Reminder triggered for checkout ID=${checkout.id}`);
+
+    await executeReminder(
+      checkout,
+      templateName,
+      templateRows,
+      storeData,
+      `${checkout.token}_${eventTitle}`,
+      eventTitle
+    );
+  }, delayMinutes * 60 * 1000);
+
+  scheduledReminders.set(checkout.id, {
+    timeout,
+    eventTitle,
+    templateName,
+    checkoutData: checkout,
+    storeData,
+    scheduledFor
+  });
+}
+
 // 🔹 Extract phone number
 function extractPhoneDetails(checkoutData) {
   if (!checkoutData?.customer_phone) return null;
@@ -214,32 +245,49 @@ async function checkRemindersForAllCheckouts() {
       const templateName = templateRows[0].template_name;
 
       // ⏳ calculate reminder time
-      const delayMinutes = delay || 60;
-      const checkoutTime = new Date(checkout.created_at);
+      const delayMinutes = Number(delay) || 60;
+      const checkoutTime = new Date(checkout.updated_at);
       const reminderTime = new Date(checkoutTime.getTime() + delayMinutes * 60 * 1000);
+      console.log("mintues::::", delayMinutes, checkoutTime, reminderTime);
+      
 
       if (new Date() >= reminderTime) {
         await executeReminder(
-          { ...checkoutData, created_at: checkout.created_at, token: checkout.token, id: checkout.token },
+          { ...checkoutData, updated_at: checkout.updated_at, token: checkout.token, id: checkout.token },
           templateName,
           templateVariableRows,
           storeData,
           `${checkout.token}_${eventTitle}`,
           eventTitle
         );
+      } else {
+        // schedule future reminder
+        scheduleReminderMessages(
+          { ...checkoutData, updated_at: checkout.updated_at, token: checkout.token, id: checkout.token, shop: checkout.shop_url },
+          delayMinutes,
+          eventTitle,
+          templateName,
+          templateVariableRows,
+          storeData
+        );
       }
     }
   }
 }
 
-// 🔹 Run cron every 50 minutes
+// 🔹 Run cron every 1 minute
 cron.schedule("* * * * *", async () => {
-  console.log("⏳ Cron job running: checking reminders for all checkouts...");
-  await checkRemindersForAllCheckouts();
+  console.log("⏰ Cron running at", new Date().toISOString());
+
+  try {
+    await checkRemindersForAllCheckouts();
+  } catch (err) {
+    console.error("❌ Cron failed:", err.message);
+  }
 });
 
-// ✅ Handle POST (legacy manual trigger)
-export async function POST(req) {
+// ✅ Handle POST (disabled)
+export async function POST() {
   return NextResponse.json({ status: "error", message: "POST disabled. Use cron instead." });
 }
 
@@ -255,7 +303,6 @@ export async function GET() {
       templateName: data.templateName,
       scheduledFor: data.scheduledFor,
       timeLeftMinutes: Math.max(0, Math.round(timeLeftMs / 60000)),
-      checkoutToken: data.checkoutData.token || data.checkoutData.id,
       shop: data.checkoutData.shop,
       processing: timeLeftMs <= 0 ? "processing" : "waiting"
     };
