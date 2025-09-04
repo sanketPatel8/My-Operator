@@ -13,6 +13,7 @@ function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
   const [shop, setShop] = useState("");
   const [token, setToken] = useState("");
+  const [loading1, setLoading1] = useState(false);
   const { success, error } = useToastContext();
   const [CreatedCompanyID, setCreatedCompanyID] = useState("");
   const router = useRouter();
@@ -29,6 +30,8 @@ function ConfigureWhatsApp() {
   }, [searchParams]);
 
   const handleVerify = async () => {
+
+    setLoading1(true);
 
     const storeToken = localStorage.getItem("storeToken");
     if (!CreatedCompanyID || !token) {
@@ -49,6 +52,7 @@ function ConfigureWhatsApp() {
 
 
       console.log("✅ API response:", response.data);
+      setLoading1(false);
       router.push("/ConnectWhatsApp");
     } catch (error) {
       console.error("❌ API error:", error.response?.data || error.message);
@@ -133,8 +137,12 @@ function ConfigureWhatsApp() {
             <button
               className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
               onClick={handleVerify}
-            >
-              Verify & Continue
+            >{loading1 ? (
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+               
+              ) : (
+                'Verify & Continue'
+              )}
             </button>
           </div>
         </div>
