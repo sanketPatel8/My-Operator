@@ -74,17 +74,10 @@ export async function GET(req) {
 
     // Get templates for this store that match the current store's phone number
     let query = `
-      SELECT t.* FROM template t 
-      INNER JOIN stores s ON t.store_id = s.id 
-      WHERE t.store_id = ? AND t.phonenumber = s.phonenumber
-    `;
-    let queryParams = [storeId];
-
-    // If specific phone number is requested, add additional filter
-    if (currentStorePhoneNumber) {
-      query += ` AND t.phonenumber = ?`;
-      queryParams.push(currentStorePhoneNumber);
-    }
+  SELECT t.* FROM template t 
+  WHERE t.phonenumber = ?
+`;
+let queryParams = [currentStorePhoneNumber];
 
     // Get templates for this store (filtered by matching phone numbers)
     const [templates] = await connection.execute(query, queryParams);
