@@ -195,7 +195,7 @@ async function scheduleReminderMessages(checkoutData, storeData, storePhoneNumbe
         continue;
       }
 
-      const { template_id, template_data_id, status, delay_minutes } = categoryRows[0];
+      const { template_id, template_data_id, status, delay } = categoryRows[0];
       
       if (status != 1) {
         console.log(`⚠️ Event "${eventTitle}" is disabled`);
@@ -227,7 +227,7 @@ async function scheduleReminderMessages(checkoutData, storeData, storePhoneNumbe
       }
 
       // Calculate delay time
-      const delayMinutes = delay_minutes || 60; // Default 1 hour if not set
+      const delayMinutes = delay || 60; // Default 1 hour if not set
       const checkoutTime = new Date(checkoutData.created_at || checkoutData.timestamp || Date.now());
       const reminderTime = new Date(checkoutTime.getTime() + (delayMinutes * 60 * 1000));
       
@@ -538,13 +538,13 @@ async function processPendingReminders() {
         for (const eventTitle of reminderEvents) {
           // Get event configuration
           const [eventRows] = await connection.execute(
-            'SELECT template_id, template_data_id, status, delay_minutes FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+            'SELECT template_id, template_data_id, status, delay FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
             [eventTitle, checkout.store_phone]
           );
           
           if (eventRows.length === 0 || eventRows[0].status != 1) continue;
           
-          const delayMinutes = eventRows[0].delay_minutes || 60;
+          const delayMinutes = eventRows[0].delay || 60;
           
           // Check if it's time to send this reminder
           if (timeDiffMinutes >= delayMinutes) {
