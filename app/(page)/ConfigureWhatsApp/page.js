@@ -112,7 +112,8 @@ function ConfigureWhatsApp() {
             <span className="text-[14px]">
               Need help finding your Company ID?&nbsp;
               <Link
-                href="/component/ConnectShopify"
+                target="blank"
+                href="https://in.app.myoperator.com/integration/whatsapp_api"
                 className="text-[#4275D6] text-[14px] font-semibold underline"
               >
                 Click here
