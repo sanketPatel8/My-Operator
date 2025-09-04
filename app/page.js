@@ -8,6 +8,8 @@ export default function ConnectShopif() {
   const router = useRouter();
 
   const [StoreName, setStoreName] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   // Fetch shop from URL
   useEffect(() => {
@@ -33,6 +35,53 @@ export default function ConnectShopif() {
       }
     }
   }, []);
+
+  // Validate store exists in database
+  const handleConnectStore = async () => {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const storeToken = localStorage.getItem("storeToken");
+      
+      if (!storeToken) {
+        setErrorMessage("Store token not found. Please reinstall app and try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Call the validation API
+      const response = await fetch("/api/store-phone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ storeToken }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store exists, proceed to next page
+        console.log("Store validated successfully:", data);
+        router.push("/ConfigureWhatsApp");
+      } else {
+        // Store doesn't exist or other error
+        if (response.status === 404) {
+          setErrorMessage("Store not found in our database. Please reinstall app and try again.");
+        } else if (response.status === 401) {
+          setErrorMessage("Invalid store token. Please reinstall app and try again.");
+        } else {
+          setErrorMessage(data.message || "An error occurred while validating the store.");
+        }
+      }
+    } catch (error) {
+      console.error("Error validating store:", error);
+      setErrorMessage("Network error. Please check your connection and try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
 
   return (
@@ -167,7 +216,7 @@ export default function ConnectShopif() {
               </p>
             </div>
 
-            <form>
+            <form onSubmit={(e) => e.preventDefault()}>
               <label
                 htmlFor="storeUrl"
                 className="block text-[12px] text-left mt-5 text-[#333333] mb-1"
@@ -193,12 +242,20 @@ export default function ConnectShopif() {
                 Enter a valid Shopify store URL (e.g., your-store.myshopify.com)
               </p>
 
+              {/* Error Message */}
+              {errorMessage && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                  <p className="text-red-600 text-sm">{errorMessage}</p>
+                </div>
+              )}
+
               <button
                 type="button"
-                onClick={() => router.push("/ConfigureWhatsApp")}
-                className="w-full bg-[#343E55] mt-3 text-white py-2 rounded-md hover:bg-gray-800 transition text-sm"
+                onClick={handleConnectStore}
+                disabled={isLoading || !StoreName}
+                className="w-full bg-[#343E55] mt-3 text-white py-2 rounded-md hover:bg-gray-800 transition text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                Connect Store
+                {isLoading ? "Connecting..." : "Connect Store"}
               </button>
               <p className="text-center text-xs text-[#999999] mt-3">
                 Setup takes less than 5 minutes
