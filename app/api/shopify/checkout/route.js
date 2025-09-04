@@ -186,7 +186,7 @@ async function scheduleReminderMessages(checkoutData, storeData, storePhoneNumbe
       
       // Get event configuration including delay
       const [categoryRows] = await connection.execute(
-        'SELECT template_id, template_data_id, status, delay_minutes FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
+        'SELECT template_id, template_data_id, status, delay FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
         [eventTitle, storePhoneNumber]
       );
 
