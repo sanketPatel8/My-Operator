@@ -826,6 +826,7 @@ export async function DELETE(request) {
     }
 
     // Step 2: Set template fields to NULL in category_event
+    // FIX: Include STORE_ID in the parameters array
     const updateEventQuery = `
       UPDATE category_event 
       SET 
@@ -838,6 +839,7 @@ export async function DELETE(request) {
 
     const [updateResult] = await connection.execute(updateEventQuery, [
       category_event_id,
+      STORE_ID,           // Added missing STORE_ID parameter
       currentPhoneNumber
     ]);
 
