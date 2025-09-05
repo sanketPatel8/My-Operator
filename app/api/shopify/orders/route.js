@@ -275,87 +275,89 @@ export async function POST(req) {
   }
 
   return templateContent;
-}
+}storePhoneRows
 
     // 🔍 3a. Get phone number from store 
-    const [storePhoneRows] = await connection.execute(
-      'SELECT phonenumber FROM stores WHERE shop = ? LIMIT 1',
-      [shopDomain]
+    // 🔍 3a. Get phone number and store_id from store 
+const [storePhoneRows] = await connection.execute(
+  'SELECT phonenumber, id FROM stores WHERE shop = ? LIMIT 1',
+  [shopDomain]
+);
+
+if (storePhoneRows.length === 0) {
+  throw new Error("No store found with shop domain");
+}
+
+const { phonenumber: storePhoneNumber, id: storeId } = storePhoneRows[0];
+console.log("📞 Store phone number:", storePhoneNumber);
+console.log("🏪 Store ID:", storeId);
+
+// 🔍 3b. Process each event title and send messages for all matching templates
+const messageResults = [];
+const sentMessages = [];
+let hasAnyTemplate = false;
+
+for (const eventTitle of eventTitles) {
+  console.log(`🔍 Trying to find template for event: ${eventTitle}`);
+  
+  try {
+    // Fetch template_id and template_data_id from category_event using title + phone number + store_id
+    const [categoryRows] = await connection.execute(
+      'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
+      [eventTitle, storePhoneNumber, storeId]
     );
 
-    if (storePhoneRows.length === 0) {
-      throw new Error("No store found with id");
+    if (categoryRows.length === 0) {
+      console.log(`⚠️ No template found for event: ${eventTitle} with store_id: ${storeId}`);
+      continue;
     }
 
-    const storePhoneNumber = storePhoneRows[0].phonenumber;
-    console.log("📞 Store phone number:", storePhoneNumber);
+    const { template_id, template_data_id, status } = categoryRows[0];
+    console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
 
-    // 🔍 3b. Process each event title and send messages for all matching templates
-    const messageResults = [];
-    const sentMessages = [];
-    let hasAnyTemplate = false;
+    // Fetch template name using template_id + phone number + store_id
+    const [templateRowsMeta] = await connection.execute(
+      'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
+      [template_id, storePhoneNumber, storeId]
+    );
 
-    for (const eventTitle of eventTitles) {
-      console.log(`🔍 Trying to find template for event: ${eventTitle}`);
-      
-      try {
-        // Fetch template_id and template_data_id from category_event using title + phone number
-        const [categoryRows] = await connection.execute(
-          'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? LIMIT 1',
-          [eventTitle, storePhoneNumber]
-        );
+    if (templateRowsMeta.length === 0) {
+      console.log(`⚠️ No template name found for template_id: ${template_id} with store_id: ${storeId}`);
+      continue;
+    }
 
-        if (categoryRows.length === 0) {
-          console.log(`⚠️ No template found for event: ${eventTitle}`);
-          continue;
-        }
+    const templateName = templateRowsMeta[0].template_name;
+    console.log(`📛 Template name found: ${templateName}`);
+    hasAnyTemplate = true;
 
-        const { template_id, template_data_id, status } = categoryRows[0];
-        console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
+    // Check if this template is enabled
+    if (status != 1) {
+      console.log(`⚠️ Template "${templateName}" is disabled (status: ${status})`);
+      continue;
+    }
 
-        // Fetch template name using template_id + phone number
-        const [templateRowsMeta] = await connection.execute(
-          'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? LIMIT 1',
-          [template_id, storePhoneNumber]
-        );
+    // 🔍 Fetch template variables (assuming template_variable table also has store_id)
+    const [templateRows] = await connection.execute(
+      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+      [template_data_id]
+    );
 
-        if (templateRowsMeta.length === 0) {
-          console.log(`⚠️ No template name found for template_id: ${template_id}`);
-          continue;
-        }
+    if (templateRows.length === 0) {
+      console.log(`⚠️ No template variables found for template_data_id: ${template_data_id} with store_id: ${storeId}`);
+      continue;
+    }
 
-        const templateName = templateRowsMeta[0].template_name;
-        console.log(`📛 Template name found: ${templateName}`);
-        hasAnyTemplate = true;
+    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
 
-        // Check if this template is enabled
-        if (status != 1) {
-          console.log(`⚠️ Template "${templateName}" is disabled (status: ${status})`);
-          continue;
-        }
+    // ✅ Build template content with mapped data
+    const templateContent = buildTemplateContent(templateRows, data);
 
-        // 🔍 Fetch template variables
-        const [templateRows] = await connection.execute(
-          'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-          [template_data_id]
-        );
+    if (!templateContent) {
+      console.log(`⚠️ Failed to build template content for: ${templateName}`);
+      continue;
+    }
 
-        if (templateRows.length === 0) {
-          console.log(`⚠️ No template variables found for template_data_id: ${template_data_id}`);
-          continue;
-        }
-
-        console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
-
-        // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data);
-
-        if (!templateContent) {
-          console.log(`⚠️ Failed to build template content for: ${templateName}`);
-          continue;
-        }
-
-        console.log(`📝 Template content built for "${templateName}":`, JSON.stringify(templateContent, null, 2));
+    console.log(`📝 Template content built for "${templateName}":`, JSON.stringify(templateContent, null, 2));
 
         // ✅ Send WhatsApp message
         try {
