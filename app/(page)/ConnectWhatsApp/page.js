@@ -6,15 +6,12 @@ import { useToastContext } from "@/component/Toast";
 
 // API service functions
 
-
-
-
 function ConnectWhatsApp() {
   const router = useRouter();
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');
   const [loading, setLoading] = useState(true);
-  
+  const [isSyncing, setIsSyncing] = useState(false); // New state for sync loading
   const [isRetrying, setIsRetrying] = useState(false);
   const { success, error } = useToastContext();
   const [loading1, setLoading1] = useState(false);
@@ -103,7 +100,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
     console.log('Response status:', response.status);
 
      if (response.status === 403) {
-        error('Company ID or  API Key is incorrect, Go back enter correct IDs');
+        error('Company ID or API Key is incorrect, Go back enter correct IDs');
       }
 
     if (!response.ok) {
@@ -146,12 +143,18 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
 };
 
   // Memoized load function to prevent unnecessary re-renders
-  const loadWhatsAppNumbers = useCallback(async (offset = 0, showLoading = true) => {
+  const loadWhatsAppNumbers = useCallback(async (offset = 0, showMainLoading = true, isSync = false) => {
     try {
+      console.log('🔄 Starting to fetch WhatsApp numbers...', { showMainLoading, isSync });
       
-      setIsRetrying(true);
-      setLoading(true);
+      if (showMainLoading) {
+        setIsRetrying(true);
+        setLoading(true);
+      }
       
+      if (isSync) {
+        setIsSyncing(true);
+      }
       
       const data = await fetchWhatsAppNumbers(pagination.limit, offset);
       const transformedAccounts = transformApiDataToAccounts(data);
@@ -171,73 +174,58 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
         currentOffset: offset
       }));
       
+      if (isSync) {
+        success('WhatsApp accounts synced successfully!');
+      }
+      
     } catch (err) {
-      // console.error('Error loading WhatsApp numbers:', err);
-      // let errorMessage = 'Failed to load WhatsApp accounts. Please try again.';
+      console.error('❌ Error loading WhatsApp numbers:', err);
+      let errorMessage = 'Failed to load WhatsApp accounts. Please try again.';
       
       // Provide more specific error messages
-      // if (err?.name === 'AbortError') {
-      //   errorMessage = 'Request timeout. Please check your connection and try again.';
-      // } else if (err?.message?.includes('500')) {
-      //   errorMessage = 'Server error. Please try again in a few moments.';
-      // } else if (err?.message?.includes('403')) {
-      //   errorMessage = 'Access denied. Please check your API credentials.';
-      // } else if (err?.message?.includes('404')) {
-      //   errorMessage = 'API endpoint not found. Please contact support.';
-      // }
+      if (err?.name === 'AbortError') {
+        errorMessage = 'Request timeout. Please check your connection and try again.';
+      } else if (err?.message?.includes('500')) {
+        errorMessage = 'Server error. Please try again in a few moments.';
+      } else if (err?.message?.includes('403')) {
+        errorMessage = 'Access denied. Please check your API credentials.';
+      } else if (err?.message?.includes('404')) {
+        errorMessage = 'API endpoint not found. Please contact support.';
+      }
 
-      // error(errorMessage);
-
-      
+      error(errorMessage);
       
     } finally {
-      setLoading(false);
-      setIsRetrying(false);
+      console.log('✅ Finished loading - setting loading states to false');
+      if (showMainLoading) {
+        setLoading(false);
+        setIsRetrying(false);
+      }
+      if (isSync) {
+        setIsSyncing(false);
+      }
     }
-  }, [pagination.limit, selectedAccount]);
+  }, [pagination.limit, selectedAccount, success, error]);
 
   // Fetch WhatsApp numbers on component mount
   useEffect(() => {
-    loadWhatsAppNumbers();
-  }, [loadWhatsAppNumbers]);
+    loadWhatsAppNumbers(0, true, false);
+  }, []);
 
-  const handlesync = () =>{
-    setIsRetrying(true);
-    setLoading(true);
-    loadWhatsAppNumbers();
-    setLoading(false);
-    setIsRetrying(false);
+  // Updated sync handler
+  const handlesync = async () => {
+    console.log('🔄 Sync button clicked');
+    await loadWhatsAppNumbers(0, false, true); 
+    success("Whatsapp Numbers synced successfully!");// Don't show main loading, show sync loading
   }
 
-  // const handleNextPage = useCallback(() => {
-  //   if (pagination.hasNext) {
-  //     loadWhatsAppNumbers(pagination.currentOffset + pagination.limit);
-  //   }
-  // }, [loadWhatsAppNumbers, pagination.hasNext, pagination.currentOffset, pagination.limit]);
-
-  // const handlePreviousPage = useCallback(() => {
-  //   if (pagination.hasPrevious) {
-  //     loadWhatsAppNumbers(Math.max(0, pagination.currentOffset - pagination.limit));
-  //   }
-  // }, [loadWhatsAppNumbers, pagination.hasPrevious, pagination.currentOffset, pagination.limit]);
-
-  // const handleAccountSelect = useCallback((accountId) => {
-  //   setSelectedAccount(accountId);
-  // }, []);
-
-  // const handleContinue = useCallback(() => {
-  //   if (selectedAccount) {
-  //     router.push("/ConfigurationForm");
-  //   }
-  // }, [router, selectedAccount]);
-
-  
-
+  // Continue handler remains the same
    const handleContinue = async () => {
     setLoading1(true);
     const selected = accounts.find(a => a.id === selectedAccount);
     if (!selected) {
       error('Please select an account.');
+      setLoading1(false);
       return;
     }
     const storeToken = localStorage.getItem("storeToken");
@@ -265,15 +253,15 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
       const data = await response.json();
       console.log('Selected WABA ID:', selected?.wabaAccount?.wabaId);
 
-
-      setLoading1(false);
+      success('Store updated successfully!');
       router.push('/ConfigurationForm');
     } catch (err) {
       console.error('Error updating store:', err);
       error('Failed to update store. Please try again.');
+    } finally {
+      setLoading1(false);
     }
   };
-
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -297,12 +285,9 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
     return null;
   };
 
-  
-  
-
   return (
     <div className="font-source-sans min-h-screen flex items-start justify-center bg-[#F9FBFF] px-4 sm:px-6 lg:px-8">
-      <div className="bg-white shadow rounded-lg p-6 my-5 sm:p-8 lg:p-10 w-full max-w-md sm:max-w-lg lg:max-w-2xl">
+      <div className="bg-white shadow rounded-lg p-6 my-5 sm:p-8 lg:p-10 w-full max-w-md sm:max-w-lg lg:max-2xl">
         {/* Header */}
         <h2 className="text-xl sm:text-[24px] text-[#1A1A1A] font-semibold text-center mb-2">
           Connect WhatsApp Business API
@@ -311,14 +296,20 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
           Select your WhatsApp Business API account or link a new one
         </p>
 
-        
         {/* Dynamic Options */}
         <div className="space-y-4">
-          {loading && isRetrying ? (
+          {(loading || isRetrying) ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 <p className="text-gray-600">Loading numbers...</p>
+              </div>
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <p className="text-gray-600 mb-2">No WhatsApp accounts found.</p>
+                <p className="text-sm text-gray-500">Try syncing or linking a new account.</p>
               </div>
             </div>
           ) : (
@@ -349,7 +340,10 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
                   />
                 </div>
                 <div className="flex-1">
-                  <p className="text-[12px] text-[#333333]">{account.name}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="text-[12px] text-[#333333]">{account.name}</p>
+                    {getVerificationBadge(account)}
+                  </div>
                   <p className="text-[14px] text-[#333333]">+{account.countryCode}{account.phone}</p>
                 </div>
                 <div className={`text-[14px] font-semibold ${getStatusColor(account.status)} sm:ml-auto`}>
@@ -365,10 +359,9 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
             <button
                 className="w-full border border-dashed border-[#E4E4E4] bg-[#FBFBFB] rounded-lg py-4 flex items-center justify-center text-[#4275D6] text-[14px] font-medium hover:underline"
             >
-                <span className=" mr-1">＋</span> Link new WhatsApp account
+                <span className="mr-1">＋</span> Link new WhatsApp account
             </button>
         </div>
-
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-8">
@@ -379,24 +372,37 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
           </button>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <button 
-            onClick={handlesync}
-            className="px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100 w-full sm:w-auto">
-              ⟳ Sync
+              onClick={handlesync}
+              disabled={isSyncing || loading}
+              className={`px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100 w-full sm:w-auto transition-all ${
+                (isSyncing || loading) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+            >
+              {isSyncing ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+                  Syncing...
+                </div>
+              ) : (
+                '⟳ Sync'
+              )}
             </button>
             <button
               onClick={handleContinue}
-              className="px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto"
+              disabled={!selectedAccount || loading1}
+              className={`px-6 py-2 bg-gray-800 text-[#FFFFFF] rounded hover:bg-gray-900 w-full sm:w-auto transition-all ${
+                (!selectedAccount || loading1) ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               {loading1 ? (
                 <div className="flex items-center justify-center gap-2">
-                  <span className='text-[#DFDFDF]'>set up your account</span>
+                  <span className='text-[#DFDFDF]'>Setting up...</span>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                 </div>
               ) : (
                 'Verify & Continue'
               )}
             </button>
-
           </div>
         </div>
       </div>
