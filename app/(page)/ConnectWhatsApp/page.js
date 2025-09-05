@@ -201,7 +201,9 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
   }, [loadWhatsAppNumbers]);
 
   const handlesync = () =>{
+    setIsRetrying(true);
     loadWhatsAppNumbers();
+    setIsRetrying(false);
   }
 
   // const handleNextPage = useCallback(() => {
