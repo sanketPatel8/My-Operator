@@ -67,32 +67,16 @@ export async function GET(req) {
       }), { status: 200 });
     }
 
-    // First, fetch all template data for the store
-    const [allTemplates] = await connection.execute(`
-      SELECT t.*, td.template_data_id, td.content, tv.template_variable_id, 
-             tv.type, tv.value, tv.variable_name, tv.component_type, 
-             tv.mapping_field, tv.fallback_value,
-             tv.created_at as variable_created_at, tv.updated_at as variable_updated_at
-      FROM template t
-      INNER JOIN stores s ON t.store_id = s.id
-      LEFT JOIN template_data td ON t.template_id = td.template_id
-      LEFT JOIN template_variable tv ON td.template_data_id = tv.template_data_id
-      WHERE t.store_id = ? AND t.phonenumber = s.phonenumber
-      ORDER BY t.template_id, td.template_data_id, tv.template_variable_id
-    `, [storeId]);
-
     let filteredResults = [];
 
     // Check if category_event_id is provided
     if (categoryEventId) {
       // Get the specific category_event record
       const [categoryEvent] = await connection.execute(`
-        SELECT ce.*, t.category, t.template_name, t.created_at as template_created_at, 
-               t.updated_at as template_updated_at
+        SELECT ce.*, c.category_name
         FROM category_event ce
-        INNER JOIN template t ON ce.template_id = t.template_id
-        INNER JOIN stores s ON t.store_id = s.id
-        WHERE ce.category_event_id = ? AND t.store_id = ? AND t.phonenumber = s.phonenumber
+        LEFT JOIN category c ON ce.category_id = c.category_id
+        WHERE ce.category_event_id = ? AND ce.store_id = ?
       `, [categoryEventId, storeId]);
 
       if (categoryEvent.length === 0) {
@@ -105,30 +89,79 @@ export async function GET(req) {
 
       const eventData = categoryEvent[0];
       
-      // Check if template_id is not null in category_event
-      if (eventData.template_id) {
-        // Parse comma-separated IDs
-        const templateIds = eventData.template_id ? eventData.template_id.toString().split(',').map(id => id.trim()) : [];
-        const templateDataIds = eventData.template_data_id ? eventData.template_data_id.toString().split(',').map(id => id.trim()) : [];
-        const templateVariableIds = eventData.template_variable_id ? eventData.template_variable_id.toString().split(',').map(id => id.trim()) : [];
+      // If specific template IDs are set in category_event, use them
+      if (eventData.template_id && eventData.template_id.toString().trim() !== '') {
+        // Parse comma-separated IDs and filter by specific template IDs
+        const templateIds = eventData.template_id.toString().split(',').map(id => id.trim()).filter(id => id !== '');
+        
+        if (templateIds.length > 0) {
+          const placeholders = templateIds.map(() => '?').join(',');
+          const [specificTemplates] = await connection.execute(`
+            SELECT t.*, td.template_data_id, td.content, tv.template_variable_id, 
+                   tv.type, tv.value, tv.variable_name, tv.component_type, 
+                   tv.mapping_field, tv.fallback_value,
+                   tv.created_at as variable_created_at, tv.updated_at as variable_updated_at
+            FROM template t
+            INNER JOIN stores s ON t.store_id = s.id
+            LEFT JOIN template_data td ON t.template_id = td.template_id
+            LEFT JOIN template_variable tv ON td.template_data_id = tv.template_data_id
+            WHERE t.template_id IN (${placeholders}) AND t.store_id = ? AND t.phonenumber = s.phonenumber
+            ORDER BY t.template_id, td.template_data_id, tv.template_variable_id
+          `, [...templateIds, storeId]);
 
-        // Filter allTemplates based on matching IDs
-        const matchingTemplates = allTemplates.filter(template => {
-          const templateIdMatch = templateIds.length === 0 || templateIds.includes(template.template_id.toString());
-          const templateDataIdMatch = templateDataIds.length === 0 || templateDataIds.includes(template.template_data_id?.toString());
-          const templateVariableIdMatch = templateVariableIds.length === 0 || templateVariableIds.includes(template.template_variable_id?.toString());
-          
-          return templateIdMatch && templateDataIdMatch && templateVariableIdMatch;
-        });
+          filteredResults = groupTemplateData(specificTemplates, 'category_event_specific', eventData);
+        }
+      } 
+      // If no specific template IDs, try to match by category name
+      else if (eventData.category_id) {
+        const [categoryTemplates] = await connection.execute(`
+          SELECT t.*, td.template_data_id, td.content, tv.template_variable_id, 
+                 tv.type, tv.value, tv.variable_name, tv.component_type, 
+                 tv.mapping_field, tv.fallback_value,
+                 tv.created_at as variable_created_at, tv.updated_at as variable_updated_at
+          FROM template t
+          INNER JOIN stores s ON t.store_id = s.id
+          LEFT JOIN template_data td ON t.template_id = td.template_id
+          LEFT JOIN template_variable tv ON td.template_data_id = tv.template_data_id
+          LEFT JOIN category c ON c.category_name = t.category
+          WHERE c.category_id = ? AND t.store_id = ? AND t.phonenumber = s.phonenumber
+          ORDER BY t.template_id, td.template_data_id, tv.template_variable_id
+        `, [eventData.category_id, storeId]);
 
-        // Group the filtered templates
-        filteredResults = groupTemplateData(matchingTemplates, 'category_event', eventData);
-      } else {
-        // If template_id is null, return empty results or handle as needed
-        filteredResults = [];
+        filteredResults = groupTemplateData(categoryTemplates, 'category_event_by_category', eventData);
+      }
+      // Fallback: return all templates for the store
+      else {
+        const [allTemplates] = await connection.execute(`
+          SELECT t.*, td.template_data_id, td.content, tv.template_variable_id, 
+                 tv.type, tv.value, tv.variable_name, tv.component_type, 
+                 tv.mapping_field, tv.fallback_value,
+                 tv.created_at as variable_created_at, tv.updated_at as variable_updated_at
+          FROM template t
+          INNER JOIN stores s ON t.store_id = s.id
+          LEFT JOIN template_data td ON t.template_id = td.template_id
+          LEFT JOIN template_variable tv ON td.template_data_id = tv.template_data_id
+          WHERE t.store_id = ? AND t.phonenumber = s.phonenumber
+          ORDER BY t.template_id, td.template_data_id, tv.template_variable_id
+        `, [storeId]);
+
+        filteredResults = groupTemplateData(allTemplates, 'category_event_all', eventData);
       }
     } else {
       // No category_event_id provided, return all template data
+      const [allTemplates] = await connection.execute(`
+        SELECT t.*, td.template_data_id, td.content, tv.template_variable_id, 
+               tv.type, tv.value, tv.variable_name, tv.component_type, 
+               tv.mapping_field, tv.fallback_value,
+               tv.created_at as variable_created_at, tv.updated_at as variable_updated_at
+        FROM template t
+        INNER JOIN stores s ON t.store_id = s.id
+        LEFT JOIN template_data td ON t.template_id = td.template_id
+        LEFT JOIN template_variable tv ON td.template_data_id = tv.template_data_id
+        WHERE t.store_id = ? AND t.phonenumber = s.phonenumber
+        ORDER BY t.template_id, td.template_data_id, tv.template_variable_id
+      `, [storeId]);
+
       filteredResults = groupTemplateData(allTemplates, 'all_templates');
     }
 
@@ -181,8 +214,9 @@ function groupTemplateData(templateRows, source, eventData = null) {
           title: eventData.title,
           subtitle: eventData.subtitle,
           delay: eventData.delay,
-          template_created_at: eventData.template_created_at,
-          template_updated_at: eventData.template_updated_at
+          category_event_created_at: eventData.created_at,
+          category_event_updated_at: eventData.updated_at,
+          category_name: eventData.category_name || null
         }),
         data: new Map()
       });
