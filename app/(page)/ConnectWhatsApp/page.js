@@ -362,7 +362,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
         <div className="mt-6">
             <Link
               target='blank'
-              onClick={() => router.push("https://in.app.myoperator.com/whatsapp") }
+              href="https://in.app.myoperator.com/whatsapp"
               className="w-full border border-dashed border-[#E4E4E4] bg-[#FBFBFB] rounded-lg py-4 flex items-center justify-center text-[#4275D6] text-[14px] font-medium hover:underline"
             >
                 <span className=" mr-1">＋</span> Link new WhatsApp account
