@@ -67,9 +67,9 @@ export async function POST(req) {
       database: process.env.DATABASE_NAME,
     });
 
-    // Fetch store data
+    // Fetch store data including existing brand_name and public_shop_url
     const [rows] = await connection.execute(
-      'SELECT company_id, whatsapp_api_key FROM stores WHERE id = ?',
+      'SELECT company_id, whatsapp_api_key, brand_name, public_shop_url FROM stores WHERE id = ?',
       [storeId]
     );
 
@@ -78,16 +78,20 @@ export async function POST(req) {
       return NextResponse.json({ message: 'Store not found' }, { status: 404 });
     }
 
-    const { company_id, whatsapp_api_key } = rows[0];
+    const { company_id, whatsapp_api_key, brand_name: existingBrandName, public_shop_url: existingPublicUrl } = rows[0];
+
+    // Use existing values as fallback if new values are not provided
+    const finalBrandName = brandName !== null && brandName !== undefined && brandName !== '' ? brandName : existingBrandName;
+    const finalPublicUrl = publicUrl !== null && publicUrl !== undefined && publicUrl !== '' ? publicUrl : existingPublicUrl;
 
     // Start transaction
     await connection.beginTransaction();
 
     try {
-      // 1. Update store
+      // 1. Update store with preserved values
       const [updateResult] = await connection.execute(
         `UPDATE stores SET countrycode = ?, public_shop_url = ?, brand_name = ?, phonenumber = ?, phone_number_id = ?, waba_id = ? WHERE id = ?`,
-        [countrycode, publicUrl, brandName, phonenumber, phone_number_id, waba_id, storeId]
+        [countrycode, finalPublicUrl, finalBrandName, phonenumber, phone_number_id, waba_id, storeId]
       );
 
       if (updateResult.affectedRows === 0) {
@@ -365,7 +369,10 @@ export async function POST(req) {
         templateDataCount: insertedTemplateDataCount,
         insertedVariableCount: insertedVariableCount,
         updatedVariableCount: updatedVariableCount,
-        phonenumber: phonenumber
+        phonenumber: phonenumber,
+        // Add these for debugging
+        finalBrandName: finalBrandName,
+        finalPublicUrl: finalPublicUrl
       };
 
       return NextResponse.json(result, { status: 200 });
