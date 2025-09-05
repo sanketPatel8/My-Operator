@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useToastContext } from "@/component/Toast";
+import Link from 'next/link';
 
 // API service functions
 
@@ -359,11 +360,13 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
 
         {/* Link new */}
         <div className="mt-6">
-            <button
-                className="w-full border border-dashed border-[#E4E4E4] bg-[#FBFBFB] rounded-lg py-4 flex items-center justify-center text-[#4275D6] text-[14px] font-medium hover:underline"
+            <Link
+              target='blank'
+              onClick={() => router.push("https://in.app.myoperator.com/whatsapp") }
+              className="w-full border border-dashed border-[#E4E4E4] bg-[#FBFBFB] rounded-lg py-4 flex items-center justify-center text-[#4275D6] text-[14px] font-medium hover:underline"
             >
                 <span className=" mr-1">＋</span> Link new WhatsApp account
-            </button>
+            </Link>
         </div>
 
 
