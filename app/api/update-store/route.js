@@ -236,13 +236,31 @@ export async function POST(req) {
               insertedTemplateDataCount++;
             }
 
-            // 6. Clear existing variables for this template_data
+            // 6. Get existing variables with their mapping_field and fallback_value
+            const [existingVariables] = await connection.execute(
+              `SELECT variable_name, component_type, mapping_field, fallback_value, type 
+               FROM template_variable 
+               WHERE template_data_id = ? AND store_id = ?`,
+              [templateDataId, storeId]
+            );
+
+            // Create a map to store existing mapping fields and fallback values
+            const existingMappingMap = new Map();
+            existingVariables.forEach(row => {
+              const key = `${row.variable_name || ''}::${row.component_type}::${row.type}`;
+              existingMappingMap.set(key, {
+                mapping_field: row.mapping_field,
+                fallback_value: row.fallback_value
+              });
+            });
+
+            // 7. Clear existing variables for this template_data
             await connection.execute(
               `DELETE FROM template_variable WHERE template_data_id = ? AND store_id = ?`,
               [templateDataId, storeId]
             );
 
-            // 7. Process components and insert variables (now includes store_id)
+            // 8. Process components and insert variables (preserving mapping_field and fallback_value)
             for (const component of components) {
               const { type, format } = component;
               if (!type) continue;
@@ -277,8 +295,11 @@ export async function POST(req) {
                   break;
               }
 
-              // Insert individual variables (now includes store_id)
+              // Insert individual variables (preserving mapping_field and fallback_value)
               for (const variable of variables) {
+                const mappingKey = `${variable}::${type}::${type}`;
+                const existingMapping = existingMappingMap.get(mappingKey);
+                
                 await connection.execute(
                   `INSERT INTO template_variable (
                     template_data_id, store_id, type, value, variable_name, component_type, 
@@ -291,16 +312,19 @@ export async function POST(req) {
                     null,
                     variable,
                     type,
-                    null,
-                    null,
+                    existingMapping?.mapping_field || null,
+                    existingMapping?.fallback_value || null,
                     phonenumber
                   ]
                 );
                 insertedVariableCount++;
               }
 
-              // Insert component data (now includes store_id)
+              // Insert component data (preserving mapping_field and fallback_value)
               const componentType = `${type}_COMPONENT`;
+              const componentMappingKey = `::${type}::${componentType}`;
+              const existingComponentMapping = existingMappingMap.get(componentMappingKey);
+              
               await connection.execute(
                 `INSERT INTO template_variable (
                   template_data_id, store_id, type, value, variable_name, component_type, 
@@ -313,8 +337,8 @@ export async function POST(req) {
                   JSON.stringify(component),
                   null,
                   type,
-                  null,
-                  null,
+                  existingComponentMapping?.mapping_field || null,
+                  existingComponentMapping?.fallback_value || null,
                   phonenumber
                 ]
               );
