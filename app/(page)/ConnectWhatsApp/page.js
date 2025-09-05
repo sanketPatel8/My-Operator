@@ -200,9 +200,9 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
     loadWhatsAppNumbers();
   }, [loadWhatsAppNumbers]);
 
-  const handleSync = useCallback(() => {
-    loadWhatsAppNumbers(pagination.currentOffset, false);
-  }, [loadWhatsAppNumbers, pagination.currentOffset]);
+  const handlesync = () =>{
+    loadWhatsAppNumbers();
+  }
 
   // const handleNextPage = useCallback(() => {
   //   if (pagination.hasNext) {
@@ -374,6 +374,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
           </button>
           <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
             <button 
+            onClick={handlesync}
             className="px-6 py-2 border rounded text-[#343E55] hover:bg-gray-100 w-full sm:w-auto">
               ⟳ Sync
             </button>
