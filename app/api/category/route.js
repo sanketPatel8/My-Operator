@@ -810,18 +810,10 @@ export async function DELETE(request) {
       const variableIds = templateVariableId.split(',').map(id => parseInt(id.trim()));
       console.log('Cleaning template variables:', variableIds);
 
-      // Set mapping_field and fallback_value to NULL for all related template variables
-      const placeholders = variableIds.map(() => '?').join(',');
-      const cleanVariablesQuery = `
-        UPDATE template_variable 
-        SET 
-          mapping_field = NULL,
-          fallback_value = NULL,
-          updated_at = NOW()
-        WHERE template_variable_id IN (${placeholders})
-      `;
+      
+      
 
-      const [cleanResult] = await connection.execute(cleanVariablesQuery, variableIds);
+    
       console.log(`Cleaned ${cleanResult.affectedRows} template variables`);
     }
 
