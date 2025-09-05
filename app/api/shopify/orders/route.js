@@ -201,7 +201,7 @@ export async function POST(req) {
     function getMappedValue(mappingField, data) {
       switch (mappingField) {
         case 'Name':
-          return data.billing_address?.first_name || 'Customer';
+          return data.billing_address?.first_name || data?.first_name || 'Customer';
         case 'Order id':
           return String(data?.id || '123456');
         case 'Phone number':
