@@ -204,7 +204,7 @@ export async function POST(req) {
             insertedTemplateCount++;
           }
 
-          // 5. Handle template_data
+          // 5. Handle template_data (now includes store_id)
           if (Array.isArray(components)) {
             const content = JSON.stringify(components);
 
@@ -217,18 +217,20 @@ export async function POST(req) {
             let templateDataId;
 
             if (existingTemplateData.length > 0) {
-              // Update existing template_data
+              // Update existing template_data (including store_id)
               templateDataId = existingTemplateData[0].template_data_id;
               await connection.execute(
-                `UPDATE template_data SET content = ?, updated_at = NOW() WHERE template_data_id = ?`,
-                [content, templateDataId]
+                `UPDATE template_data SET content = ?,  updated_at = NOW() WHERE store_id = ? AND template_data_id = ?`,
+                [content, storeId, templateDataId]
               );
+              
+              
             } else {
-              // Insert new template_data
+              // Insert new template_data (now includes store_id)
               const [templateDataInsertResult] = await connection.execute(
-                `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at) 
-                 VALUES (?, ?, ?, NOW(), NOW())`,
-                [templateId, content, phonenumber]
+                `INSERT INTO template_data (template_id, store_id, content, phonenumber, created_at, updated_at) 
+                 VALUES (?, ?, ?, ?, NOW(), NOW())`,
+                [templateId, storeId, content, phonenumber]
               );
               templateDataId = templateDataInsertResult.insertId;
               insertedTemplateDataCount++;
@@ -236,11 +238,11 @@ export async function POST(req) {
 
             // 6. Clear existing variables for this template_data
             await connection.execute(
-              `DELETE FROM template_variable WHERE template_data_id = ?`,
-              [templateDataId]
+              `DELETE FROM template_variable WHERE template_data_id = ? AND store_id = ?`,
+              [templateDataId, storeId]
             );
 
-            // 7. Process components and insert variables
+            // 7. Process components and insert variables (now includes store_id)
             for (const component of components) {
               const { type, format } = component;
               if (!type) continue;
@@ -275,15 +277,16 @@ export async function POST(req) {
                   break;
               }
 
-              // Insert individual variables
+              // Insert individual variables (now includes store_id)
               for (const variable of variables) {
                 await connection.execute(
                   `INSERT INTO template_variable (
-                    template_data_id, type, value, variable_name, component_type, 
+                    template_data_id, store_id, type, value, variable_name, component_type, 
                     mapping_field, fallback_value, phonenumber, created_at, updated_at
-                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                   [
                     templateDataId,
+                    storeId,
                     type,
                     null,
                     variable,
@@ -296,15 +299,16 @@ export async function POST(req) {
                 insertedVariableCount++;
               }
 
-              // Insert component data
+              // Insert component data (now includes store_id)
               const componentType = `${type}_COMPONENT`;
               await connection.execute(
                 `INSERT INTO template_variable (
-                  template_data_id, type, value, variable_name, component_type, 
+                  template_data_id, store_id, type, value, variable_name, component_type, 
                   mapping_field, fallback_value, phonenumber, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
                 [
                   templateDataId,
+                  storeId,
                   componentType,
                   JSON.stringify(component),
                   null,
