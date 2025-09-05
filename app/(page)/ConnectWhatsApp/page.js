@@ -150,6 +150,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
     try {
       
       setIsRetrying(true);
+      setLoading(true);
       
       
       const data = await fetchWhatsAppNumbers(pagination.limit, offset);
@@ -202,7 +203,9 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
 
   const handlesync = () =>{
     setIsRetrying(true);
+    setLoading(true);
     loadWhatsAppNumbers();
+    setLoading(false);
     setIsRetrying(false);
   }
 
