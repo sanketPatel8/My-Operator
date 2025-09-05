@@ -805,17 +805,7 @@ export async function DELETE(request) {
     console.log('Category Event ID:', category_event_id);
     console.log('Template Variable ID to clean:', templateVariableId);
 
-    // Step 1: Clean up template_variable records if template_variable_id exists
-    if (templateVariableId) {
-      const variableIds = templateVariableId.split(',').map(id => parseInt(id.trim()));
-      console.log('Cleaning template variables:', variableIds);
-
-      
-      
-
     
-      console.log(`Cleaned ${cleanResult.affectedRows} template variables`);
-    }
 
     // Step 2: Set template fields to NULL in category_event
     // FIX: Include STORE_ID in the parameters array
