@@ -460,7 +460,6 @@ export default function ConnectShopify() {
               {isTokenValid && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-green-600 text-sm">✅ Authentication verified</p>
-                  {companyId && <p className="text-green-600 text-xs">Company ID: {companyId}</p>}
                   {isStoreReadonly && <p className="text-green-600 text-xs">🏪 Store auto-detected</p>}
                 </div>
               )}
