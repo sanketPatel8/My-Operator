@@ -32,8 +32,25 @@ export default function ConnectShopify() {
             console.error("Token verification error:", err);
             setErrorMessage("Authentication failed. Please try again.");
           });
-      } else {
-        setErrorMessage("Authentication token is required.");
+      }
+
+      const shopParam = params.get("shop");
+
+      if (shopParam) { 
+        setStoreName(shopParam);
+
+        // 🔹 Call backend to fetch encrypted id
+        fetch(`/api/encrypt-store-id?shop=${shopParam}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.encryptedId) {
+              localStorage.setItem("storeToken", data.encryptedId);
+              console.log("Encrypted store id saved to localStorage ✅");
+            } else {
+              console.warn("No encrypted id returned:", data);
+            }
+          })
+          .catch((err) => console.error("Error fetching encrypted id:", err));
       }
     }
   }, []);
@@ -109,6 +126,42 @@ export default function ConnectShopify() {
   // Validate store exists in database and handle routing logic
   const handleConnectStore = async () => {
     // Check if token is valid before proceeding
+
+    try {
+
+    const params = new URLSearchParams(window.location.search);
+    const tokenParam = params.get("token");
+    const shopParam = params.get("shop");
+
+    if(shopParam){
+
+    const storeToken = localStorage.getItem("storeToken");
+      
+      if (!storeToken) {
+        setErrorMessage("Store token not found. Please reinstall app and try again.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Call the validation API
+      const response = await fetch("/api/store-phone", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ storeToken }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Store validated successfully:", data);
+        router.push("/ConfigureWhatsApp");
+      }
+    }
+
+
+    if(tokenParam){
     if (!isTokenValid) {
       setErrorMessage("Please verify your authentication first.");
       return;
@@ -122,15 +175,14 @@ export default function ConnectShopify() {
     setIsLoading(true);
     setErrorMessage("");
 
-    try {
+    
       // Call the validation API with store name and company ID
-      const response = await fetch("/api/store-phone", {
+      const response = await fetch("/api/company-store", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ 
-          storeName: StoreName,
           companyId: companyId
         }),
       });
@@ -141,10 +193,17 @@ export default function ConnectShopify() {
         // Store exists and validation successful
         console.log("Store validated successfully:", data);
         
-        // Store the encrypted storeToken in localStorage
-        if (data.storeToken) {
-          localStorage.setItem("storeToken", data.storeToken);
-        }
+        fetch(`/api/encrypt-store-id?shop=${data.shop}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.encryptedId) {
+              localStorage.setItem("storeToken", data.encryptedId);
+              console.log("Encrypted store id saved to localStorage ✅");
+            } else {
+              console.warn("No encrypted id returned:", data);
+            }
+          })
+          .catch((err) => console.error("Error fetching encrypted id:", err));
         
         // Route based on phone number availability
         if (data.phonenumber) {
@@ -154,23 +213,9 @@ export default function ConnectShopify() {
           // No phone number, redirect to connect WhatsApp page
           router.push("/ConnectWhatsApp");
         }
-      } else {
-        // Handle different error cases
-        if (response.status === 404) {
-          if (data.redirectUrl) {
-            // Company ID not found, redirect to external URL
-            window.location.href = data.redirectUrl;
-          } else {
-            setErrorMessage("Store not found in our database. Please check your store URL.");
-          }
-        } else if (response.status === 400 && data.message === "Store name incorrect") {
-          setErrorMessage("Store name is incorrect. Please verify your Shopify store URL.");
-        } else if (response.status === 401) {
-          setErrorMessage("Invalid authentication. Please try again.");
-        } else {
-          setErrorMessage(data.message || "An error occurred while validating the store.");
-        }
       }
+     }
+    
     } catch (error) {
       console.error("Error validating store:", error);
       setErrorMessage("Network error. Please check your connection and try again.");
