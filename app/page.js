@@ -12,55 +12,64 @@ export default function ConnectShopify() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [companyId, setCompanyId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [isStoreReadonly, setIsStoreReadonly] = useState(false);
 
   // Get token from URL and verify it
   useEffect(() => {
+  const init = async () => {
     if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const tokenParam = params.get("token");
+      setLoading(true);
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const tokenParam = params.get("token");
+        const shopParam = params.get("shop");
 
-      if (tokenParam) {
-        // Verify the token
-        verifyToken(tokenParam)
-          .then((isValid) => {
-            if (!isValid) {
-              setErrorMessage("Invalid or expired token. Please try again.");
-            }
-          })
-          .catch((err) => {
-            console.error("Token verification error:", err);
-            setErrorMessage("Authentication failed. Please try again.");
-          });
-      }
+        if (tokenParam) {
+          const isValid = await verifyToken(tokenParam);
+          if (!isValid) {
+            setErrorMessage("Invalid or expired token. Please try again.");
+          }
+        }
 
-      const shopParam = params.get("shop");
-
-      if (shopParam) { 
-        setStoreName(shopParam);
-
-        // 🔹 Call backend to fetch encrypted id
-        fetch(`/api/encrypt-store-id?shop=${shopParam}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.encryptedId) {
-              localStorage.setItem("storeToken", data.encryptedId);
-              console.log("Encrypted store id saved to localStorage ✅");
-            } else {
-              console.warn("No encrypted id returned:", data);
-            }
-          })
-          .catch((err) => console.error("Error fetching encrypted id:", err));
+        if (shopParam) {
+          setStoreName(shopParam);
+          const res = await fetch(`/api/encrypt-store-id?shop=${shopParam}`);
+          const data = await res.json();
+          if (data.encryptedId) {
+            localStorage.setItem("storeToken", data.encryptedId);
+            console.log("Encrypted store id saved to localStorage ✅");
+          } else {
+            console.warn("No encrypted id returned:", data);
+          }
+        }
+      } catch (err) {
+        console.error("Init error:", err);
+      } finally {
+        setLoading(false); // ✅ only after async work finishes
       }
     }
-  }, []);
+  };
+
+  init();
+ }, []);
+
 
   // Get company store after companyId is set - THIS WAS MISSING!
   useEffect(() => {
+  const fetchStore = async () => {
     if (companyId && isTokenValid) {
-      getCompanyStore(companyId);
+      setLoading(true);
+      try {
+        await getCompanyStore(companyId);
+      } finally {
+        setLoading(false); // ✅ only after call completes
+      }
     }
-  }, [companyId, isTokenValid]);
+  };
+  fetchStore();
+ }, [companyId, isTokenValid]);
+
 
   // Function to verify JWT token
   const verifyToken = async (token) => {
@@ -236,6 +245,23 @@ export default function ConnectShopify() {
       setIsLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="font-source-sans flex flex-col min-h-screen">
+        
+        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">  
+          
+          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-source-sans min-h-screen bg-white px-4 py-10 flex flex-col items-center">
