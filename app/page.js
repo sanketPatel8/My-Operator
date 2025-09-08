@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function ConnectShopify() {
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const [StoreName, setStoreName] = useState("");
@@ -12,14 +13,13 @@ export default function ConnectShopify() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [companyId, setCompanyId] = useState(null);
-  const [loading, setLoading] = useState(false);
+  
   const [isStoreReadonly, setIsStoreReadonly] = useState(false);
 
   // Get token from URL and verify it
   useEffect(() => {
   const init = async () => {
     if (typeof window !== "undefined") {
-      setLoading(true);
       try {
         const params = new URLSearchParams(window.location.search);
         const tokenParam = params.get("token");
