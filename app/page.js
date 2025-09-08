@@ -46,7 +46,7 @@ export default function ConnectShopify() {
       } catch (err) {
         console.error("Init error:", err);
       } finally {
-        setLoading(false); // ✅ only after async work finishes
+        
       }
     }
   };
@@ -59,7 +59,7 @@ export default function ConnectShopify() {
   useEffect(() => {
   const fetchStore = async () => {
     if (companyId && isTokenValid) {
-      setLoading(true);
+      
       try {
         await getCompanyStore(companyId);
       } finally {
