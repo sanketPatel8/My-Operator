@@ -425,7 +425,6 @@ export default function ConnectShopify() {
               <button
                 type="button"
                 onClick={handleConnectStore}
-                disabled={isLoading || !isTokenValid}
                 className="w-full bg-[#343E55] mt-3 text-white py-2 rounded-md hover:bg-gray-800 transition text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Connecting..." : "Connect Store"}
