@@ -11,6 +11,7 @@ import axios from "axios";
 
 function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [shop, setShop] = useState("");
   const [token, setToken] = useState("");
   const [loading1, setLoading1] = useState(false);
@@ -25,6 +26,14 @@ function ConfigureWhatsApp() {
     const shopParam = searchParams.get("shop");
     const tokenParam = searchParams.get("token");
 
+    const storeToken = localStorage.getItem("storeToken");
+    if (!storeToken) {
+        console.warn("⚠️ No store token found in localStorage");
+        setIsRedirecting(true);
+        window.location.href = process.env.REDIRECT_URL;
+        return;
+      }
+
     if (shopParam) setShop(shopParam);
     if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
@@ -34,6 +43,13 @@ function ConfigureWhatsApp() {
     setLoading1(true);
 
     const storeToken = localStorage.getItem("storeToken");
+    if (!storeToken) {
+        console.warn("⚠️ No store token found in localStorage");
+        setIsRedirecting(true);
+        window.location.href = process.env.REDIRECT_URL;
+        return;
+      }
+
     if (!CreatedCompanyID || !token) {
       error("Please enter both Company ID and Access Token");
       return;
@@ -63,6 +79,23 @@ function ConfigureWhatsApp() {
 
   // For debugging (can remove later)
   console.log("Shop:", shop, "Token:", token);
+
+  if (isRedirecting) {
+  return (
+      <div className="font-source-sans flex flex-col min-h-screen">
+        
+        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">  
+          
+          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+ }
 
   return (
     <div className="font-source-sans min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">

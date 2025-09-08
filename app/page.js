@@ -159,8 +159,9 @@ export default function ConnectShopify() {
     const storeToken = localStorage.getItem("storeToken");
       
       if (!storeToken) {
-        setErrorMessage("Store token not found. Please reinstall app and try again.");
-        setIsLoading(false);
+        console.warn("⚠️ No store token found in localStorage");
+        setIsRedirecting(true);
+        window.location.href = process.env.REDIRECT_URL;
         return;
       }
 

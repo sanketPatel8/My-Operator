@@ -12,6 +12,7 @@ export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
   const { success, error } = useToastContext();
+  const [isRedirecting, setIsRedirecting] = useState(false);
   
 
   const [workflows, setWorkflows] = useState([]);
@@ -35,6 +36,14 @@ export default function WorkflowList() {
    const initializeWorkflows = async () => {
       try {
         const storeToken = localStorage.getItem("storeToken");
+
+        if (!storeToken) {
+        console.warn("⚠️ No store token found in localStorage");
+        setIsRedirecting(true);
+        window.location.href = process.env.REDIRECT_URL;
+        return;
+      }
+
         // ✅ Always POST first to sync/update categories
         const initRes = await fetch('/api/category', {
           method: 'POST',
@@ -321,6 +330,23 @@ export default function WorkflowList() {
       onClickButton: () => router.push("/createflow")
     }
   ];
+
+  if (isRedirecting) {
+  return (
+      <div className="font-source-sans flex flex-col min-h-screen">
+        
+        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">  
+          
+          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+ }
 
   if (loading) {
     return (

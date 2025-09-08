@@ -12,6 +12,7 @@ import Link from 'next/link';
 
 function ConnectWhatsApp() {
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState('');
   const [loading, setLoading] = useState(true);
@@ -199,6 +200,15 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
 
   // Fetch WhatsApp numbers on component mount
   useEffect(() => {
+    const storeToken = localStorage.getItem("storeToken");
+      
+      if (!storeToken) {
+        console.warn("⚠️ No store token found in localStorage");
+        setIsRedirecting(true);
+        window.location.href = process.env.REDIRECT_URL;
+        return;
+      }
+
     loadWhatsAppNumbers();
   }, [loadWhatsAppNumbers]);
 
@@ -293,6 +303,23 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
         return 'text-gray-500';
     }
   };
+
+  if (isRedirecting) {
+  return (
+      <div className="font-source-sans flex flex-col min-h-screen">
+        
+        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">  
+          
+          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+ }
 
 
   
