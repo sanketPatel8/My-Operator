@@ -47,7 +47,7 @@ export default function ConnectShopify() {
       } catch (err) {
         console.error("Init error:", err);
       } finally {
-        
+        setLoading(false);
       }
     }
   };
