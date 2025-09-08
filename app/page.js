@@ -111,6 +111,11 @@ export default function ConnectShopify() {
         setStoreName(data.shop);
         setIsStoreReadonly(true);
         console.log("Company store found:", data.shop);
+      } else if (response.status === 404 && data.redirectUrl) {
+        // Company not found, redirect to the provided URL
+        console.log("Company not found, redirecting to:", data.redirectUrl);
+        window.location.href = data.redirectUrl;
+        return;
       } else {
         // Company exists but no store found, keep field editable
         setIsStoreReadonly(false);
@@ -213,6 +218,14 @@ export default function ConnectShopify() {
           // No phone number, redirect to connect WhatsApp page
           router.push("/ConnectWhatsApp");
         }
+      } else if (response.status === 404 && data.redirectUrl) {
+        // Company not found during connect store, redirect to the provided URL
+        console.log("Company not found during store connection, redirecting to:", data.redirectUrl);
+        window.location.href = data.redirectUrl;
+        return;
+      } else {
+        // Handle other error cases
+        setErrorMessage(data.message || "An error occurred while connecting the store.");
       }
      }
     
