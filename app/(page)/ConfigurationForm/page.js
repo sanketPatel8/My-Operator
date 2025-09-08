@@ -229,7 +229,7 @@ useEffect(() => {
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
         setIsRedirecting(true);
-        window.location.href = process.env.NEXT_PUBLIC_BASEURL;
+        window.location.href = process.env.REDIRECT_URL;
         return;
       }
 
