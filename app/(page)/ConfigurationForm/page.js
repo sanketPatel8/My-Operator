@@ -9,8 +9,7 @@ import { FiChevronDown } from "react-icons/fi";
 import { useToastContext } from "@/component/Toast"; // Import the toast hook
 
 function ConfigurationForm({ searchParams }) {
-  // Get shop from URL params
-  const shop = "sanket-store01.myshopify.com";
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   
   const [edit, setEdit] = useState(false);
@@ -229,8 +228,8 @@ useEffect(() => {
       
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
+        setIsRedirecting(true);
         window.location.href = process.env.NEXT_PUBLIC_BASEURL;
-        setLoading(false);
         return;
       }
 
@@ -401,6 +400,23 @@ useEffect(() => {
     fetchWhatsAppPhoneNumbers();
     setEdit(true);
   }
+
+  if (isRedirecting) {
+  return (
+      <div className="font-source-sans flex flex-col min-h-screen">
+        
+        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">  
+          
+          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+ }
 
   if (loading) {
     return (
