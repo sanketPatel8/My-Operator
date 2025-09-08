@@ -12,6 +12,7 @@ export default function ConnectShopify() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [companyId, setCompanyId] = useState(null);
+  const [isStoreReadonly, setIsStoreReadonly] = useState(false);
 
   // Get token from URL and verify it
   useEffect(() => {
@@ -37,14 +38,20 @@ export default function ConnectShopify() {
     }
   }, []);
 
+  // Get company store after companyId is set - THIS WAS MISSING!
+  useEffect(() => {
+    if (companyId && isTokenValid) {
+      getCompanyStore(companyId);
+    }
+  }, [companyId, isTokenValid]);
+
   // Function to verify JWT token
   const verifyToken = async (token) => {
     try {
-      const response = await fetch('/api/verify-token', {
+      const response = await fetch('/api/validate-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // Removed invalid JWT headers - these belong in the token payload, not HTTP headers
         },
         body: JSON.stringify({ token }),
       });
@@ -55,13 +62,6 @@ export default function ConnectShopify() {
         console.log("Token verified successfully:", data);
         setIsTokenValid(true);
         setCompanyId(data.companyId);
-        
-        // Store token info in localStorage
-        localStorage.setItem("tokenInfo", JSON.stringify({
-          companyId: data.companyId,
-          issuedAt: data.issuedAt,
-          expiresAt: data.expiresAt
-        }));
         
         return true;
       } else {
@@ -76,7 +76,37 @@ export default function ConnectShopify() {
     }
   };
 
-  // Validate store exists in database
+  // Function to get company's shop URL
+  const getCompanyStore = async (companyId) => {
+    try {
+      const response = await fetch('/api/company-store', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ companyId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.shop) {
+        // Auto-populate the store name and make it readonly
+        setStoreName(data.shop);
+        setIsStoreReadonly(true);
+        console.log("Company store found:", data.shop);
+      } else {
+        // Company exists but no store found, keep field editable
+        setIsStoreReadonly(false);
+        console.log("No store found for company, field remains editable");
+      }
+    } catch (error) {
+      console.error("Error fetching company store:", error);
+      // Keep field editable on error
+      setIsStoreReadonly(false);
+    }
+  };
+
+  // Validate store exists in database and handle routing logic
   const handleConnectStore = async () => {
     // Check if token is valid before proceeding
     if (!isTokenValid) {
@@ -101,20 +131,40 @@ export default function ConnectShopify() {
         },
         body: JSON.stringify({ 
           storeName: StoreName,
-          companyId // Include company ID from token verification
+          companyId: companyId
         }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Store exists, proceed to next page
+        // Store exists and validation successful
         console.log("Store validated successfully:", data);
-        router.push("/ConfigureWhatsApp");
+        
+        // Store the encrypted storeToken in localStorage
+        if (data.storeToken) {
+          localStorage.setItem("storeToken", data.storeToken);
+        }
+        
+        // Route based on phone number availability
+        if (data.phonenumber) {
+          // Phone number exists, redirect to configuration page
+          router.push("/ConfigurationForm");
+        } else {
+          // No phone number, redirect to connect WhatsApp page
+          router.push("/ConnectWhatsApp");
+        }
       } else {
-        // Store doesn't exist or other error
+        // Handle different error cases
         if (response.status === 404) {
-          setErrorMessage("Store not found in our database. Please check your store URL.");
+          if (data.redirectUrl) {
+            // Company ID not found, redirect to external URL
+            window.location.href = data.redirectUrl;
+          } else {
+            setErrorMessage("Store not found in our database. Please check your store URL.");
+          }
+        } else if (response.status === 400 && data.message === "Store name incorrect") {
+          setErrorMessage("Store name is incorrect. Please verify your Shopify store URL.");
         } else if (response.status === 401) {
           setErrorMessage("Invalid authentication. Please try again.");
         } else {
@@ -257,7 +307,10 @@ export default function ConnectShopify() {
                 Connect your Shopify store
               </h2>
               <p className="text-[#333333] text-[14px] mt-1">
-                Enter your Shopify store URL to begin the installation process
+                {isStoreReadonly 
+                  ? "Your Shopify store has been automatically detected"
+                  : "Enter your Shopify store URL to begin the installation process"
+                }
               </p>
             </div>
 
@@ -266,7 +319,7 @@ export default function ConnectShopify() {
                 htmlFor="storeUrl"
                 className="block text-[12px] text-left mt-5 text-[#333333] mb-1"
               >
-                Store URL
+                Store URL {isStoreReadonly && <span className="text-green-600">(Auto-detected)</span>}
               </label>
               <div className="relative">
                 <Image
@@ -280,13 +333,19 @@ export default function ConnectShopify() {
                   id="storeUrl"
                   type="text"
                   value={StoreName}
-                  onChange={(e) => setStoreName(e.target.value)}
+                  onChange={(e) => !isStoreReadonly && setStoreName(e.target.value)}
                   placeholder="your_store.shopify.com"
-                  className="w-full px-4 py-2 border pl-8 border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  readOnly={isStoreReadonly}
+                  className={`w-full px-4 py-2 border pl-8 border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    isStoreReadonly ? 'bg-gray-50 cursor-not-allowed' : ''
+                  }`}
                 />
               </div>
               <p className="text-[12px] text-[#1A1A1A] mt-1 mb-4">
-                Enter a valid Shopify store URL (e.g., your-store.myshopify.com)
+                {isStoreReadonly 
+                  ? "This store URL was automatically detected from your account"
+                  : "Enter a valid Shopify store URL (e.g., your-store.myshopify.com)"
+                }
               </p>
 
               {/* Token Status Indicator */}
@@ -294,6 +353,7 @@ export default function ConnectShopify() {
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-green-600 text-sm">✅ Authentication verified</p>
                   {companyId && <p className="text-green-600 text-xs">Company ID: {companyId}</p>}
+                  {isStoreReadonly && <p className="text-green-600 text-xs">🏪 Store auto-detected</p>}
                 </div>
               )}
 
