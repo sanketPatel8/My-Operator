@@ -229,6 +229,7 @@ useEffect(() => {
       
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
+        window.location.href = process.env.NEXT_PUBLIC_BASEURL;
         setLoading(false);
         return;
       }
