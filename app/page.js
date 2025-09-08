@@ -63,7 +63,7 @@ export default function ConnectShopify() {
       try {
         await getCompanyStore(companyId);
       } finally {
-        setLoading(false); // ✅ only after call completes
+        
       }
     }
   };
@@ -116,19 +116,25 @@ export default function ConnectShopify() {
       const data = await response.json();
 
       if (response.ok && data.shop) {
+        
         // Auto-populate the store name and make it readonly
         setStoreName(data.shop);
+
         setIsStoreReadonly(true);
+        setLoading(false);
         console.log("Company store found:", data.shop);
       } else if (response.status === 404 && data.redirectUrl) {
         // Company not found, redirect to the provided URL
         console.log("Company not found, redirecting to:", data.redirectUrl);
         window.location.href = data.redirectUrl;
+        setLoading(false);
         return;
+        
       } else {
         // Company exists but no store found, keep field editable
         setIsStoreReadonly(false);
         console.log("No store found for company, field remains editable");
+        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching company store:", error);
