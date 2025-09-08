@@ -38,8 +38,10 @@ export default function WorkflowList() {
         const storeToken = localStorage.getItem("storeToken");
 
         if (!storeToken) {
-        console.warn("⚠️ No store token found in localStorage");
+        console.log("⚠️ No store token found in localStorage");
         setIsRedirecting(true);
+        console.log("redirecttion::", process.env.REDIRECT_URL);
+        
         window.location.href = process.env.REDIRECT_URL;
         return;
       }
