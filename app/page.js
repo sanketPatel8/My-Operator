@@ -4,59 +4,105 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
-export default function ConnectShopif() {
+export default function ConnectShopify() {
   const router = useRouter();
 
   const [StoreName, setStoreName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isTokenValid, setIsTokenValid] = useState(false);
+  const [companyId, setCompanyId] = useState(null);
 
-  // Fetch shop from URL
+  // Get token from URL and verify it
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const shopParam = params.get("shop");
+      const tokenParam = params.get("token");
 
-      if (shopParam) { 
-        setStoreName(shopParam);
-
-        // 🔹 Call backend to fetch encrypted id
-        fetch(`/api/encrypt-store-id?shop=${shopParam}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.encryptedId) {
-              localStorage.setItem("storeToken", data.encryptedId);
-              console.log("Encrypted store id saved to localStorage ✅");
-            } else {
-              console.warn("No encrypted id returned:", data);
+      if (tokenParam) {
+        // Verify the token
+        verifyToken(tokenParam)
+          .then((isValid) => {
+            if (!isValid) {
+              setErrorMessage("Invalid or expired token. Please try again.");
             }
           })
-          .catch((err) => console.error("Error fetching encrypted id:", err));
+          .catch((err) => {
+            console.error("Token verification error:", err);
+            setErrorMessage("Authentication failed. Please try again.");
+          });
+      } else {
+        setErrorMessage("Authentication token is required.");
       }
     }
   }, []);
 
+  // Function to verify JWT token
+  const verifyToken = async (token) => {
+    try {
+      const response = await fetch('/api/verify-token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // Removed invalid JWT headers - these belong in the token payload, not HTTP headers
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Token verified successfully:", data);
+        setIsTokenValid(true);
+        setCompanyId(data.companyId);
+        
+        // Store token info in localStorage
+        localStorage.setItem("tokenInfo", JSON.stringify({
+          companyId: data.companyId,
+          issuedAt: data.issuedAt,
+          expiresAt: data.expiresAt
+        }));
+        
+        return true;
+      } else {
+        console.error("Token verification failed:", data);
+        setIsTokenValid(false);
+        return false;
+      }
+    } catch (error) {
+      console.error("Token verification request failed:", error);
+      setIsTokenValid(false);
+      return false;
+    }
+  };
+
   // Validate store exists in database
   const handleConnectStore = async () => {
+    // Check if token is valid before proceeding
+    if (!isTokenValid) {
+      setErrorMessage("Please verify your authentication first.");
+      return;
+    }
+
+    if (!StoreName.trim()) {
+      setErrorMessage("Please enter your Shopify store URL.");
+      return;
+    }
+
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const storeToken = localStorage.getItem("storeToken");
-      
-      if (!storeToken) {
-        setErrorMessage("Store token not found. Please reinstall app and try again.");
-        setIsLoading(false);
-        return;
-      }
-
-      // Call the validation API
+      // Call the validation API with store name and company ID
       const response = await fetch("/api/store-phone", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ storeToken }),
+        body: JSON.stringify({ 
+          storeName: StoreName,
+          companyId // Include company ID from token verification
+        }),
       });
 
       const data = await response.json();
@@ -68,9 +114,9 @@ export default function ConnectShopif() {
       } else {
         // Store doesn't exist or other error
         if (response.status === 404) {
-          setErrorMessage("Store not found in our database. Please reinstall app and try again.");
+          setErrorMessage("Store not found in our database. Please check your store URL.");
         } else if (response.status === 401) {
-          setErrorMessage("Invalid store token. Please reinstall app and try again.");
+          setErrorMessage("Invalid authentication. Please try again.");
         } else {
           setErrorMessage(data.message || "An error occurred while validating the store.");
         }
@@ -82,7 +128,6 @@ export default function ConnectShopif() {
       setIsLoading(false);
     }
   };
-  
 
   return (
     <div className="font-source-sans min-h-screen bg-white px-4 py-10 flex flex-col items-center">
@@ -135,7 +180,7 @@ export default function ConnectShopif() {
                 icon: (
                   <Image
                     src="/assets/second_icon.svg"
-                    alt="first icon"
+                    alt="second icon"
                     height={100}
                     width={100}
                     className="h-[37px] w-[37px]"
@@ -148,7 +193,7 @@ export default function ConnectShopif() {
                 icon: (
                   <Image
                     src="/assets/third_icon.svg"
-                    alt="first icon"
+                    alt="third icon"
                     height={100}
                     width={100}
                     className="h-[37px] w-[37px]"
@@ -161,7 +206,7 @@ export default function ConnectShopif() {
                 icon: (
                   <Image
                     src="/assets/fourth_icon.svg"
-                    alt="first icon"
+                    alt="fourth icon"
                     height={100}
                     width={100}
                     className="h-[37px] w-[37px]"
@@ -174,7 +219,7 @@ export default function ConnectShopif() {
                 icon: (
                   <Image
                     src="/assets/fifth_icon.svg"
-                    alt="first icon"
+                    alt="fifth icon"
                     height={100}
                     width={100}
                     className="h-[37px] w-[37px]"
@@ -185,10 +230,10 @@ export default function ConnectShopif() {
               <li key={i} className="flex items-start space-x-4">
                 <div>{item.icon}</div>
                 <div>
-                  <h3 className="font-semibold text-[14px]  text-[#1A1A1A]">
+                  <h3 className="font-semibold text-[14px] text-[#1A1A1A]">
                     {item.title}
                   </h3>
-                  <p className="text-[#999999] text-[12px] text-sm">
+                  <p className="text-[#999999] text-[12px]">
                     {item.desc}
                   </p>
                 </div>
@@ -223,24 +268,34 @@ export default function ConnectShopif() {
               >
                 Store URL
               </label>
-              <Image
-                src="/assets/cart.svg"
-                alt="cart"
-                height={100}
-                width={100}
-                className="h-[12px] w-[12px] absolute mt-3 ml-3"
-              />
-              <input
-                id="storeUrl"
-                type="text"
-                value={StoreName}
-                readOnly
-                placeholder="your_store.shopify.com"
-                className="w-full px-4 py-2 border pl-8 border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="relative">
+                <Image
+                  src="/assets/cart.svg"
+                  alt="cart"
+                  height={100}
+                  width={100}
+                  className="h-[12px] w-[12px] absolute top-3 left-3 z-10"
+                />
+                <input
+                  id="storeUrl"
+                  type="text"
+                  value={StoreName}
+                  onChange={(e) => setStoreName(e.target.value)}
+                  placeholder="your_store.shopify.com"
+                  className="w-full px-4 py-2 border pl-8 border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
               <p className="text-[12px] text-[#1A1A1A] mt-1 mb-4">
                 Enter a valid Shopify store URL (e.g., your-store.myshopify.com)
               </p>
+
+              {/* Token Status Indicator */}
+              {isTokenValid && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-green-600 text-sm">✅ Authentication verified</p>
+                  {companyId && <p className="text-green-600 text-xs">Company ID: {companyId}</p>}
+                </div>
+              )}
 
               {/* Error Message */}
               {errorMessage && (
@@ -252,7 +307,7 @@ export default function ConnectShopif() {
               <button
                 type="button"
                 onClick={handleConnectStore}
-                disabled={isLoading || !StoreName}
+                disabled={isLoading || !isTokenValid}
                 className="w-full bg-[#343E55] mt-3 text-white py-2 rounded-md hover:bg-gray-800 transition text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Connecting..." : "Connect Store"}

@@ -8,6 +8,7 @@ import { SidebarDropdown } from "@/component/SidebarDropdown";
 import { FaChevronRight, FaChevronLeft, FaPowerOff, FaSearch   } from "react-icons/fa";
 import { SidebarSubItem } from "@/component/SideBarSubItem";
 import ToggleSwitch from "@/component/ToggleSwitch";
+import Link from "next/link";
 
 export default function ConfigurationForm() {
   const [edit, setEdit] = useState(false);
@@ -343,9 +344,12 @@ export default function ConfigurationForm() {
                       </p>
                     </div>
                     <div className="flex items-center">
-                      <button className="bg-white cursor-pointer border border-[#E4E4E4] text-[#343E55] text-[12px] pr-[34px] pl-[16px] py-[10px] rounded-[4px] font-semibold">
+                      <Link
+                       target="blank"
+                       href="https://my-operator.vercel.app"
+                      className="bg-white cursor-pointer border border-[#E4E4E4] text-[#343E55] text-[12px] pr-[34px] pl-[16px] py-[10px] rounded-[4px] font-semibold">
                         Configure
-                      </button>
+                      </Link>
                       <div className="absolute ml-20">
                         <Image
                           src="/assets/configure.svg"
