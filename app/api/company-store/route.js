@@ -23,24 +23,35 @@ export async function POST(request) {
       );
       
       if (redirectRows && redirectRows.length > 0) {
-        return NextResponse.json({ 
+        return NextResponse.json({
           message: 'Company not found',
-          redirectUrl: redirectRows[0].link 
+          redirectUrl: redirectRows[0].link
         }, { status: 404 });
-      } 
+      } else {
+        // No redirection URL found either
+        return NextResponse.json({
+          message: 'Company not found and no redirection URL available'
+        }, { status: 404 });
+      }
     }
 
+    // Now we're sure storeRows[0] exists
     const rows = await query(
-      `SELECT id, shop, brand_name, public_shop_url, countrycode, phonenumber, waba_id, phone_number_id, company_id, installed_at 
-       FROM stores 
-       WHERE shop = ? 
-       LIMIT 1`,
+      `SELECT id, shop, brand_name, public_shop_url, countrycode, phonenumber, waba_id, phone_number_id, company_id, installed_at
+        FROM stores
+        WHERE shop = ?
+        LIMIT 1`,
       [storeRows[0].shop]
     );
 
-    return NextResponse.json(rows[0]);
-    
+    if (!rows || rows.length === 0) {
+      return NextResponse.json({
+        message: 'Store details not found'
+      }, { status: 404 });
+    }
 
+    return NextResponse.json(rows[0]);
+        
   } catch (error) {
     console.error('Error fetching company store:', error);
     return NextResponse.json(
