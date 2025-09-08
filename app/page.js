@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 
 export default function ConnectShopify() {
   const [loading, setLoading] = useState(true);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
 
   const [StoreName, setStoreName] = useState("");
@@ -126,8 +127,8 @@ export default function ConnectShopify() {
       } else if (response.status === 404 && data.redirectUrl) {
         // Company not found, redirect to the provided URL
         console.log("Company not found, redirecting to:", data.redirectUrl);
+        setIsRedirecting(true);
         window.location.href = data.redirectUrl;
-        setLoading(false);
         return;
         
       } else {
@@ -251,6 +252,10 @@ export default function ConnectShopify() {
       setIsLoading(false);
     }
   };
+
+  if (isRedirecting) {
+  return null; // render nothing during redirect
+ }
 
   if (loading) {
     return (
