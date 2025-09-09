@@ -714,7 +714,7 @@ const reloadTemplateDataOptimized = async () => {
 
     console.log("Sending test message with payload:", testPayload);
 
-    const response = await fetch('/api/test-message', {
+    const response = await fetch('/api/test-template', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
