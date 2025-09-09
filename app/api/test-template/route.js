@@ -9,9 +9,6 @@ const dbConfig = {
   database: process.env.DATABASE_NAME
 };
 
-// ✅ In-memory orders store
-let orders = [];
-
 // Helper function to create database connection
 async function getDbConnection() {
   try {
@@ -37,21 +34,20 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
           template_name: templateName,
           language: "en",
           body: templateContent.body.example || {},
-         "buttons": [
-        {
-          "index": 0,
-          "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
-        }
-      ]
+          "buttons": [
+            {
+              "index": 0,
+              "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
+            }
+          ]
         }
       },
       reply_to: null,
-      myop_ref_id: "csat_123"
+      myop_ref_id: "test_message_" + Date.now()
     };
     
-    console.log('📤 Sending message payload:', JSON.stringify(messagePayload, null, 2));
+    console.log('📤 Sending test message payload:', JSON.stringify(messagePayload, null, 2));
     
-    // Make API call to send message.
     const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`, {
       method: 'POST',
       headers: {
@@ -64,17 +60,17 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
     });
     
     const result = await response.json();
-    console.log('✅ Message sent successfully:', result);
+    console.log('✅ Test message sent successfully:', result);
     return result;
     
   } catch (error) {
-    console.error('❌ Error sending WhatsApp message:', error);
+    console.error('❌ Error sending WhatsApp test message:', error);
     throw error;
   }
 }
 
-// ✅ Function to build WhatsApp template content using fallback values
-function buildTemplateContentWithFallbacks(templateRows) {
+// ✅ Updated function to build template content using USER-ENTERED fallback values
+function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues) {
   const templateContent = {
     header: null,
     body: null,
@@ -83,6 +79,8 @@ function buildTemplateContentWithFallbacks(templateRows) {
   };
 
   const bodyExample = {};
+
+  console.log('🔧 Building template content with user-entered fallbacks:', userFallbackValues);
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value || '{}');
@@ -95,9 +93,23 @@ function buildTemplateContentWithFallbacks(templateRows) {
       case "BODY":
         templateContent.body = value;
 
-        // Use fallback_value instead of extracted data
-        if (row.variable_name && row.fallback_value) {
-          bodyExample[row.variable_name] = row.fallback_value;
+        // ✅ USE USER-ENTERED FALLBACK VALUES instead of database values
+        if (row.variable_name) {
+          // Clean variable name (remove {{ }} if present)
+          let cleanVariableName = row.variable_name.replace(/[{}]/g, '');
+          
+          // Try to find user-entered fallback value
+          const userFallback = userFallbackValues[cleanVariableName] || 
+                              userFallbackValues[row.variable_name];
+
+          if (userFallback) {
+            bodyExample[row.variable_name] = userFallback;
+            console.log(`✅ Using user fallback for ${row.variable_name}: ${userFallback}`);
+          } else {
+            console.warn(`⚠️ No user fallback found for variable: ${row.variable_name}`);
+            // Fallback to database value if no user value (shouldn't happen with frontend validation)
+            bodyExample[row.variable_name] = row.fallback_value || `[${cleanVariableName}]`;
+          }
         }
         break;
 
@@ -108,8 +120,6 @@ function buildTemplateContentWithFallbacks(templateRows) {
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
         const buttons = value.buttons || [value];
-
-        // Only push non-null & non-empty objects
         buttons.forEach((btn) => {
           if (btn && Object.keys(btn).length > 0) {
             templateContent.buttons.push(btn);
@@ -126,27 +136,47 @@ function buildTemplateContentWithFallbacks(templateRows) {
     templateContent.body.example = bodyExample;
   }
 
+  console.log('🏗️ Built template content:', JSON.stringify(templateContent, null, 2));
   return templateContent;
 }
 
-// ✅ Handle POST (receive category_event_id and phonenumber, send message with fallback values)
+// ✅ Handle POST request with user-entered fallback values
 export async function POST(req) {
   let connection;
 
   try {
     const requestData = await req.json();
-    const { category_event_id, phonenumber } = requestData;
+    const { category_event_id, phonenumber, fallbackValues, variableSettings } = requestData;
 
-    console.log(`📦 Request received with category_event_id: ${category_event_id}, phonenumber: ${phonenumber}`);
+    console.log(`📦 Test request received:`, {
+      category_event_id,
+      phonenumber,
+      fallbackValues,
+      totalVariables: Object.keys(fallbackValues || {}).length
+    });
 
+    // ✅ VALIDATE REQUIRED PARAMETERS
     if (!category_event_id || !phonenumber) {
       throw new Error('Missing required parameters: category_event_id and phonenumber');
+    }
+
+    if (!fallbackValues || Object.keys(fallbackValues).length === 0) {
+      throw new Error('Missing fallback values. Please provide fallback values for all template variables.');
+    }
+
+    // Validate that all fallback values are non-empty
+    const emptyFallbacks = Object.entries(fallbackValues).filter(([key, value]) => 
+      !value || value.toString().trim() === ''
+    );
+
+    if (emptyFallbacks.length > 0) {
+      throw new Error(`Empty fallback values found for: ${emptyFallbacks.map(([key]) => `{{${key}}}`).join(', ')}`);
     }
 
     // Get database connection
     connection = await getDbConnection();
 
-    // 1. Fetch category_event data using category_event_id
+    // 1. Fetch category_event data
     const [categoryRows] = await connection.execute(
       'SELECT template_id, template_data_id, title, store_id FROM category_event WHERE category_event_id = ? LIMIT 1',
       [category_event_id]
@@ -157,9 +187,9 @@ export async function POST(req) {
     }
 
     const { template_id, template_data_id, title, store_id } = categoryRows[0];
-    console.log(`🧩 Category Event found: ${title}, template_id: ${template_id}, template_data_id: ${template_data_id}, store_id: ${store_id}`);
+    console.log(`🧩 Category Event: ${title}, template_data_id: ${template_data_id}`);
 
-    // 2. Fetch store data using store_id
+    // 2. Fetch store data
     const [storeRows] = await connection.execute(
       'SELECT * FROM stores WHERE id = ?',
       [store_id]
@@ -170,22 +200,22 @@ export async function POST(req) {
     }
 
     const storeData = storeRows[0];
-    console.log('🏪 Store data fetched:', storeData.shop);
+    console.log('🏪 Store data fetched for:', storeData.shop);
 
-    // 3. Fetch template name using template_id
+    // 3. Fetch template name
     const [templateRowsMeta] = await connection.execute(
       'SELECT template_name FROM template WHERE template_id = ? AND store_id = ? LIMIT 1',
       [template_id, store_id]
     );
 
     if (templateRowsMeta.length === 0) {
-      throw new Error(`No template found for template_id: ${template_id} with store_id: ${store_id}`);
+      throw new Error(`No template found for template_id: ${template_id}`);
     }
 
     const templateName = templateRowsMeta[0].template_name;
-    console.log(`📛 Template name found: ${templateName}`);
+    console.log(`📛 Template name: ${templateName}`);
 
-    // 4. Fetch template variables with fallback values
+    // 4. Fetch template structure (we still need the structure, just not the database fallback values)
     const [templateRows] = await connection.execute(
       'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
       [template_data_id]
@@ -195,23 +225,18 @@ export async function POST(req) {
       throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
     }
 
-    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
-    console.log('📋 Template variables with fallback values:', templateRows.map(row => ({
-      variable_name: row.variable_name,
-      fallback_value: row.fallback_value,
-      component_type: row.component_type
-    })));
+    console.log(`📄 Template structure fetched: ${templateRows.length} variables`);
 
-    // 5. Build template content using fallback values
-    const templateContent = buildTemplateContentWithFallbacks(templateRows);
+    // ✅ 5. Build template content using USER-ENTERED fallback values
+    const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues);
 
     if (!templateContent) {
       throw new Error(`Failed to build template content for: ${templateName}`);
     }
 
-    console.log(`📝 Template content built with fallback values for "${templateName}":`, JSON.stringify(templateContent, null, 2));
+    console.log(`📝 Template content built with user fallback values for "${templateName}"`);
 
-    // 6. Send WhatsApp message
+    // 6. Send WhatsApp test message
     try {
       const messageResult = await sendWhatsAppMessage(
         phonenumber,
@@ -220,25 +245,26 @@ export async function POST(req) {
         storeData
       );
 
-      console.log(`✅ WhatsApp message sent successfully for "${templateName}"`);
+      console.log(`✅ Test WhatsApp message sent successfully for "${templateName}"`);
       
       return NextResponse.json({ 
         status: "success", 
-        message: `WhatsApp message sent successfully using fallback values`,
+        message: `Test message sent successfully using your fallback values`,
         templateName: templateName,
         categoryEventTitle: title,
         sentTo: phonenumber,
+        usedFallbackValues: fallbackValues,
         templateContent: templateContent,
         messageResult: messageResult
       });
 
     } catch (messageError) {
-      console.error(`❌ Failed to send WhatsApp message for "${templateName}":`, messageError);
-      throw new Error(`Failed to send WhatsApp message: ${messageError.message}`);
+      console.error(`❌ Failed to send test WhatsApp message:`, messageError);
+      throw new Error(`Failed to send test message: ${messageError.message}`);
     }
 
   } catch (err) {
-    console.error("❌ Error processing request:", err);
+    console.error("❌ Error processing test request:", err);
     return NextResponse.json(
       { 
         status: "error", 
@@ -253,16 +279,16 @@ export async function POST(req) {
   }
 }
 
-// ✅ Handle GET (return stored orders)
+// Keep the existing GET method for fetching orders
 export async function GET() {
   try {
     return NextResponse.json({ 
       status: "success", 
-      orders: orders,
-      total: orders.length
+      message: "Test API is working",
+      timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error("❌ Error fetching orders:", error);
+    console.error("❌ Error in GET request:", error);
     return NextResponse.json(
       { status: "error", message: error.message },
       { status: 500 }

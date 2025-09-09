@@ -718,54 +718,84 @@ const reloadTemplateDataOptimized = async () => {
     return [];
   };
 
-  const handleSendTestMessage = async () => {
-    if (!testPhoneNumber.trim()) {
-      error("Please enter a phone number");
-      return;
+  // In your Editflow component, update the handleSendTestMessage function:
+
+const handleSendTestMessage = async () => {
+  if (!testPhoneNumber.trim()) {
+    error("Please enter a phone number");
+    return;
+  }
+
+  if (!currentWorkflowData?.category_event_id) {
+    error("Category event ID not found");
+    return;
+  }
+
+  // ✅ VALIDATE FALLBACK VALUES BEFORE SENDING
+  const allVariables = [
+    ...templateVariables.header,
+    ...templateVariables.body,
+    ...templateVariables.buttons
+  ];
+
+  const missingFallbacks = [];
+  const fallbackValues = {};
+  
+  for (const variable of allVariables) {
+    const fallbackValue = variableSettings[variable]?.fallback;
+    if (!fallbackValue || fallbackValue.trim() === '') {
+      missingFallbacks.push(variable);
+    } else {
+      fallbackValues[variable] = fallbackValue.trim();
+    }
+  }
+
+  if (missingFallbacks.length > 0) {
+    error(`Please provide fallback values for the following variables: ${missingFallbacks.map(v => `{{${v}}}`).join(', ')}`);
+    return;
+  }
+
+  try {
+    setTestLoading(true);
+
+    // ✅ SEND USER-ENTERED FALLBACK VALUES IN REQUEST
+    const testPayload = {
+      category_event_id: currentWorkflowData.category_event_id,
+      phonenumber: testPhoneNumber.trim(),
+      fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
+      variableSettings: variableSettings // ✅ Send complete variable settings
+    };
+
+    console.log("Sending test message with payload:", testPayload);
+
+    const response = await fetch('/api/test-template', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(testPayload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.status === 'success') {
+      success(`Test message sent successfully to ${testPhoneNumber}`);
+      setShowTestPopup(false);
+      setTestPhoneNumber('');
+    } else {
+      throw new Error(result.message || 'Failed to send test message');
     }
 
-    if (!currentWorkflowData?.category_event_id) {
-      error("Category event ID not found");
-      return;
-    }
+  } catch (err) {
+    console.error('Test message error:', err);
+    error(`Failed to send test message: ${err.message}`);
+  } finally {
+    setTestLoading(false);
+  }
+};
 
-    try {
-      setTestLoading(true);
-
-      const testPayload = {
-        category_event_id: currentWorkflowData.category_event_id,
-        phonenumber: testPhoneNumber.trim()
-      };
-
-      console.log("Sending test message with payload:", testPayload);
-
-      const response = await fetch('/api/test-template', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(testPayload)
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.status === 'success') {
-        success(`Test message sent successfully to ${testPhoneNumber}`);
-        setShowTestPopup(false);
-        setTestPhoneNumber('');
-      } else {
-        throw new Error(result.message || 'Failed to send test message');
-      }
-
-    } catch (err) {
-      console.error('Test message error:', err);
-      error(`Failed to send test message: ${err.message}`);
-    } finally {
-      setTestLoading(false);
-    }
-  };
-
-  const TestMessagePopup = ({
+// ✅ ALSO UPDATE THE TestMessagePopup COMPONENT VALIDATION
+const TestMessagePopup = ({
   showTestPopup,
   setShowTestPopup,
   testPhoneNumber,
@@ -777,53 +807,75 @@ const reloadTemplateDataOptimized = async () => {
 }) => {
   if (!showTestPopup) return null;
 
-  // Validate fallback values for all variables
-    const allVariables = [
-      ...templateVariables.header,
-      ...templateVariables.body,
-      ...templateVariables.buttons
-    ];
+  // ✅ VALIDATE FALLBACK VALUES WHEN POPUP OPENS
+  const allVariables = [
+    ...templateVariables.header,
+    ...templateVariables.body,
+    ...templateVariables.buttons
+  ];
 
-    const missingFallbacks = [];
-    
-    for (const variable of allVariables) {
-      const fallbackValue = variableSettings[variable]?.fallback;
-      if (!fallbackValue || fallbackValue.trim() === '') {
-        missingFallbacks.push(variable);
-      }
-    }
-
-    if (missingFallbacks.length > 0) {
-      setLoading1(false);
-      error(`Please provide fallback values for the following variables: ${missingFallbacks.map(v => `{{${v}}}`).join(', ')}`);
-      return;
-    }
-
-  // Check if phone number is complete (exactly 10 digits)
-  const isPhoneNumberComplete = testPhoneNumber.length === 10;
+  const missingFallbacks = [];
   
-  // Handle close attempt - only allow if phone number is complete or empty
-  const handleCloseAttempt = () => {
-    if (testPhoneNumber.length === 0 || isPhoneNumberComplete) {
-      setShowTestPopup(false);
-      setTestPhoneNumber('');
+  for (const variable of allVariables) {
+    const fallbackValue = variableSettings[variable]?.fallback;
+    if (!fallbackValue || fallbackValue.trim() === '') {
+      missingFallbacks.push(variable);
     }
-  };
+  }
 
-  // Handle backdrop click - prevent closing if phone number is incomplete
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      handleCloseAttempt();
-    }
-  };
+  // ✅ SHOW WARNING IF FALLBACK VALUES ARE MISSING
+  if (missingFallbacks.length > 0) {
+    return (
+      <div 
+        className="fixed inset-0 flex items-center justify-center z-50" 
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+        onClick={() => setShowTestPopup(false)}
+      >
+        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Missing Fallback Values</h3>
+            <button
+              onClick={() => setShowTestPopup(false)}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
 
-  // Handle escape key - prevent closing if phone number is incomplete
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      handleCloseAttempt();
-    }
-  };
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-red-800">
+                  Please provide fallback values for the following variables before testing:
+                </p>
+                <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
+                  {missingFallbacks.map(variable => (
+                    <li key={variable}>`${variable}`</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowTestPopup(false)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
+              Go Back and Add Fallback Values
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
