@@ -146,17 +146,14 @@ export default function ConnectShopify() {
 
   // Validate store exists in database and handle routing logic
   const handleConnectStore = async () => {
-    // Check if token is valid before proceeding
-
-    try {
-
+  try {
     const params = new URLSearchParams(window.location.search);
     const tokenParam = params.get("token");
     const shopParam = params.get("shop");
 
-    if(shopParam){
-
-    const storeToken = localStorage.getItem("storeToken");
+    // Handle shopParam flow (direct store connection)
+    if (shopParam) {
+      const storeToken = localStorage.getItem("storeToken");
       
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
@@ -180,24 +177,24 @@ export default function ConnectShopify() {
         console.log("Store validated successfully:", data);
         router.push("/ConfigureWhatsApp");
       }
+      return; // Important: return here to avoid executing tokenParam logic
     }
 
+    // Handle tokenParam flow (JWT-based authentication)
+    if (tokenParam) {
+      if (!isTokenValid) {
+        setErrorMessage("Please verify your authentication first.");
+        return;
+      }
 
-    if(tokenParam){
-    if (!isTokenValid) {
-      setErrorMessage("Please verify your authentication first.");
-      return;
-    }
+      if (!StoreName.trim()) {
+        setErrorMessage("Please enter your Shopify store URL.");
+        return;
+      }
 
-    if (!StoreName.trim()) {
-      setErrorMessage("Please enter your Shopify store URL.");
-      return;
-    }
+      setIsLoading(true);
+      setErrorMessage("");
 
-    setIsLoading(true);
-    setErrorMessage("");
-
-    
       // Call the validation API with store name and company ID
       const response = await fetch("/api/company-store", {
         method: "POST",
@@ -215,17 +212,16 @@ export default function ConnectShopify() {
         // Store exists and validation successful
         console.log("Store validated successfully:", data);
         
-        fetch(`/api/encrypt-store-id?shop=${data.shop}`)
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.encryptedId) {
-              localStorage.setItem("storeToken", data.encryptedId);
-              console.log("Encrypted store id saved to localStorage ✅");
-            } else {
-              console.warn("No encrypted id returned:", data);
-            }
-          })
-          .catch((err) => console.error("Error fetching encrypted id:", err));
+        // Create and save the encrypted store token
+        const encryptResponse = await fetch(`/api/encrypt-store-id?shop=${data.shop}`);
+        const encryptData = await encryptResponse.json();
+        
+        if (encryptData.encryptedId) {
+          localStorage.setItem("storeToken", encryptData.encryptedId);
+          console.log("Encrypted store id saved to localStorage ✅");
+        } else {
+          console.warn("No encrypted id returned:", encryptData);
+        }
         
         // Route based on phone number availability
         if (data.phonenumber) {
@@ -244,15 +240,15 @@ export default function ConnectShopify() {
         // Handle other error cases
         setErrorMessage(data.message || "An error occurred while connecting the store.");
       }
-     }
-    
-    } catch (error) {
-      console.error("Error validating store:", error);
-      setErrorMessage("Network error. Please check your connection and try again.");
-    } finally {
-      setIsLoading(false);
     }
-  };
+    
+  } catch (error) {
+    console.error("Error validating store:", error);
+    setErrorMessage("Network error. Please check your connection and try again.");
+  } finally {
+    setIsLoading(false);
+  }
+ };
 
   if (isRedirecting) {
   return (
