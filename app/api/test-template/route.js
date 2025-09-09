@@ -235,11 +235,9 @@ export async function POST(req) {
     // ✅ 5. Build template content using USER-ENTERED fallback values
     const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues);
 
-    if (!templateContent) {
-      throw new Error(`Failed to build template content for: ${templateName}`);
-    }
+    
 
-    console.log(`📝 Template content built with user fallback values for "${templateName}"`);
+    
 
     // 6. Send WhatsApp test message
     try {
@@ -250,12 +248,12 @@ export async function POST(req) {
         storeData
       );
 
-      console.log(`✅ Test WhatsApp message sent successfully for "${templateName}"`);
+      console.log(`✅ Test WhatsApp message sent successfully for "${selectedTemplate}"`);
       
       return NextResponse.json({ 
         status: "success", 
         message: `Test message sent successfully using your fallback values`,
-        templateName: templateName,
+        templateName: selectedTemplate,
         categoryEventTitle: title,
         sentTo: phonenumber,
         usedFallbackValues: fallbackValues,
