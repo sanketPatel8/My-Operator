@@ -803,19 +803,22 @@ const TestMessagePopup = ({
   testLoading,
   handleSendTestMessage,
   selectedTemplate,
-  currentWorkflowData,
+  currentWorkflowData        // ✅ Added as prop
 }) => {
   if (!showTestPopup) return null;
 
-  // ✅ VALIDATE FALLBACK VALUES WHEN POPUP OPENS
+  // ✅ Check if phone number is valid
+  const isPhoneNumberComplete = testPhoneNumber.length === 10;
+
+  // ✅ Validate fallback values
   const allVariables = [
     ...templateVariables.header,
     ...templateVariables.body,
-    ...templateVariables.buttons
+    ...templateVariables.buttons,
   ];
 
   const missingFallbacks = [];
-  
+
   for (const variable of allVariables) {
     const fallbackValue = variableSettings[variable]?.fallback;
     if (!fallbackValue || fallbackValue.trim() === '') {
@@ -823,29 +826,30 @@ const TestMessagePopup = ({
     }
   }
 
+  // ✅ Handle backdrop click
   const handleBackdropClick = () => {
-  setShowTestPopup(false);
-};
-
-const handleKeyDown = (e) => {
-  if (e.key === 'Escape') {
     setShowTestPopup(false);
-  }
-};
+  };
 
-const handleCloseAttempt = () => {
-  
-    setShowTestPopup(false);
-  
-};
+  // ✅ Handle Escape key press
+  const handleKeyDown = (e) => {
+    if (e.key === 'Escape') {
+      setShowTestPopup(false);
+    }
+  };
 
+  // ✅ Handle close button and cancel click with validation
+  const handleCloseAttempt = () => {
+    if (testPhoneNumber.length === 0 || isPhoneNumberComplete) {
+      setShowTestPopup(false);
+    }
+  };
 
-
-  // ✅ SHOW WARNING IF FALLBACK VALUES ARE MISSING
+  // ✅ Show fallback warning popup if values are missing
   if (missingFallbacks.length > 0) {
     return (
-      <div 
-        className="fixed inset-0 flex items-center justify-center z-50" 
+      <div
+        className="fixed inset-0 flex items-center justify-center z-50"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
         onClick={() => setShowTestPopup(false)}
       >
@@ -875,7 +879,7 @@ const handleCloseAttempt = () => {
                 </p>
                 <ul className="mt-2 text-sm text-red-700 list-disc list-inside">
                   {missingFallbacks.map(variable => (
-                    <li key={variable}>`${variable}`</li>
+                    <li key={variable}>{`{{${variable}}}`}</li>
                   ))}
                 </ul>
               </div>
@@ -896,8 +900,8 @@ const handleCloseAttempt = () => {
   }
 
   return (
-    <div 
-      className="fixed inset-0 flex items-center justify-center z-50" 
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
@@ -910,14 +914,14 @@ const handleCloseAttempt = () => {
           <button
             onClick={handleCloseAttempt}
             className={`text-gray-400 hover:text-gray-600 transition-colors ${
-              !isPhoneNumberComplete && testPhoneNumber.length > 0 
-                ? 'opacity-50 cursor-not-allowed hover:text-gray-400' 
+              !isPhoneNumberComplete && testPhoneNumber.length > 0
+                ? 'opacity-50 cursor-not-allowed hover:text-gray-400'
                 : ''
             }`}
             disabled={!isPhoneNumberComplete && testPhoneNumber.length > 0}
             title={
-              !isPhoneNumberComplete && testPhoneNumber.length > 0 
-                ? 'Please complete the 10-digit phone number first' 
+              !isPhoneNumberComplete && testPhoneNumber.length > 0
+                ? 'Please complete the 10-digit phone number first'
                 : 'Close'
             }
           >
@@ -930,8 +934,7 @@ const handleCloseAttempt = () => {
         {/* Input */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Phone Number
-            <span className="text-red-500 ml-1">*</span>
+            Phone Number<span className="text-red-500 ml-1">*</span>
           </label>
           <input
             type="text"
@@ -953,32 +956,42 @@ const handleCloseAttempt = () => {
             required
           />
           <div className="flex justify-between items-center mt-1">
-            <p className={`text-xs ${
-              testPhoneNumber.length > 0 && testPhoneNumber.length < 10 
-                ? 'text-red-500' 
-                : 'text-gray-500'
-            }`}>
-              {testPhoneNumber.length > 0 && testPhoneNumber.length < 10 
+            <p
+              className={`text-xs ${
+                testPhoneNumber.length > 0 && testPhoneNumber.length < 10
+                  ? 'text-red-500'
+                  : 'text-gray-500'
+              }`}
+            >
+              {testPhoneNumber.length > 0 && testPhoneNumber.length < 10
                 ? `Please enter all 10 digits (${testPhoneNumber.length}/10)`
-                : 'Enter phone number without country code (10 digits required)'
-              }
+                : 'Enter phone number without country code (10 digits required)'}
             </p>
-            <span className={`text-xs font-medium ${
-              testPhoneNumber.length === 10 ? 'text-green-600' : 
-              testPhoneNumber.length > 0 ? 'text-red-500' : 'text-gray-400'
-            }`}>
+            <span
+              className={`text-xs font-medium ${
+                testPhoneNumber.length === 10
+                  ? 'text-green-600'
+                  : testPhoneNumber.length > 0
+                  ? 'text-red-500'
+                  : 'text-gray-400'
+              }`}
+            >
               {testPhoneNumber.length}/10
             </span>
           </div>
         </div>
 
-        {/* Warning message when trying to close with incomplete number */}
+        {/* Warning */}
         {testPhoneNumber.length > 0 && testPhoneNumber.length < 10 && (
           <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
             <div className="flex">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
@@ -1011,8 +1024,8 @@ const handleCloseAttempt = () => {
             }`}
             disabled={!isPhoneNumberComplete && testPhoneNumber.length > 0}
             title={
-              !isPhoneNumberComplete && testPhoneNumber.length > 0 
-                ? 'Complete the phone number to cancel' 
+              !isPhoneNumberComplete && testPhoneNumber.length > 0
+                ? 'Complete the phone number to cancel'
                 : 'Cancel'
             }
           >
@@ -1027,8 +1040,8 @@ const handleCloseAttempt = () => {
                 : 'bg-blue-600 text-white hover:bg-blue-700'
             }`}
             title={
-              !isPhoneNumberComplete 
-                ? 'Enter complete 10-digit phone number to send' 
+              !isPhoneNumberComplete
+                ? 'Enter complete 10-digit phone number to send'
                 : 'Send test message'
             }
           >
@@ -1042,6 +1055,7 @@ const handleCloseAttempt = () => {
     </div>
   );
 };
+
 
 
   if (loading) {
