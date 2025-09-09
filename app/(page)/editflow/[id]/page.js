@@ -1109,7 +1109,9 @@ const TestMessagePopup = ({
                   {/* Delay Dropdown - Only show for Abandoned Cart Recovery */}
                   {(currentWorkflowData?.title === "Reminder 1" || 
                   currentWorkflowData?.title === "Reminder 2" || 
-                  currentWorkflowData?.title === "Reminder 3") && (
+                  currentWorkflowData?.title === "Reminder 3" ||
+                  currentWorkflowData?.title === "Reorder Reminder" || 
+                  currentWorkflowData?.title === "Order Feedback") && (
                     <div className="flex-1">
                       <label className="block text-[12px] text-[#555555] mb-[4px]">
                         Delay
