@@ -182,14 +182,14 @@ export async function POST(req) {
           Array.isArray(data.fulfillments) &&
           data.fulfillments?.[0].shipment_status.includes("delivered")
         ) {
-          eventTitles = ["Order Delivered"];
+          eventTitles = ["Order Delivered", "Order Shipped"];
         }
         break;
       case "orders/updated":
         if (
-          data.fulfillment_status.includes("Order Out for Delivery")
+          data.fulfillment_status.includes("fulfilled")
         ) {
-          eventTitles = ["Order Delivered"];
+          eventTitles = ["Order Out for Delivery"];
         }
         break;
       case "customers/create":
