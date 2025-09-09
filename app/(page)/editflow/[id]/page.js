@@ -777,6 +777,28 @@ const reloadTemplateDataOptimized = async () => {
 }) => {
   if (!showTestPopup) return null;
 
+  // Validate fallback values for all variables
+    const allVariables = [
+      ...templateVariables.header,
+      ...templateVariables.body,
+      ...templateVariables.buttons
+    ];
+
+    const missingFallbacks = [];
+    
+    for (const variable of allVariables) {
+      const fallbackValue = variableSettings[variable]?.fallback;
+      if (!fallbackValue || fallbackValue.trim() === '') {
+        missingFallbacks.push(variable);
+      }
+    }
+
+    if (missingFallbacks.length > 0) {
+      setLoading1(false);
+      error(`Please provide fallback values for the following variables: ${missingFallbacks.map(v => `{{${v}}}`).join(', ')}`);
+      return;
+    }
+
   // Check if phone number is complete (exactly 10 digits)
   const isPhoneNumberComplete = testPhoneNumber.length === 10;
   
@@ -891,7 +913,7 @@ const reloadTemplateDataOptimized = async () => {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-yellow-800">
-                  Please complete the 10-digit phone number before closing or proceeding.
+                  Please complete the 10-digit phone number before proceeding.
                 </p>
               </div>
             </div>
