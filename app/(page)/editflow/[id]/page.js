@@ -833,6 +833,13 @@ const handleKeyDown = (e) => {
   }
 };
 
+const handleCloseAttempt = () => {
+  
+    setShowTestPopup(false);
+  
+};
+
+
 
   // ✅ SHOW WARNING IF FALLBACK VALUES ARE MISSING
   if (missingFallbacks.length > 0) {
