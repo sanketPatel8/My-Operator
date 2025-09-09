@@ -254,7 +254,6 @@ export async function POST(req) {
         status: "success", 
         message: `Test message sent successfully using your fallback values`,
         templateName: selectedTemplate,
-        categoryEventTitle: title,
         sentTo: phonenumber,
         usedFallbackValues: fallbackValues,
         templateContent: templateContent,
