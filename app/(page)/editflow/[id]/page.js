@@ -763,7 +763,8 @@ const handleSendTestMessage = async () => {
       category_event_id: currentWorkflowData.category_event_id,
       phonenumber: testPhoneNumber.trim(),
       fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
-      variableSettings: variableSettings // ✅ Send complete variable settings
+      variableSettings: variableSettings,
+      selectedTemplate: selectedTemplate // ✅ Send complete variable settings
     };
 
     console.log("Sending test message with payload:", testPayload);

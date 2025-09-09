@@ -21,7 +21,7 @@ async function getDbConnection() {
 }
 
 // Helper function to send WhatsApp message
-async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, storeData) {
+async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateContent, storeData) {
   try {
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
@@ -31,7 +31,7 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
         type: "template",
         language: "en",
         context: {
-          template_name: templateName,
+          template_name: selectedTemplate,
           language: "en",
           body: templateContent.body.example || {},
           "buttons": [
@@ -146,7 +146,7 @@ export async function POST(req) {
 
   try {
     const requestData = await req.json();
-    const { category_event_id, phonenumber, fallbackValues, variableSettings } = requestData;
+    const { category_event_id, phonenumber, fallbackValues, variableSettings, selectedTemplate } = requestData;
 
     console.log(`📦 Test request received:`, {
       category_event_id,
@@ -176,18 +176,19 @@ export async function POST(req) {
     // Get database connection
     connection = await getDbConnection();
 
-    // 1. Fetch category_event data
-    const [categoryRows] = await connection.execute(
-      'SELECT template_id, template_data_id, title, store_id FROM category_event WHERE category_event_id = ? LIMIT 1',
-      [category_event_id]
+   // ✅ Fetch template by template_name (selectedTemplate)
+    const [templateMetaRows] = await connection.execute(
+    'SELECT template_id, template_data_id, store_id FROM template WHERE template_name = ? LIMIT 1',
+    [selectedTemplate]
     );
 
-    if (categoryRows.length === 0) {
-      throw new Error(`No category_event found with id: ${category_event_id}`);
+    if (templateMetaRows.length === 0) {
+    throw new Error(`No template found with name: ${selectedTemplate}`);
     }
 
-    const { template_id, template_data_id, title, store_id } = categoryRows[0];
-    console.log(`🧩 Category Event: ${title}, template_data_id: ${template_data_id}`);
+    const { template_id, template_data_id, store_id } = templateMetaRows[0];
+    console.log(`📛 Template selected: ${selectedTemplate}, ID: ${template_id}, Data ID: ${template_data_id}`);
+
 
     // 2. Fetch store data
     const [storeRows] = await connection.execute(
@@ -202,18 +203,7 @@ export async function POST(req) {
     const storeData = storeRows[0];
     console.log('🏪 Store data fetched for:', storeData.shop);
 
-    // 3. Fetch template name
-    const [templateRowsMeta] = await connection.execute(
-      'SELECT template_name FROM template WHERE template_id = ? AND store_id = ? LIMIT 1',
-      [template_id, store_id]
-    );
-
-    if (templateRowsMeta.length === 0) {
-      throw new Error(`No template found for template_id: ${template_id}`);
-    }
-
-    const templateName = templateRowsMeta[0].template_name;
-    console.log(`📛 Template name: ${templateName}`);
+    
 
     // 4. Fetch template structure (we still need the structure, just not the database fallback values)
     const [templateRows] = await connection.execute(
@@ -240,7 +230,7 @@ export async function POST(req) {
     try {
       const messageResult = await sendWhatsAppMessage(
         phonenumber,
-        templateName,
+        selectedTemplate,
         templateContent,
         storeData
       );
