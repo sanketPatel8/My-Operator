@@ -740,85 +740,93 @@ const reloadTemplateDataOptimized = async () => {
     }
   };
 
-  // FIXED Test Message Popup Component
-  const TestMessagePopup = () => {
-    if (!showTestPopup) return null;
+  const TestMessagePopup = ({
+  showTestPopup,
+  setShowTestPopup,
+  testPhoneNumber,
+  setTestPhoneNumber,
+  testLoading,
+  handleSendTestMessage,
+  selectedTemplate,
+  currentWorkflowData,
+}) => {
+  if (!showTestPopup) return null;
 
-    return (
-      <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Send Test Message</h3>
-            <button
-              onClick={() => {
-                setShowTestPopup(false);
-                setTestPhoneNumber('');
-              }}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Phone Number
-            </label>
-            <input
-              type="text"
-              value={testPhoneNumber}
-              onChange={(e) => {
-                const value = e.target.value;
-                // Only allow digits and limit to 10 characters
-                if (/^\d*$/.test(value) && value.length <= 10) {
-                  setTestPhoneNumber(value);
-                }
-              }}
-              placeholder="Enter phone number (e.g., 9876543210)"
-              className="w-full px-3 py-2 text-black bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              maxLength={10}
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Enter phone number without country code (up to 10 digits)
-            </p>
-          </div>
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
+      <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Send Test Message</h3>
+          <button
+            onClick={() => {
+              setShowTestPopup(false);
+              setTestPhoneNumber('');
+            }}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
-          <div className="mb-4 p-3 bg-gray-50 rounded-md">
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Template:</span> {selectedTemplate || 'None selected'}
-            </p>
-            <p className="text-sm text-gray-600">
-              <span className="font-medium">Workflow:</span> {currentWorkflowData?.title || 'Unknown'}
-            </p>
-          </div>
+        {/* Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+          <input
+            type="text"
+            value={testPhoneNumber}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d*$/.test(value) && value.length <= 10) {
+                setTestPhoneNumber(value);
+              }
+            }}
+            placeholder="Enter phone number (e.g., 9876543210)"
+            className="w-full px-3 py-2 text-black bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            maxLength={10}
+          />
+          <p className="text-xs text-gray-500 mt-1">Enter phone number without country code (up to 10 digits)</p>
+        </div>
 
-          <div className="flex justify-end space-x-3">
-            <button
-              onClick={() => {
-                setShowTestPopup(false);
-                setTestPhoneNumber('');
-              }}
-              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSendTestMessage}
-              disabled={testLoading || !testPhoneNumber.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
-            >
-              {testLoading && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              )}
-              <span>{testLoading ? 'Sending...' : 'Send Message'}</span>
-            </button>
-          </div>
+        {/* Template Info */}
+        <div className="mb-4 p-3 bg-gray-50 rounded-md">
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Template:</span> {selectedTemplate || 'None selected'}
+          </p>
+          <p className="text-sm text-gray-600">
+            <span className="font-medium">Workflow:</span> {currentWorkflowData?.title || 'Unknown'}
+          </p>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => {
+              setShowTestPopup(false);
+              setTestPhoneNumber('');
+            }}
+            className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSendTestMessage}
+            disabled={testLoading || !testPhoneNumber.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+          >
+            {testLoading && (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+            )}
+            <span>{testLoading ? 'Sending...' : 'Send Message'}</span>
+          </button>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
+
 
   if (loading) {
     return (
