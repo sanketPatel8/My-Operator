@@ -218,14 +218,68 @@ async function checkRemindersForAllCheckouts() {
     await conn.end();
   }
 }
+// 🔹 Verify cron request is from Vercel
+function verifyCronRequest(request) {
+  const authHeader = request.headers.get('authorization');
+  const cronSecret = process.env.CRON_SECRET;
+  
+  // If you set a CRON_SECRET environment variable
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return false;
+  }
+  
+  // Additional verification - check if request is from Vercel
+  const userAgent = request.headers.get('user-agent');
+  if (!userAgent || !userAgent.includes('vercel')) {
+    console.warn('Suspicious cron request:', { userAgent, ip: request.ip });
+  }
+  
+  return true;
+}
+
+// ... (all your existing functions remain the same)
 
 // 🔹 Vercel Cron Job Entry
-export async function GET() {
+export async function GET(request) {
+  // Verify the request is legitimate
+  if (!verifyCronRequest(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized" }, 
+      { status: 401 }
+    );
+  }
+
   console.log("⏰ Cron started at", new Date().toISOString());
-  await checkRemindersForAllCheckouts();
-  return NextResponse.json({
-    status: "success",
-    message: "Cron job executed",
-    time: new Date().toISOString()
-  });
+  
+  try {
+    await checkRemindersForAllCheckouts();
+    
+    return NextResponse.json({
+      status: "success",
+      message: "Cron job executed successfully",
+      time: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("❌ Cron job failed:", error);
+    
+    return NextResponse.json({
+      status: "error", 
+      message: "Cron job failed",
+      error: error.message,
+      time: new Date().toISOString()
+    }, { status: 500 });
+  }
+}
+
+// Block other HTTP methods
+export async function POST() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function PUT() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+}
+
+export async function DELETE() {
+  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }

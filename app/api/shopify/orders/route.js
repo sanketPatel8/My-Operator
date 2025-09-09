@@ -178,7 +178,7 @@ export async function POST(req) {
         }
         break;
       case "orders/fulfilled":
-        eventTitles = ["Order Shipped"];
+        eventTitles = ["Order Out for Delivery"];
         break;
       case "customers/create":
         eventTitles = ["Welcome Customer"];
