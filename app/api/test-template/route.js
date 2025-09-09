@@ -148,7 +148,7 @@ export async function POST(req) {
 
     // 1. Fetch category_event data using category_event_id
     const [categoryRows] = await connection.execute(
-      'SELECT template_id, template_data_id, title, store_id FROM category_event WHERE id = ? LIMIT 1',
+      'SELECT template_id, template_data_id, title, store_id FROM category_event WHERE category_event_id = ? LIMIT 1',
       [category_event_id]
     );
 

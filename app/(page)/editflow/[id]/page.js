@@ -769,9 +769,14 @@ const TestMessagePopup = () => {
           <input
             type="tel"
             value={testPhoneNumber}
-            onChange={(e) => setTestPhoneNumber(e.target.value)}
-            placeholder="Enter phone number (e.g., 9876543210)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d?$/.test(value)) {
+                setTestPhoneNumber(value);
+              }
+            }}
+            placeholder="Enter phone number (e.g., 9)"
+            className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
           <p className="text-xs text-gray-500 mt-1">
             Enter phone number without country code
