@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
-import cron from "node-cron";
+
 
 // Database connection configuration
 const dbConfig = {
@@ -277,16 +277,7 @@ async function checkRemindersForAllCheckouts() {
   }
 }
 
-// 🔹 Run cron every 5 minutes (reduced frequency for efficiency)
-cron.schedule("*/5 * * * *", async () => {
-  console.log("⏰ Reminder cron running at", new Date().toISOString());
-  
-  try {
-    await checkRemindersForAllCheckouts();
-  } catch (err) {
-    console.error("❌ Cron failed:", err.message);
-  }
-});
+
 
 // ✅ Handle POST (disabled)
 export async function POST() {
