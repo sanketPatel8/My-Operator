@@ -176,9 +176,9 @@ export async function POST(req) {
     // Get database connection
     connection = await getDbConnection();
 
-   // ✅ Fetch template by template_name (selectedTemplate)
+   // ✅ Step 1: Fetch template_id and store_id by template_name
     const [templateMetaRows] = await connection.execute(
-    'SELECT template_id, template_data_id, store_id FROM template WHERE template_name = ? LIMIT 1',
+    'SELECT template_id, store_id FROM template WHERE template_name = ? LIMIT 1',
     [selectedTemplate]
     );
 
@@ -186,7 +186,22 @@ export async function POST(req) {
     throw new Error(`No template found with name: ${selectedTemplate}`);
     }
 
-    const { template_id, template_data_id, store_id } = templateMetaRows[0];
+    const { template_id, store_id } = templateMetaRows[0];
+    console.log(`📛 Template selected: ${selectedTemplate}, template_id: ${template_id}, store_id: ${store_id}`);
+
+    // ✅ Step 2: Fetch template_data_id from template_data
+    const [templateDataRows] = await connection.execute(
+    'SELECT template_data_id FROM template_data WHERE template_id = ? AND store_id = ? ORDER BY template_data_id DESC LIMIT 1',
+    [template_id, store_id]
+    );
+
+    if (templateDataRows.length === 0) {
+    throw new Error(`No template data found for template_id: ${template_id} and store_id: ${store_id}`);
+    }
+
+    const { template_data_id } = templateDataRows[0];
+    console.log(`📦 Template Data ID: ${template_data_id}`);
+
     console.log(`📛 Template selected: ${selectedTemplate}, ID: ${template_id}, Data ID: ${template_data_id}`);
 
 
