@@ -40,9 +40,9 @@ export default function WorkflowList() {
         if (!storeToken) {
         console.log("⚠️ No store token found in localStorage");
         setIsRedirecting(true);
-        console.log("redirecttion::", process.env.REDIRECT_URL);
+        console.log("redirecttion::", process.env.NEXT_PUBLIC_REDIRECT_URL);
         
-        window.location.href = process.env.REDIRECT_URL;
+        window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
         return;
       }
 

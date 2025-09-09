@@ -161,7 +161,7 @@ export default function ConnectShopify() {
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
         setIsRedirecting(true);
-        window.location.href = process.env.REDIRECT_URL;
+        window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
         return;
       }
 

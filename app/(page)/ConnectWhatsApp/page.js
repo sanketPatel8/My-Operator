@@ -205,7 +205,7 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
         setIsRedirecting(true);
-        window.location.href = process.env.REDIRECT_URL;
+        window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
         return;
       }
 

@@ -229,8 +229,8 @@ useEffect(() => {
       if (!storeToken) {
         console.warn("⚠️ No store token found in localStorage");
         setIsRedirecting(true);
-        window.location.href = process.env.REDIRECT_URL;
-        console.log("redirection ::::", process.env.REDIRECT_URL);
+        window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
+        console.log("redirection ::::", process.env.NEXT_PUBLIC_REDIRECT_URL);
         
         return;
       }
