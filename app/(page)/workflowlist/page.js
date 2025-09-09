@@ -21,8 +21,7 @@ export default function WorkflowList() {
   const [loadingToggles, setLoadingToggles] = useState([]);
 
 
-  const [deleteLoading, setDeleteLoading] = useState(null); // Track which item is being deleted
-  const storeId = 11; // ⬅️ Replace this with the actual store ID dynamically if needed
+  const [deleteLoading, setDeleteLoading] = useState(null);
 
   const hasFetched = useRef(false);
   const workflowsFetched = useRef(false);
@@ -97,6 +96,21 @@ export default function WorkflowList() {
     
   }, []);
 
+  // Helper function to check if a toggle should be disabled
+  const isToggleDisabled = (workflowData, eventTitle) => {
+    if (!workflowData || !workflowData.events) return false;
+    
+    // Only disable "Convert COD to Paid" if "COD Order Confirmation or Cancel" is off
+    if (eventTitle === "Convert COD to Paid") {
+      const codConfirmEvent = workflowData.events.find(
+        event => event.title === "COD Order Confirmation or Cancel"
+      );
+      return !codConfirmEvent || codConfirmEvent.status !== 1;
+    }
+    
+    return false;
+  };
+
   // Transform workflow data to match DropDown component format
   const transformWorkflowToReminders = (workflow) => {
     if (!workflow || !workflow.events) return [];
@@ -105,6 +119,7 @@ export default function WorkflowList() {
       id: event.category_event_id || index + 1,
       title: event.title,
       enabled: event.status === 1 ? true : false,
+      disabled: isToggleDisabled(workflow, event.title), // Add disabled property
       text: event.subtitle,
       footerText: event.delay ? `Send after ${event.delay}` : '',
       category_id: workflow.category_id,
@@ -114,89 +129,149 @@ export default function WorkflowList() {
   };
 
   const handleToggle = async (workflowId, reminderId) => {
-  if (!workflowId || !reminderId) return;
+    if (!workflowId || !reminderId) return;
 
-  const toggleKey = `${workflowId}:${reminderId}`;
-  const storeToken = localStorage.getItem("storeToken");
-  
-  // Find current reminder and status
-  const currentReminder = workflows
-    .find(wf => wf.category_id === workflowId)
-    ?.events.find(ev => ev.category_event_id === reminderId);
+    const toggleKey = `${workflowId}:${reminderId}`;
+    const storeToken = localStorage.getItem("storeToken");
+    
+    // Find current workflow and reminder
+    const currentWorkflow = workflows.find(wf => wf.category_id === workflowId);
+    const currentReminder = currentWorkflow?.events.find(ev => ev.category_event_id === reminderId);
 
-  const currentStatus = currentReminder?.status ?? 0;
-  const newStatus = currentStatus === 1 ? 0 : 1;
+    if (!currentReminder) return;
 
-  // 🚀 OPTIMISTIC UPDATE: Update UI immediately
-  setWorkflows((prev) =>
-    prev.map((workflow) => {
-      if (workflow.category_id === workflowId) {
-        return {
-          ...workflow,
-          events: workflow.events.map((event) =>
-            event.category_event_id === reminderId
-              ? { ...event, status: newStatus }
-              : event
-          )
-        };
-      }
-      return workflow;
-    })
-  );
-
-  // Add loading state for visual feedback (optional spinner/disabled state)
-  setLoadingToggles((prev) => [...prev, toggleKey]);
-
-  try {
-    const res = await fetch('/api/category', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        storeToken: storeToken,
-        category_event_id: reminderId,
-        status: newStatus,
-      }),
-    });
-
-    const result = await res.json();
-
-    if (!res.ok || !result.success) {
-      throw new Error(result.message || 'Failed to update status');
+    // Check if this toggle is disabled
+    if (isToggleDisabled(currentWorkflow, currentReminder.title)) {
+      error('Please enable "COD Order Confirmation or Cancel" first to enable this option.');
+      return;
     }
 
-    // ✅ Success - UI is already updated, just log or show success feedback
-    console.log('✅ Toggle updated successfully:', result);
-    
-  } catch (error) {
-    console.error('❌ Error updating toggle status:', error.message);
-    
-    // 🔄 ROLLBACK: Revert the optimistic update on error
+    const currentStatus = currentReminder?.status ?? 0;
+    const newStatus = currentStatus === 1 ? 0 : 1;
+
+    // Check if this is "COD Order Confirmation or Cancel" being turned off
+    const isCodConfirmBeingTurnedOff = 
+      currentReminder.title === "COD Order Confirmation or Cancel" && newStatus === 0;
+
+    // If COD Confirm is being turned off, also turn off "Convert COD to Paid"
+    let additionalUpdates = [];
+    if (isCodConfirmBeingTurnedOff) {
+      const convertCodEvent = currentWorkflow.events.find(
+        event => event.title === "Convert COD to Paid"
+      );
+      if (convertCodEvent && convertCodEvent.status === 1) {
+        additionalUpdates.push({
+          category_event_id: convertCodEvent.category_event_id,
+          status: 0
+        });
+      }
+    }
+
+    // 🚀 OPTIMISTIC UPDATE: Update UI immediately
     setWorkflows((prev) =>
       prev.map((workflow) => {
         if (workflow.category_id === workflowId) {
           return {
             ...workflow,
-            events: workflow.events.map((event) =>
-              event.category_event_id === reminderId
-                ? { ...event, status: currentStatus } // Revert to original status
-                : event
-            )
+            events: workflow.events.map((event) => {
+              // Update the primary toggle
+              if (event.category_event_id === reminderId) {
+                return { ...event, status: newStatus };
+              }
+              // Update dependent toggle if COD Confirm is being turned off
+              if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
+                return { ...event, status: 0 };
+              }
+              return event;
+            })
           };
         }
         return workflow;
       })
     );
-    
-    // Show error message to user
-    error('Failed to update toggle status. Please try again.');
-    
-  } finally {
-    // Remove loading state
-    setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
-  }
-};
 
+    // Add loading state for visual feedback
+    setLoadingToggles((prev) => [...prev, toggleKey]);
 
+    try {
+      // Update the primary toggle
+      const res = await fetch('/api/category', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeToken: storeToken,
+          category_event_id: reminderId,
+          status: newStatus,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Failed to update status');
+      }
+
+      // Update additional dependent toggles if needed
+      for (const update of additionalUpdates) {
+        const additionalRes = await fetch('/api/category', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeToken: storeToken,
+            category_event_id: update.category_event_id,
+            status: update.status,
+          }),
+        });
+
+        const additionalResult = await additionalRes.json();
+        if (!additionalRes.ok || !additionalResult.success) {
+          console.error('❌ Failed to update dependent toggle:', additionalResult.message);
+        }
+      }
+
+      // ✅ Success - UI is already updated, just log or show success feedback
+      console.log('✅ Toggle updated successfully:', result);
+      
+      if (isCodConfirmBeingTurnedOff && additionalUpdates.length > 0) {
+        success('COD Order Confirmation disabled. Convert COD to Paid has been automatically disabled as well.');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error updating toggle status:', error.message);
+      
+      // 🔄 ROLLBACK: Revert the optimistic update on error
+      setWorkflows((prev) =>
+        prev.map((workflow) => {
+          if (workflow.category_id === workflowId) {
+            return {
+              ...workflow,
+              events: workflow.events.map((event) => {
+                if (event.category_event_id === reminderId) {
+                  return { ...event, status: currentStatus }; // Revert to original status
+                }
+                // Revert dependent toggle if it was changed
+                if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
+                  const originalConvertStatus = currentWorkflow.events.find(
+                    e => e.title === "Convert COD to Paid"
+                  )?.status ?? 0;
+                  return { ...event, status: originalConvertStatus };
+                }
+                return event;
+              })
+            };
+          }
+          return workflow;
+        })
+      );
+      
+      // Show error message to user
+      error('Failed to update toggle status. Please try again.');
+      
+    } finally {
+      // Remove loading state
+      setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
+    }
+  };
 
   const handleEyeClick = (reminder) => {
     console.log('Eye clicked:', reminder);
