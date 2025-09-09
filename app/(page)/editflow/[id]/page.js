@@ -823,6 +823,17 @@ const TestMessagePopup = ({
     }
   }
 
+  const handleBackdropClick = () => {
+  setShowTestPopup(false);
+};
+
+const handleKeyDown = (e) => {
+  if (e.key === 'Escape') {
+    setShowTestPopup(false);
+  }
+};
+
+
   // ✅ SHOW WARNING IF FALLBACK VALUES ARE MISSING
   if (missingFallbacks.length > 0) {
     return (
