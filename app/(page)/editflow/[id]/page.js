@@ -1065,7 +1065,7 @@ const TestMessagePopup = () => {
                     {/* Action Buttons */}
                     <div className="flex justify-end space-x-[16px] mt-[32px] mb-[20px]">
                     <button
-                        onClick={handletest} 
+                        onClick={() => setShowTestPopup(true)} 
                         className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
                       >
                         Test
