@@ -740,12 +740,13 @@ const reloadTemplateDataOptimized = async () => {
   }
 };
 
-// Test Message Popup Component
+// Replace the current input handling in your TestMessagePopup component
+
 const TestMessagePopup = () => {
   if (!showTestPopup) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-900">Send Test Message</h3>
@@ -771,15 +772,17 @@ const TestMessagePopup = () => {
             value={testPhoneNumber}
             onChange={(e) => {
               const value = e.target.value;
-              if (/^\d?$/.test(value)) {
+              // Allow up to 10 digits
+              if (/^\d{0,10}$/.test(value)) {
                 setTestPhoneNumber(value);
               }
             }}
-            placeholder="Enter phone number (e.g., 9)"
+            placeholder="Enter phone number (e.g., 9876543210)"
             className="w-full px-3 py-2 text-black border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            maxLength={10}
           />
           <p className="text-xs text-gray-500 mt-1">
-            Enter phone number without country code
+            Enter phone number without country code (up to 10 digits)
           </p>
         </div>
 
@@ -817,7 +820,6 @@ const TestMessagePopup = () => {
     </div>
   );
 };
-
   if (loading) {
     return (
       <div className="font-source-sans flex flex-col min-h-screen">
