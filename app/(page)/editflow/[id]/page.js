@@ -510,96 +510,121 @@ const reloadTemplateDataOptimized = async () => {
   };
 
   const handleUpdateWorkflow = async () => {
-    try {
-      setLoading1(true);
-      if (!currentWorkflowData) {
-        error("Workflow data not found");
+  try {
+    setLoading1(true);
+    if (!currentWorkflowData) {
+      error("Workflow data not found");
+      return;
+    }
+
+    // Validate fallback values for all variables
+    const allVariables = [
+      ...templateVariables.header,
+      ...templateVariables.body,
+      ...templateVariables.buttons
+    ];
+
+    const missingFallbacks = [];
+    
+    for (const variable of allVariables) {
+      const fallbackValue = variableSettings[variable]?.fallback;
+      if (!fallbackValue || fallbackValue.trim() === '') {
+        missingFallbacks.push(variable);
+      }
+    }
+
+    if (missingFallbacks.length > 0) {
+      setLoading1(false);
+      error(`Please provide fallback values for the following variables: ${missingFallbacks.map(v => `{{${v}}}`).join(', ')}`);
+      return;
+    }
+
+    const storeToken = localStorage.getItem("storeToken");
+
+    let selectedTemplateObj;
+    let templateDataObj = null;
+    let allTemplateVariableIds = [];
+
+    // Use category-specific data if available, otherwise use general template data
+    if (selectedTemplateData && selectedTemplateData.hasSpecificData) {
+      console.log("Using category-specific data for update");
+      selectedTemplateObj = selectedTemplateData;
+      templateDataObj = selectedTemplateData.data;
+      
+      if (selectedTemplateData.template_variable_id) {
+        const variableIds = selectedTemplateData.template_variable_id.toString().split(',');
+        allTemplateVariableIds = variableIds.filter(id => id && id.trim());
+      }
+    } else {
+      console.log("Using general template data for update");
+      selectedTemplateObj = allTemplatesData.find(
+        (template) => template.template_name === selectedTemplate
+      );
+
+      if (!selectedTemplateObj) {
+        error("Selected template not found");
+        setLoading1(false);
         return;
       }
-      const storeToken = localStorage.getItem("storeToken");
 
-      let selectedTemplateObj;
-      let templateDataObj = null;
-      let allTemplateVariableIds = [];
-
-      // Use category-specific data if available, otherwise use general template data
-      if (selectedTemplateData && selectedTemplateData.hasSpecificData) {
-        console.log("Using category-specific data for update");
-        selectedTemplateObj = selectedTemplateData;
-        templateDataObj = selectedTemplateData.data;
-        
-        if (selectedTemplateData.template_variable_id) {
-          const variableIds = selectedTemplateData.template_variable_id.toString().split(',');
-          allTemplateVariableIds = variableIds.filter(id => id && id.trim());
-        }
-      } else {
-        console.log("Using general template data for update");
-        selectedTemplateObj = allTemplatesData.find(
-          (template) => template.template_name === selectedTemplate
-        );
-
-        if (!selectedTemplateObj) {
-          error("Selected template not found");
-          return;
-        }
-
-        templateDataObj = selectedTemplateObj.data?.[0];
-        
-        if (templateDataObj) {
-          if (templateDataObj.componentVariables && Array.isArray(templateDataObj.componentVariables)) {
-            const componentIds = templateDataObj.componentVariables
-              .map(v => v.template_variable_id)
-              .filter(id => id != null);
-            allTemplateVariableIds.push(...componentIds);
-          }
-
-          if (templateDataObj.mappingVariables && Array.isArray(templateDataObj.mappingVariables)) {
-            const mappingIds = templateDataObj.mappingVariables
-              .map(v => v.template_variable_id)
-              .filter(id => id != null);
-            allTemplateVariableIds.push(...mappingIds);
-          }
-        }
-      }
-
-      const uniqueVariableIds = [...new Set(allTemplateVariableIds)];
-      const templateVariableIdsString = uniqueVariableIds.length > 0 ? uniqueVariableIds.join(',') : null;
-
-      const updateData = {
-        storeToken: storeToken,
-        category_id: currentWorkflowData.category_id,
-        category_event_id: currentWorkflowData.category_event_id,
-        delay: selectedDelay,
-        template: selectedTemplate,
-        variableSettings: variableSettings,
-        template_id: selectedTemplateObj.template_id,
-        template_data_id: templateDataObj?.template_data_id || selectedTemplateData?.template_data_id,
-        template_variable_id: templateVariableIdsString
-      };
-
-      console.log("Updating workflow with data:", updateData);
-
-      const response = await fetch('/api/category', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        success("Workflow updated successfully!");
-        setLoading1(false);
-        router.push("/workflowlist");
-      } else {
-        throw new Error(result.message || 'Failed to update workflow');
-      }
+      templateDataObj = selectedTemplateObj.data?.[0];
       
-    } catch (error) {
-      console.error("Error updating workflow:", error);
-      error(`Failed to update workflow: ${error.message}`);
+      if (templateDataObj) {
+        if (templateDataObj.componentVariables && Array.isArray(templateDataObj.componentVariables)) {
+          const componentIds = templateDataObj.componentVariables
+            .map(v => v.template_variable_id)
+            .filter(id => id != null);
+          allTemplateVariableIds.push(...componentIds);
+        }
+
+        if (templateDataObj.mappingVariables && Array.isArray(templateDataObj.mappingVariables)) {
+          const mappingIds = templateDataObj.mappingVariables
+            .map(v => v.template_variable_id)
+            .filter(id => id != null);
+          allTemplateVariableIds.push(...mappingIds);
+        }
+      }
     }
-  };
+
+    const uniqueVariableIds = [...new Set(allTemplateVariableIds)];
+    const templateVariableIdsString = uniqueVariableIds.length > 0 ? uniqueVariableIds.join(',') : null;
+
+    const updateData = {
+      storeToken: storeToken,
+      category_id: currentWorkflowData.category_id,
+      category_event_id: currentWorkflowData.category_event_id,
+      delay: selectedDelay,
+      template: selectedTemplate,
+      variableSettings: variableSettings,
+      template_id: selectedTemplateObj.template_id,
+      template_data_id: templateDataObj?.template_data_id || selectedTemplateData?.template_data_id,
+      template_variable_id: templateVariableIdsString
+    };
+
+    console.log("Updating workflow with data:", updateData);
+
+    const response = await fetch('/api/category', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData)
+    });
+
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      success("Workflow updated successfully!");
+      setLoading1(false);
+      router.push("/workflowlist");
+    } else {
+      throw new Error(result.message || 'Failed to update workflow');
+    }
+    
+  } catch (error) {
+    console.error("Error updating workflow:", error);
+    error(`Failed to update workflow: ${error.message}`);
+    setLoading1(false);
+  }
+};
 
   const buttonRef = useRef(null);
 
@@ -1291,7 +1316,16 @@ const reloadTemplateDataOptimized = async () => {
         </div>
       </div>
       {/* Test Message Popup */}
-      <TestMessagePopup />
+<TestMessagePopup 
+  showTestPopup={showTestPopup}
+  setShowTestPopup={setShowTestPopup}
+  testPhoneNumber={testPhoneNumber}
+  setTestPhoneNumber={setTestPhoneNumber}
+  testLoading={testLoading}
+  handleSendTestMessage={handleSendTestMessage}
+  selectedTemplate={selectedTemplate}
+  currentWorkflowData={currentWorkflowData}
+/>
     </>
   );
 }
