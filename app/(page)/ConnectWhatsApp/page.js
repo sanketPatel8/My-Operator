@@ -209,9 +209,10 @@ const fetchWhatsAppNumbers = async (limit = 10, offset = 0, retryCount = 0) => {
         window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
         return;
       }
+      setLoading2(false);
 
     loadWhatsAppNumbers();
-    setLoading2(false);
+    
   }, [loadWhatsAppNumbers]);
 
   const handlesync = async () => {
