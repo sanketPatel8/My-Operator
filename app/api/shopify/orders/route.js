@@ -177,8 +177,20 @@ export async function POST(req) {
           eventTitles = ["Order Cancelled"];
         }
         break;
-      case "orders/fulfilled":
-        eventTitles = ["Order Out for Delivery"];
+      case "orders/updated":
+        if (
+          Array.isArray(data.fulfillments) &&
+          data.fulfillments?.[0].shipment_status.includes("delivered")
+        ) {
+          eventTitles = ["Order Delivered"];
+        }
+        break;
+      case "orders/updated":
+        if (
+          data.fulfillment_status.includes("Order Out for Delivery")
+        ) {
+          eventTitles = ["Order Delivered"];
+        }
         break;
       case "customers/create":
         eventTitles = ["Welcome Customer"];

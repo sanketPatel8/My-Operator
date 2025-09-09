@@ -686,7 +686,6 @@ const reloadTemplateDataOptimized = async () => {
   );
 
   const delayOptions = [
-    "Immediate",
     "15 minutes",
     "30 minutes", 
     "1 hour",
@@ -1524,16 +1523,16 @@ const TestMessagePopup = ({
         </div>
       </div>
       {/* Test Message Popup */}
-<TestMessagePopup 
-  showTestPopup={showTestPopup}
-  setShowTestPopup={setShowTestPopup}
-  testPhoneNumber={testPhoneNumber}
-  setTestPhoneNumber={setTestPhoneNumber}
-  testLoading={testLoading}
-  handleSendTestMessage={handleSendTestMessage}
-  selectedTemplate={selectedTemplate}
-  currentWorkflowData={currentWorkflowData}
-/>
+      <TestMessagePopup 
+        showTestPopup={showTestPopup}
+        setShowTestPopup={setShowTestPopup}
+        testPhoneNumber={testPhoneNumber}
+        setTestPhoneNumber={setTestPhoneNumber}
+        testLoading={testLoading}
+        handleSendTestMessage={handleSendTestMessage}
+        selectedTemplate={selectedTemplate}
+        currentWorkflowData={currentWorkflowData}
+      />
     </>
   );
 }
