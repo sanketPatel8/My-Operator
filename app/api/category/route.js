@@ -355,6 +355,7 @@ export async function PUT(request) {
   }
 }
 
+
 // POST endpoint to initialize/sync workflow categories and events
 export async function POST(request) {
   const body = await request.json();
@@ -412,6 +413,8 @@ export async function POST(request) {
     }
 
     const processedCategories = new Set();
+    // Track processed titles per store to avoid duplicates within the same request
+    const processedTitles = new Set();
 
     const upsertCategory = async (data) => {
       const normalizedCategoryName = data.category_name.trim();
@@ -444,22 +447,31 @@ export async function POST(request) {
         category_id = insertResult.insertId;
       }
 
-      // Insert new events with store_id and phonenumber combination
+      // Insert new events with store_id and title uniqueness
       let inserted = 0;
       for (const event of data.events) {
         const title = event.title?.trim();
         if (!title) continue;
 
+        const lowerTitle = title.toLowerCase();
+        const titleKey = `${STORE_ID}_${lowerTitle}`;
+
+        // Skip if already processed in this request
+        if (processedTitles.has(titleKey)) {
+          console.log(`Skipping duplicate title '${title}' for store ${STORE_ID} in current request`);
+          continue;
+        }
+
         const subtitle = event.subtitle || null;
         const delay = event.delay || null;
 
         try {
-          // Check if this specific combination exists
+          // Check if this title already exists for this store_id (regardless of category or phone)
           const [existingEvent] = await connection.execute(
             `SELECT category_event_id FROM category_event 
-             WHERE category_id = ? AND LOWER(TRIM(title)) = ? AND store_id = ? AND phonenumber = ?
+             WHERE store_id = ? AND LOWER(TRIM(title)) = ?
              LIMIT 1`,
-            [category_id, title.toLowerCase(), STORE_ID, currentPhoneNumber]
+            [STORE_ID, lowerTitle]
           );
 
           if (existingEvent.length === 0) {
@@ -470,6 +482,10 @@ export async function POST(request) {
               [category_id, title, subtitle, delay, STORE_ID, currentPhoneNumber]
             );
             inserted++;
+            // Mark this title as processed for this store
+            processedTitles.add(titleKey);
+          } else {
+            console.log(`Title '${title}' already exists for store ${STORE_ID}, skipping`);
           }
 
         } catch (e) {
@@ -534,6 +550,7 @@ export async function POST(request) {
     }
   }
 }
+
 
 export async function PATCH(request) {
   let connection;
