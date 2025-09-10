@@ -75,9 +75,11 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
   const bodyExample = {};
 
-  console.log('🔧 Building template content with user-entered fallbacks:', userFallbackValues);
+  console.log(' Building template content with user-entered fallbacks:', templateRows);
 
   for (const row of templateRows) {
+    console.log("row ", row);
+    
     const value = JSON.parse(row.value || '{}');
     console.log("initial value", value);
     
@@ -238,7 +240,7 @@ export async function POST(req) {
       throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
     }
 
-    console.log(`📄 Template structure fetched: ${templateRows.length} variables`);
+    console.log(`📄 Template structure fetched: ${templateRows} variables`);
 
     // ✅ 5. Build template content using USER-ENTERED fallback values
     const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues);
