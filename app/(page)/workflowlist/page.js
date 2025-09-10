@@ -7,12 +7,18 @@ import { useRouter } from "next/navigation";
 import { FiEye, FiMoreVertical } from 'react-icons/fi';
 import { useWorkflow } from "@/component/WorkflowContext";
 import { useToastContext } from "@/component/Toast";
+import ChatPreviewPopup from "@/component/ChatPreviewPopup";
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
   const { success, error } = useToastContext();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [previewPopup, setPreviewPopup] = useState({
+  isOpen: false,
+  categoryEventId: null,
+  reminderTitle: ''
+  });
   
 
   const [workflows, setWorkflows] = useState([]);
@@ -25,7 +31,7 @@ export default function WorkflowList() {
 
   const hasFetched = useRef(false);
   const workflowsFetched = useRef(false);
-  const { fetched, setFetched } = useWorkflow();
+  const { fetched, setFetched } = useWorkflow(); 
 
   // Initialize workflow data on first load
   useEffect(() => {
@@ -274,8 +280,30 @@ export default function WorkflowList() {
   };
 
   const handleEyeClick = (reminder) => {
-    console.log('Eye clicked:', reminder);
-  };
+  console.log('Eye clicked:', reminder);
+  
+  // Check if reminder has required data for preview
+  if (!reminder.category_event_id) {
+    error('Unable to preview: Missing event data');
+    return;
+  }
+
+  // Open the preview popup
+  setPreviewPopup({
+    isOpen: true,
+    categoryEventId: reminder.category_event_id,
+    reminderTitle: reminder.title
+  });
+};
+
+// 4. ADD THIS NEW FUNCTION (place it after handleEyeClick)
+const closePreviewPopup = () => {
+  setPreviewPopup({
+    isOpen: false,
+    categoryEventId: null,
+    reminderTitle: ''
+  });
+};
 
   const handleMoreClick = (reminder) => {
     console.log('More clicked:', reminder);
@@ -532,6 +560,14 @@ export default function WorkflowList() {
           </div>
         </main>
       </div>
+      <ChatPreviewPopup
+      isOpen={previewPopup.isOpen}
+      onClose={closePreviewPopup}
+      categoryEventId={previewPopup.categoryEventId}
+      storeToken={localStorage.getItem("storeToken")}
+      onError={error} // Pass your existing error toast function
+      onSuccess={success} // Pass your existing success toast function
+    />
     </div>
   );
 }
