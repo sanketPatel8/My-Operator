@@ -113,32 +113,21 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         break;
 
       case "BUTTONS":
-        const buttons = value.buttons?.[0].example || [value];
-        const url = value.buttons?.[0].url;
         
-        const [buttonKey, buttonLink] = Object.entries(buttons)[0];
-        console.log("buttons::", buttons);
-        
-        
-
-         
-              // Extract the button link value (could be a URL with variables)
-              let processedButtonLink = url;
-              
-              // Check if buttonLink contains any variable in {{}} format
-              if (url && url.includes('{{')) {
-                // Replace any {{variable}} with data.order_status_url
-                processedButtonLink = url.replace(/\{\{[^}]*\}\}/g, data.order_status_url || '');
-                console.log(`✅ Replaced {{}} variable with data.order_status_url: ${data.order_status_url}`);
-              }
-              
-              const simplifiedButton = {
-                index: 0,
-                "link": processedButtonLink
-              };
-              templateContent.buttons.push(simplifiedButton);
-              console.log(`✅ Simplified button payload:`, simplifiedButton);
-            
+       
+            const button = value.buttons[0];
+ 
+          // Step 2: Extract key name dynamically
+          const exampleKeys = Object.keys(button.example); // ["link"]
+          const keyName = exampleKeys[0]; // "link"
+          
+          // Step 3: Build result
+          const result = {
+            index: button.index,
+            [keyName]: button.url
+          };
+          console.log("button info:", result);
+          
           
         break;
 
@@ -147,7 +136,12 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
     }
   }
 
-  return { templateContent, bodyExample };
+  if (templateContent.body) {
+    templateContent.body.example = bodyExample;
+  }
+
+  console.log('🏗️ Built template content:', JSON.stringify(templateContent, null, 2));
+  return templateContent;
 }
 
 // ✅ Handle POST request with user-entered fallback values
