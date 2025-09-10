@@ -81,9 +81,9 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
   for (const row of templateRows) {
     console.log("row ", row.template_variable_id);
     
-   /* const value = JSON.parse(row.value || '{}');
+    const value = JSON.parse(row.value || '{}');
     console.log("initial value", value);
-    if(value || value!=null){
+   /* if(value || value!=null){
 
     switch (row.component_type) {
       case "HEADER":
