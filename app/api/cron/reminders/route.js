@@ -15,35 +15,6 @@ async function getDbConnection() {
   return mysql.createConnection(dbConfig);
 }
 
-// 🔹 Parse delay string to minutes
-function parseDelayToMinutes(delayValue) {
-  if (!delayValue) return 60;
-  if (typeof delayValue === "number") return delayValue;
-
-  const delayStr = String(delayValue).toLowerCase().trim();
-  if (/^\d+$/.test(delayStr)) return parseInt(delayStr);
-
-  const match = delayStr.match(/(\d+)\s*(minute|minutes|hour|hours|day|days)/);
-  if (!match) return 60;
-
-  const value = parseInt(match[1]);
-  const unit = match[2];
-
-  switch (unit) {
-    case "minute":
-    case "minutes":
-      return value;
-    case "hour":
-    case "hours":
-      return value * 60;
-    case "day":
-    case "days":
-      return value * 60 * 24;
-    default:
-      return 60;
-  }
-}
-
 // 🔹 Extract phone number
 function extractPhoneDetails(data) {
   if (!data?.customer_phone) return null;
@@ -162,7 +133,9 @@ async function processReminder(checkout, reminderType, storeData) {
     if (eventRows.length === 0) return;
 
     const { title, template_id, template_data_id, delay } = eventRows[0];
-    const delayMinutes = parseDelayToMinutes(delay);
+    
+    // Convert delay to number and treat as minutes
+    const delayMinutes = parseInt(delay) || 60; // Default to 60 minutes if invalid
 
     const checkoutTime = new Date(checkout.updated_at);
     const currentTime = new Date();
@@ -170,6 +143,7 @@ async function processReminder(checkout, reminderType, storeData) {
       (currentTime - checkoutTime) / (1000 * 60)
     );
 
+    // Skip if not enough time has passed
     if (timeDiffMinutes < delayMinutes) return;
 
     const [templateRows] = await conn.execute(
@@ -190,6 +164,7 @@ async function processReminder(checkout, reminderType, storeData) {
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
 
+    // If no phone number, mark as sent and skip
     if (!phoneDetails) {
       await conn.execute(
         `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
@@ -206,11 +181,13 @@ async function processReminder(checkout, reminderType, storeData) {
       storeData
     );
 
+    // Mark reminder as sent
     await conn.execute(
       `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
       [checkout.token]
     );
-    console.log(`✅ Sent ${reminderType} to ${phoneDetails.phone}`, sendResult);
+    
+    console.log(`✅ Sent ${reminderType} to ${phoneDetails.phone} after ${delayMinutes} minutes`, sendResult);
   } catch (error) {
     console.error(`❌ Error processing ${reminderType}:`, error);
   } finally {
@@ -227,13 +204,19 @@ async function checkRemindersForAllCheckouts() {
       "SELECT * FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0"
     );
 
+    console.log(`📋 Found ${checkouts.length} checkouts to process`);
+
     for (const checkout of checkouts) {
       const [storeRows] = await conn.execute(
         "SELECT * FROM stores WHERE shop = ? LIMIT 1",
         [checkout.shop_url]
       );
 
-      if (storeRows.length === 0) continue;
+      if (storeRows.length === 0) {
+        console.log(`⚠️ No store found for shop: ${checkout.shop_url}`);
+        continue;
+      }
+      
       const storeData = storeRows[0];
 
       const reminders = [
@@ -250,50 +233,64 @@ async function checkRemindersForAllCheckouts() {
     }
   } catch (err) {
     console.error("❌ Error checking reminders:", err);
+    throw err;
   } finally {
     await conn.end();
   }
 }
-// 🔹 Verify cron request is from Vercel
-// function verifyCronRequest(request) {
-//   const authHeader = request.headers.get("authorization");
-//   const cronSecret = process.env.CRON_SECRET;
 
-//   // If you set a CRON_SECRET environment variable
-//   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-//     return false;
-//   }
+// 🔹 Verify cron request security
+function verifyCronRequest(request) {
+  // Check for authorization header
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
 
-//   // Additional verification - check if request is from Vercel
-//   const userAgent = request.headers.get("user-agent");
-//   if (!userAgent || !userAgent.includes("vercel")) {
-//     console.warn("Suspicious cron request:", { userAgent, ip: request.ip });
-//   }
+  // If CRON_SECRET is set, verify it
+  if (cronSecret) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      console.error("❌ Invalid cron secret");
+      return false;
+    }
+  }
 
-//   return true;
-// }
+  // Log request details for monitoring
+  const userAgent = request.headers.get("user-agent");
+  const cronJobHeader = request.headers.get("x-cron-job");
 
-// ... (all your existing functions remain the same)
+  console.log("🔍 Cron request details:", {
+    userAgent,
+    cronJobHeader,
+    hasAuth: !!authHeader,
+    timestamp: new Date().toISOString()
+  });
 
-// 🔹 Vercel Cron Job Entry
+  return true;
+}
+
+// 🔹 GET endpoint for cron jobs
 export async function GET(request) {
-  // // Verify the request is legitimate
-  // if (!verifyCronRequest(request)) {
-  //   return NextResponse.json(
-  //     { error: "Unauthorized" },
-  //     { status: 401 }
-  //   );
-  // }
+  // Verify the request is legitimate
+  if (!verifyCronRequest(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
 
-  console.log("⏰ Cron started at", new Date().toISOString());
+  console.log("⏰ Cron job started at", new Date().toISOString());
+  const startTime = Date.now();
 
   try {
     await checkRemindersForAllCheckouts();
+    
+    const executionTime = Date.now() - startTime;
+    console.log(`✅ Cron job completed in ${executionTime}ms`);
 
     return NextResponse.json({
       status: "success",
       message: "Cron job executed successfully",
-      time: new Date().toISOString(),
+      executionTime: `${executionTime}ms`,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     console.error("❌ Cron job failed:", error);
@@ -303,18 +300,20 @@ export async function GET(request) {
         status: "error",
         message: "Cron job failed",
         error: error.message,
-        time: new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       },
       { status: 500 }
     );
   }
 }
 
-// Block other HTTP methods
-export async function POST() {
-  return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
+// 🔹 POST endpoint (alternative for some cron services)
+export async function POST(request) {
+  // Some cron services prefer POST requests
+  return GET(request);
 }
 
+// Block other HTTP methods
 export async function PUT() {
   return NextResponse.json({ error: "Method not allowed" }, { status: 405 });
 }
