@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
+import pool from "@/lib/db";
 
 // Database connection configuration
 const dbConfig = {
@@ -146,7 +147,7 @@ async function storePlacedOrder(data) {
     console.log("📝 Executing query:", query);
     console.log("🔑 With values:", values);
 
-    const [result] = await connection.execute(query, values);
+    const [result] = await pool.execute(query, values);
 
     console.log("✅ Insert successful:", result);
 
