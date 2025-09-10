@@ -270,12 +270,7 @@ function verifyCronRequest(request) {
 // 🔹 GET endpoint for cron jobs
 export async function GET(request) {
   // Verify the request is legitimate
-  if (!verifyCronRequest(request)) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
-  }
+  
 
   console.log("⏰ Cron job started at", new Date().toISOString());
   const startTime = Date.now();
