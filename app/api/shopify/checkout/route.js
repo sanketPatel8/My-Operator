@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
 
+
 // Database connection configuration
 const dbConfig = {
   host: process.env.DATABASE_HOST,
