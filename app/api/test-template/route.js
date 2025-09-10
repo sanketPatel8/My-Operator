@@ -83,14 +83,14 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
     
     const value = JSON.parse(row.value || '{}');
     console.log("initial value", value);
-   /* if(value || value!=null){
+    if(value || value!=null){
 
-    switch (row.component_type) {
-      case "HEADER":
+    if (row.component_type == "HEADER") {
+ 
         templateContent.header = value;
-        break;
+    }
 
-      case "BODY":
+       if (row.component_type ==  "BODY"){
         templateContent.body = value;
 
         // ✅ USE USER-ENTERED FALLBACK VALUES instead of database values
@@ -111,14 +111,16 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
             bodyExample[row.variable_name] = row.fallback_value || `[${cleanVariableName}]`;
           }
         }
-        break;
+      }
 
-      case "FOOTER":
-        templateContent.footer = value;
-        break;
+       if (row.component_type ==  "FOOTER"){
+               templateContent.footer = value;
+       }
+ 
+       
 
-      case "BUTTONS":
-        case "BUTTONS_COMPONENT":
+        if (row.component_type ==   "BUTTONS"){
+     
          console.log("button info start");
 
        
@@ -135,13 +137,9 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
           };
           console.log("button info second:", result);
         
-          
-        break;
-
-      default:
-        break;
+  
+      }
     }
-  }*/
   }
 
   if (templateContent.body) {
