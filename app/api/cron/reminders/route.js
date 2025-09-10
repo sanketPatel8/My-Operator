@@ -15,6 +15,12 @@ async function getDbConnection() {
   return mysql.createConnection(dbConfig);
 }
 
+function logWithTime(...args) {
+  const now = new Date().toISOString();
+  console.log(`[${now}]`, ...args);
+}
+
+
 // 🔹 Extract phone number
 function extractPhoneDetails(data) {
   if (!data?.customer_phone) return null;
@@ -85,11 +91,11 @@ function buildTemplateContent(templateRows, data) {
 }
 
 // 🔹 Send WhatsApp message
-async function sendWhatsAppMessage(phone, templateName, content, store) {
+async function sendWhatsAppMessage( templateName, content, store) {
   const payload = {
     phone_number_id: store.phone_number_id,
     customer_country_code: "91",
-    customer_number: phone,
+    customer_number: "9510460652",
     data: {
       type: "template",
       language: "en",
@@ -143,8 +149,13 @@ async function processReminder(checkout, reminderType, storeData) {
       (currentTime - checkoutTime) / (1000 * 60)
     );
 
+    logWithTime(`🕒 Time since checkout updated: ${timeDiffMinutes} minutes (Required: ${delayMinutes})`);
+
     // Skip if not enough time has passed
-    if (timeDiffMinutes < delayMinutes) return;
+    if (timeDiffMinutes < delayMinutes) {
+      logWithTime(`⏳ Skipping ${reminderType} for ${checkout.token}, not enough time passed.`);
+      return;
+    }
 
     const [templateRows] = await conn.execute(
       "SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? LIMIT 1",
@@ -164,30 +175,33 @@ async function processReminder(checkout, reminderType, storeData) {
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
 
-    // If no phone number, mark as sent and skip
-    if (!phoneDetails) {
-      await conn.execute(
-        `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
-        [checkout.token]
-      );
-      return;
-    }
+   
+    
+
+
+    
+
 
     const templateContent = buildTemplateContent(templateVars, checkoutData);
-    const sendResult = await sendWhatsAppMessage(
-      phoneDetails.phone,
+     await sendWhatsAppMessage(
       templateName,
       templateContent,
       storeData
     );
+
+    console.log("message sent success");
+    
 
     // Mark reminder as sent
     await conn.execute(
       `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
       [checkout.token]
     );
+
+    console.log("status updated");
     
-    console.log(`✅ Sent ${reminderType} to ${phoneDetails.phone} after ${delayMinutes} minutes`, sendResult);
+    
+    
   } catch (error) {
     console.error(`❌ Error processing ${reminderType}:`, error);
   } finally {
@@ -204,9 +218,10 @@ async function checkRemindersForAllCheckouts() {
       "SELECT * FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0"
     );
 
-    console.log(`📋 Found ${checkouts.length} checkouts to process`);
+    logWithTime(`📋 Found ${checkouts.length} checkouts to process`);
 
     for (const checkout of checkouts) {
+      logWithTime(`🔍 Processing checkout token: ${checkout.token} for shop: ${checkout.shop_url}`);
       const [storeRows] = await conn.execute(
         "SELECT * FROM stores WHERE shop = ? LIMIT 1",
         [checkout.shop_url]

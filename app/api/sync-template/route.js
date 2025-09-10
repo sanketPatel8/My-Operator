@@ -116,16 +116,47 @@ export async function POST(req) {
 
     const data = await response.json();
 
+    // Get existing templates for comparison (before filtering API results)
+    const [existingTemplates] = await connection.execute(
+      `SELECT template_id, template_name, category FROM template 
+       WHERE store_id = ? AND phonenumber = ?`,
+      [store_id, phonenumber]
+    );
+
+    const existingTemplateMap = new Map();
+    existingTemplates.forEach(template => {
+      const key = `${template.category}::${template.template_name}`;
+      existingTemplateMap.set(key, template.template_id);
+    });
+
+    let insertedCount = 0;
+    let updatedCount = 0;
+    let deletedCount = 0;
+    const seenTemplates = new Set();
+
     if (!data?.data?.results?.length) {
+      // If no templates from API, delete all existing templates
+      if (existingTemplates.length > 0) {
+        await connection.beginTransaction();
+        try {
+          deletedCount = await deleteTemplatesFromDatabase(connection, Array.from(existingTemplateMap.values()));
+          await connection.commit();
+        } catch (deleteError) {
+          await connection.rollback();
+          throw deleteError;
+        }
+      }
+
       return new Response(JSON.stringify({ 
         success: true,
-        message: 'No templates found',
+        message: 'No templates found from API, cleaned up database',
         data: { 
           totalFromAPI: 0,
           approvedTemplates: 0,
           newTemplates: 0, 
           updatedTemplates: 0, 
-          totalProcessed: 0,
+          deletedTemplates: deletedCount,
+          totalProcessed: deletedCount,
           executionTime: `${Date.now() - startTime}ms`
         }
       }), { 
@@ -144,41 +175,6 @@ export async function POST(req) {
 
     console.log(`Approved templates: ${approvedTemplates.length}, Rejected/Other: ${templates.length - approvedTemplates.length}`);
 
-    if (approvedTemplates.length === 0) {
-      return new Response(JSON.stringify({ 
-        success: true,
-        message: 'No approved templates found',
-        data: { 
-          totalFromAPI: templates.length,
-          approvedTemplates: 0,
-          newTemplates: 0, 
-          updatedTemplates: 0, 
-          totalProcessed: 0,
-          executionTime: `${Date.now() - startTime}ms`
-        }
-      }), { 
-        status: 200,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-    
-    // Get existing templates for comparison
-    const [existingTemplates] = await connection.execute(
-      `SELECT template_id, template_name, category FROM template 
-       WHERE store_id = ? AND phonenumber = ?`,
-      [store_id, phonenumber]
-    );
-
-    const existingTemplateMap = new Map();
-    existingTemplates.forEach(template => {
-      const key = `${template.category}::${template.template_name}`;
-      existingTemplateMap.set(key, template.template_id);
-    });
-
-    let insertedCount = 0;
-    let updatedCount = 0;
-    const seenTemplates = new Set();
-
     // Helper function to extract variables
     const extractVariables = (text) => {
       if (!text) return [];
@@ -186,7 +182,26 @@ export async function POST(req) {
       return matches ? matches.map(match => match.replace(/[{}]/g, '').trim()) : [];
     };
 
-    // Process only approved templates
+    // Create a set of current API template keys (approved templates only)
+    const currentApiTemplateKeys = new Set();
+    for (const template of approvedTemplates) {
+      const { name: template_name, category, waba_template_status } = template;
+      
+      if (waba_template_status === 'approved' && template_name && category) {
+        const uniqueKey = `${category}::${template_name}`;
+        currentApiTemplateKeys.add(uniqueKey);
+      }
+    }
+
+    // Find templates to delete (exist in DB but not in current API response)
+    const templatesToDelete = [];
+    for (const [templateKey, templateId] of existingTemplateMap.entries()) {
+      if (!currentApiTemplateKeys.has(templateKey)) {
+        templatesToDelete.push(templateId);
+      }
+    }
+
+    // Process approved templates for insert/update
     const templateInserts = [];
     const templateUpdates = [];
 
@@ -226,6 +241,12 @@ export async function POST(req) {
     await connection.beginTransaction();
 
     try {
+      // Delete templates that are no longer in API
+      if (templatesToDelete.length > 0) {
+        console.log(`Deleting ${templatesToDelete.length} templates that are no longer in API`);
+        deletedCount = await deleteTemplatesFromDatabase(connection, templatesToDelete);
+      }
+
       // Batch update existing templates
       if (templateUpdates.length > 0) {
         const placeholders = templateUpdates.map(() => '?').join(',');
@@ -279,7 +300,8 @@ export async function POST(req) {
           rejectedTemplates: templates.length - approvedTemplates.length,
           newTemplates: insertedCount,
           updatedTemplates: updatedCount,
-          totalProcessed: approvedTemplates.length,
+          deletedTemplates: deletedCount,
+          totalProcessed: approvedTemplates.length + deletedCount,
           executionTime: `${executionTime}ms`
         }
       }), {
@@ -328,6 +350,53 @@ export async function POST(req) {
         console.error('Error closing connection:', closeError);
       }
     }
+  }
+}
+
+// Helper function to delete templates and all related data
+async function deleteTemplatesFromDatabase(connection, templateIds) {
+  if (templateIds.length === 0) return 0;
+
+  try {
+    const placeholders = templateIds.map(() => '?').join(',');
+    
+    // Get template_data_ids for these templates
+    const [templateDataRows] = await connection.execute(
+      `SELECT template_data_id FROM template_data WHERE template_id IN (${placeholders})`,
+      templateIds
+    );
+    
+    const templateDataIds = templateDataRows.map(row => row.template_data_id);
+    
+    // Delete template variables first (child records)
+    if (templateDataIds.length > 0) {
+      const templateDataPlaceholders = templateDataIds.map(() => '?').join(',');
+      await connection.execute(
+        `DELETE FROM template_variable WHERE template_data_id IN (${templateDataPlaceholders})`,
+        templateDataIds
+      );
+      console.log(`Deleted template variables for ${templateDataIds.length} template_data records`);
+    }
+    
+    // Delete template_data records
+    await connection.execute(
+      `DELETE FROM template_data WHERE template_id IN (${placeholders})`,
+      templateIds
+    );
+    console.log(`Deleted template_data for ${templateIds.length} templates`);
+    
+    // Delete templates
+    const [deleteResult] = await connection.execute(
+      `DELETE FROM template WHERE template_id IN (${placeholders})`,
+      templateIds
+    );
+    
+    console.log(`Deleted ${deleteResult.affectedRows} templates from database`);
+    return deleteResult.affectedRows;
+    
+  } catch (error) {
+    console.error('Error deleting templates from database:', error);
+    throw error;
   }
 }
 
