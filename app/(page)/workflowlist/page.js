@@ -280,13 +280,20 @@ export default function WorkflowList() {
   };
 
   const handleEyeClick = (reminder) => {
-  console.log('Eye clicked:', reminder);
+  console.log('=== EYE CLICK DEBUG ===');
+  console.log('Full reminder object:', reminder);
+  console.log('reminder.category_event_id:', reminder.category_event_id);
+  console.log('reminder.id:', reminder.id);
+  console.log('=== END DEBUG ===');
   
   // Check if reminder has required data for preview
   if (!reminder.category_event_id) {
-    error('Unable to preview: Missing event data');
+    console.error('❌ No category_event_id found in reminder:', reminder);
+    error('Unable to preview: Missing event data. Please ensure the workflow is properly configured.');
     return;
   }
+
+  console.log('✅ Opening preview for categoryEventId:', reminder.category_event_id);
 
   // Open the preview popup
   setPreviewPopup({
@@ -561,13 +568,11 @@ const closePreviewPopup = () => {
         </main>
       </div>
       <ChatPreviewPopup
-      isOpen={previewPopup.isOpen}
-      onClose={closePreviewPopup}
-      categoryEventId={previewPopup.categoryEventId}
-      storeToken={localStorage.getItem("storeToken")}
-      onError={error} // Pass your existing error toast function
-      onSuccess={success} // Pass your existing success toast function
-    />
+  isOpen={previewPopup.isOpen}
+  onClose={closePreviewPopup}
+  categoryEventId={previewPopup.categoryEventId}
+  storeToken={localStorage.getItem("storeToken")}
+/>
     </div>
   );
 }

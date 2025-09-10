@@ -4,44 +4,48 @@ import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useToastContext } from './Toast'; 
 
-const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken, onError, onSuccess }) => {
+const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
   const [templateData, setTemplateData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-  const { success, error } = useToastContext();
-   
+  const { success, error: showError } = useToastContext();
 
   useEffect(() => {
-    
     if (isOpen && categoryEventId && storeToken) {
       fetchTemplateData();
+    }
+    // Reset states when popup closes
+    if (!isOpen) {
+      setTemplateData(null);
+      setError(null);
     }
   }, [isOpen, categoryEventId, storeToken]);
 
   const fetchTemplateData = async () => {
     setLoading(true);
-    
+    setError(null);
     
     try {
+      console.log('Fetching template data for categoryEventId:', categoryEventId);
       const response = await fetch(`/api/template?storeToken=${storeToken}&category_event_id=${categoryEventId}`);
       const result = await response.json();
 
+      console.log('API Response:', result);
+
       if (result.success && result.templates.length > 0) {
         setTemplateData(result.templates[0]); // Use the first template
+        console.log('Template data set:', result.templates[0]);
       } else {
-        error('No template found. Please set up a template first to preview.');
-        
-        if (onError) {
-          onError(errorMsg);
-        }
+        const errorMsg = 'No template found. Please set up a template first to preview.';
+        setError(errorMsg);
+        showError(errorMsg);
       }
     } catch (err) {
       console.error('Error fetching template data:', err);
       const errorMsg = 'Failed to load template data. Please try again.';
-      
-      if (onError) {
-        onError(errorMsg);
-      }
+      setError(errorMsg);
+      showError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -108,6 +112,12 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken, onErro
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <span className="ml-3 text-gray-600">Loading template...</span>
             </div>
+          ) : error ? (
+            <div className="text-center py-8">
+              <div className="text-red-600 mb-4">
+                <p className="text-sm">{error}</p>
+              </div>
+            </div>
           ) : (
             /* Chat Preview */
             <div className="flex justify-center">
@@ -135,7 +145,13 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken, onErro
                 </div>
 
                 {/* Chat Body */}
-                <div className="flex-1 bg-[#E5DDD5] bg-opacity-50 px-[15px] pt-[15px] overflow-y-auto">
+                <div 
+                  className="flex-1 px-[15px] pt-[15px] overflow-y-auto"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5ddd5' fill-opacity='0.1'%3E%3Cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                    backgroundColor: '#e5ddd5'
+                  }}
+                >
                   <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px] text-[#1A1A1A] space-y-3 shadow-sm">
 
                     {/* Header Media/Text */}
@@ -218,32 +234,41 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken, onErro
                 </div>
 
                 {/* Chat Input */}
-                <div className="flex items-center bg-[#E5DDD5] bg-opacity-50 py-[9px] px-[4px]">
-                  <div className="relative flex-1">
-                    <svg className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M9 11H3v2h6v-2zm0-4H3v2h6V7zm0 8H3v2h6v-2zm2 2h10v-2H11v2zm0-4h10v-2H11v2zm0-4h10V7H11v2z"/>
-                    </svg>
-                    <input
-                      type="text"
-                      placeholder="Message"
-                      className="flex-1 w-full py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
-                      readOnly
-                    />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
-                      <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
-                      </svg>
-                      <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="w-[40px] h-[40px] bg-[#343E55] ml-[8px] rounded-full flex items-center justify-center">
-                    <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
-                      <path d="M12 2c5.514 0 10 4.486 10s-4.486 10-10 10-10-4.486-10-10 4.486-10 10-10zm0-2c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm-3 17v-10l9 5.146-9 4.854z"/>
-                    </svg>
-                  </div>
-                </div>
+                <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px]">
+                                    <Image
+                                      src="/assets/Emoji.svg"
+                                      alt="wp emoji"
+                                      height={100}
+                                      width={100}
+                                      className="max-h-[16px] max-w-[16px] absolute ml-[12px] cursor-pointer"
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Message"
+                                      className="flex-1 py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
+                                    />
+                                    <Image
+                                      src="/assets/wp_upload.svg"
+                                      alt="wp emoji"
+                                      height={100}
+                                      width={100}
+                                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[195px] md:ml-[180px] cursor-pointer"
+                                    />
+                                    <Image
+                                      src="/assets/wp_camera.svg"
+                                      alt="wp emoji"
+                                      height={100}
+                                      width={100}
+                                      className="max-h-[16px] max-w-[16px] z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
+                                    />
+                                    <Image
+                                      src="/assets/mic.svg"
+                                      alt="wp emoji"
+                                      height={100}
+                                      width={100}
+                                      className="max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full cursor-pointer"
+                                    />
+                                  </div>
               </div>
             </div>
           )}
