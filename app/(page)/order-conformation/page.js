@@ -64,12 +64,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-const OrderConfirmationPage = () => {
+// Client component
+function OrderConfirmationClient() {
   const hasRun = useRef(false);
   const [status, setStatus] = useState("Processing your order... ⏳");
   const searchParams = useSearchParams();
 
-  // Get query parameters
   const confirmed = searchParams?.get("confirmed"); // "yes" or "no"
   const order_id = searchParams?.get("order_id"); // actual order ID
 
@@ -101,7 +101,7 @@ const OrderConfirmationPage = () => {
               : "Order not confirmed ❌"
           );
 
-          // Optional: close tab automatically after 2 seconds
+          // Optional: close tab after 2s
           // setTimeout(() => window.close(), 2000);
         } else {
           setStatus("Order failed ❌");
@@ -127,6 +127,9 @@ const OrderConfirmationPage = () => {
       </p>
     </div>
   );
-};
+}
 
-export default OrderConfirmationPage;
+// Page export
+export default function Page() {
+  return <OrderConfirmationClient />;
+}
