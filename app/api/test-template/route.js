@@ -115,34 +115,29 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
         const buttons = value.buttons || [value];
-        const [buttonKey, buttonLink] = Object.entries(buttons)[0];
 
-        buttons.forEach((btn, index) => {
-          if (btn && Object.keys(btn).length > 0) {
-            // ✅ SIMPLIFIED BUTTON PAYLOAD - Extract {{link}} and replace with data.order_status_url
-            if (btn.type === "URL") {
-              // Extract the button link value (could be a URL with variables)
-              let processedButtonLink = buttonLink;
-              
-              // Check if buttonLink contains any variable in {{}} format
-              if (buttonLink && buttonLink.includes('{{')) {
-                // Replace any {{variable}} with data.order_status_url
-                processedButtonLink = buttonLink.replace(/\{\{[^}]*\}\}/g, data.order_status_url || '');
-                console.log(`✅ Replaced {{}} variable with data.order_status_url: ${data.order_status_url}`);
-              }
-              
-              const simplifiedButton = {
-                index: index,
-                buttonKey: processedButtonLink
-              };
-              templateContent.buttons.push(simplifiedButton);
-              console.log(`✅ Simplified button payload:`, simplifiedButton);
-            } else {
-              // For other button types, keep the original structure
-              templateContent.buttons.push(btn);
-            }
-          }
-        });
+buttons.forEach((btn, index) => {
+  if (btn && Object.keys(btn).length > 0) {
+    if (btn.type === "URL") {
+      let processedButtonLink = btn.url;  // safely access the URL string
+
+      if (processedButtonLink && typeof processedButtonLink === 'string' && processedButtonLink.includes('{{')) {
+        processedButtonLink = processedButtonLink.replace(/\{\{[^}]*\}\}/g, data.order_status_url || '');
+        console.log(`✅ Replaced {{}} variable with data.order_status_url: ${data.order_status_url}`);
+      }
+
+      const simplifiedButton = {
+        index: index,
+        buttonKey: processedButtonLink
+      };
+      templateContent.buttons.push(simplifiedButton);
+      console.log(`✅ Simplified button payload:`, simplifiedButton);
+    } else {
+      templateContent.buttons.push(btn);
+    }
+  }
+});
+
         break;
 
       default:
