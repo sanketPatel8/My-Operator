@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import pool from "@/lib/db"; // adjust this path to your db connection
 
-// Abandoned cart threshold (30 mins)
-const ABANDONED_TIME = 30 * 60 * 1000;
-
 export async function GET() {
   try {
     // 1️⃣ Find abandoned checkouts older than 30 mins and not yet reminded
     const [abandonedCarts] = await pool.query(
-      `SELECT *
-  FROM checkouts
-  WHERE reminder_1 = 0`
+      `SELECT * FROM checkouts WHERE reminder_1 = 0`
     );
 
     console.log(abandonedCarts, "abandonedCarts data");
