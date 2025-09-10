@@ -9,9 +9,8 @@ export async function GET() {
     // 1️⃣ Find abandoned checkouts older than 30 mins and not yet reminded
     const [abandonedCarts] = await pool.query(
       `SELECT *
-       FROM checkouts
-       WHERE updated_at < (NOW() - INTERVAL 30 MINUTE)
-       AND reminder_1 = 0`
+  FROM checkouts
+  WHERE reminder_1 = 0`
     );
 
     console.log(abandonedCarts, "abandonedCarts data");
