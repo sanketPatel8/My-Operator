@@ -12,39 +12,6 @@ const dbConfig = {
 // ✅ In-memory orders store
 let orders = [];
 
-// Helper function to build dynamic buttons from template data
-function buildDynamicButtons(templateContent, data, storeData) {
-  const dynamicButtons = [];
-  
-  if (templateContent.buttons && Array.isArray(templateContent.buttons)) {
-    templateContent.buttons.forEach((button, index) => {
-      if (button.type === "URL" && button.url) {
-        let finalUrl = button.url;
-        
-        // Check if URL format is dynamic (contains variables like {{1}}, {{order_id}}, etc.)
-        if (button.format === "DYNAMIC" || finalUrl.includes("{{")) {
-          // Replace dynamic variables in URL
-          finalUrl = replaceDynamicVariables(finalUrl, data, storeData);
-        }
-        // If format is "STATIC", use URL as-is
-        
-        dynamicButtons.push({
-          index: index,
-          id: finalUrl
-        });
-      } else if (button.type === "QUICK_REPLY") {
-        // Handle quick reply buttons
-        dynamicButtons.push({
-          index: index,
-          id: button.payload || `quick_reply_${index}`
-        });
-      }
-    });
-  }
-  
-  return dynamicButtons;
-}
-
 // Helper function to create database connection
 async function getDbConnection() {
   try {
@@ -95,11 +62,11 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
           template_name: templateName,
           language: "en",
           body: templateContent.body.example || {},
-          buttons: dynamicButtons
+          buttons: templateContent.dynamicButtons || [] // Use dynamic buttons array
         }
       },
-      reply_to: null,
-      myop_ref_id: "csat_123"
+     // reply_to: null,
+     // myop_ref_id: "csat_123"
     };
     
     console.log('📤 Sending message payload:', JSON.stringify(messagePayload, null, 2));
@@ -334,8 +301,6 @@ export async function POST(req) {
           return data.customer?.phone || '0000000000';
         case 'Payment Url':
           return data.order_status_url || "no url";
-        case 'Payment Url':
-          return data.order_status_url || "no url";
         case 'Quantity':
           if (Array.isArray(data.line_items)) {
             const totalQuantity = data.line_items.reduce((sum, item) => {
@@ -351,147 +316,164 @@ export async function POST(req) {
       }
     }
 
-    // Updated buildTemplateContent function to handle button format
-function buildTemplateContent(templateRows, data) {
-  const templateContent = {
-    header: null,
-    body: null,
-    footer: null,
-    buttons: [],
-  };
+    // Updated buildTemplateContent function to handle dynamic buttons
+    function buildTemplateContent(templateRows, data) {
+      const templateContent = {
+        header: null,
+        body: null,
+        footer: null,
+        buttons: [],
+        dynamicButtons: [] // New array for dynamic buttons
+      };
 
-  const bodyExample = {};
+      const bodyExample = {};
 
-  for (const row of templateRows) {
-    const value = JSON.parse(row.value || '{}');
+      for (const row of templateRows) {
+        const value = JSON.parse(row.value || '{}');
 
-    switch (row.component_type) {
-      case "HEADER":
-        templateContent.header = value;
-        break;
+        switch (row.component_type) {
+          case "HEADER":
+            templateContent.header = value;
+            break;
 
-      case "BODY":
-        templateContent.body = value;
+          case "BODY":
+            templateContent.body = value;
 
-        // Inject dynamic values using mapping_field
-        if (row.mapping_field && row.variable_name) {
-          bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
-        }
-        break;
-
-      case "FOOTER":
-        templateContent.footer = value;
-        break;
-
-      case "BUTTONS":
-      case "BUTTONS_COMPONENT":
-        const buttons = value.buttons || [value];
-
-        // Process each button and add format information
-        buttons.forEach((btn) => {
-          if (btn && Object.keys(btn).length > 0) {
-            // Add format field if not present (default to STATIC for backward compatibility)
-            if (!btn.format) {
-              btn.format = btn.url && btn.url.includes("{{") ? "DYNAMIC" : "STATIC";
+            // Inject dynamic values using mapping_field
+            if (row.mapping_field && row.variable_name) {
+              bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
             }
-            templateContent.buttons.push(btn);
-          }
-        });
-        break;
+            break;
 
-      default:
-        break;
+          case "FOOTER":
+            templateContent.footer = value;
+            break;
+
+          case "BUTTONS":
+          case "BUTTONS_COMPONENT":
+            const buttons = value.buttons || [value];
+
+            // Process each button and add to both arrays
+            buttons.forEach((btn, index) => {
+              if (btn && Object.keys(btn).length > 0) {
+                // Add format field if not present (default to STATIC for backward compatibility)
+                if (!btn.format) {
+                  btn.format = btn.url && btn.url.includes("{{") ? "DYNAMIC" : "STATIC";
+                }
+                
+                // Add to original buttons array
+                templateContent.buttons.push(btn);
+
+                // Create dynamic button object for the new format
+                const dynamicButton = {
+                  index: index
+                };
+
+                // Add dynamic values if mapping_field exists for this button
+                if (row.mapping_field && row.variable_name) {
+                  dynamicButton[row.variable_name] = getMappedValue(row.mapping_field, data);
+                }
+
+                // Add to dynamic buttons array
+                templateContent.dynamicButtons.push(dynamicButton);
+              }
+            });
+            break;
+
+          default:
+            break;
+        }
+      }
+
+      if (templateContent.body) {
+        templateContent.body.example = bodyExample;
+      }
+
+      console.log('🔘 Dynamic buttons created:', JSON.stringify(templateContent.dynamicButtons, null, 2));
+
+      return templateContent;
     }
-  }
 
-  if (templateContent.body) {
-    templateContent.body.example = bodyExample;
-  }
-
-  return templateContent;
-}
-
-    // 🔍 3a. Get phone number from store 
     // 🔍 3a. Get phone number and store_id from store 
-const [storePhoneRows] = await connection.execute(
-  'SELECT phonenumber, id FROM stores WHERE shop = ? LIMIT 1',
-  [shopDomain]
-);
-
-if (storePhoneRows.length === 0) {
-  throw new Error("No store found with shop domain");
-}
-
-const { phonenumber: storePhoneNumber, id: storeId } = storePhoneRows[0];
-console.log("📞 Store phone number:", storePhoneNumber);
-console.log("🏪 Store ID:", storeId);
-
-// 🔍 3b. Process each event title and send messages for all matching templates
-const messageResults = [];
-const sentMessages = [];
-let hasAnyTemplate = false;
-
-for (const eventTitle of eventTitles) {
-  console.log(`🔍 Trying to find template for event: ${eventTitle}`);
-  
-  try {
-    // Fetch template_id and template_data_id from category_event using title + phone number + store_id
-    const [categoryRows] = await connection.execute(
-      'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
-      [eventTitle, storePhoneNumber, storeId]
+    const [storePhoneRows] = await connection.execute(
+      'SELECT phonenumber, id FROM stores WHERE shop = ? LIMIT 1',
+      [shopDomain]
     );
 
-    if (categoryRows.length === 0) {
-      console.log(`⚠️ No template found for event: ${eventTitle} with store_id: ${storeId}`);
-      continue;
+    if (storePhoneRows.length === 0) {
+      throw new Error("No store found with shop domain");
     }
 
-    const { template_id, template_data_id, status } = categoryRows[0];
-    console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
+    const { phonenumber: storePhoneNumber, id: storeId } = storePhoneRows[0];
+    console.log("📞 Store phone number:", storePhoneNumber);
+    console.log("🏪 Store ID:", storeId);
 
-    // Fetch template name using template_id + phone number + store_id
-    const [templateRowsMeta] = await connection.execute(
-      'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
-      [template_id, storePhoneNumber, storeId]
-    );
+    // 🔍 3b. Process each event title and send messages for all matching templates
+    const messageResults = [];
+    const sentMessages = [];
+    let hasAnyTemplate = false;
 
-    if (templateRowsMeta.length === 0) {
-      console.log(`⚠️ No template name found for template_id: ${template_id} with store_id: ${storeId}`);
-      continue;
-    }
+    for (const eventTitle of eventTitles) {
+      console.log(`🔍 Trying to find template for event: ${eventTitle}`);
+      
+      try {
+        // Fetch template_id and template_data_id from category_event using title + phone number + store_id
+        const [categoryRows] = await connection.execute(
+          'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
+          [eventTitle, storePhoneNumber, storeId]
+        );
 
-    const templateName = templateRowsMeta[0].template_name;
-    console.log(`📛 Template name found: ${templateName}`);
-    hasAnyTemplate = true;
+        if (categoryRows.length === 0) {
+          console.log(`⚠️ No template found for event: ${eventTitle} with store_id: ${storeId}`);
+          continue;
+        }
 
-    // Check if this template is enabled
-    if (status != 1) {
-      console.log(`⚠️ Template "${templateName}" is disabled (status: ${status})`);
-      continue;
-    }
+        const { template_id, template_data_id, status } = categoryRows[0];
+        console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
 
-    // 🔍 Fetch template variables (assuming template_variable table also has store_id)
-    const [templateRows] = await connection.execute(
-      'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
-      [template_data_id]
-    );
+        // Fetch template name using template_id + phone number + store_id
+        const [templateRowsMeta] = await connection.execute(
+          'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
+          [template_id, storePhoneNumber, storeId]
+        );
 
-    if (templateRows.length === 0) {
-      console.log(`⚠️ No template variables found for template_data_id: ${template_data_id} with store_id: ${storeId}`);
-      continue;
-    }
+        if (templateRowsMeta.length === 0) {
+          console.log(`⚠️ No template name found for template_id: ${template_id} with store_id: ${storeId}`);
+          continue;
+        }
 
-    console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+        const templateName = templateRowsMeta[0].template_name;
+        console.log(`📛 Template name found: ${templateName}`);
+        hasAnyTemplate = true;
 
-    // ✅ Build template content with mapped data
-    const templateContent = buildTemplateContent(templateRows, data);
+        // Check if this template is enabled
+        if (status != 1) {
+          console.log(`⚠️ Template "${templateName}" is disabled (status: ${status})`);
+          continue;
+        }
 
-    if (!templateContent) {
-      console.log(`⚠️ Failed to build template content for: ${templateName}`);
-      continue;
-    }
+        // 🔍 Fetch template variables (assuming template_variable table also has store_id)
+        const [templateRows] = await connection.execute(
+          'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+          [template_data_id]
+        );
 
-    console.log(`📝 Template content built for "${templateName}":`, JSON.stringify(templateContent, null, 2));
+        if (templateRows.length === 0) {
+          console.log(`⚠️ No template variables found for template_data_id: ${template_data_id} with store_id: ${storeId}`);
+          continue;
+        }
+
+        console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+
+        // ✅ Build template content with mapped data
+        const templateContent = buildTemplateContent(templateRows, data);
+
+        if (!templateContent) {
+          console.log(`⚠️ Failed to build template content for: ${templateName}`);
+          continue;
+        }
+
+        console.log(`📝 Template content built for "${templateName}":`, JSON.stringify(templateContent, null, 2));
 
         // ✅ Send WhatsApp message
         try {
