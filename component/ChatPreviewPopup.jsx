@@ -28,7 +28,7 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
     
     try {
       console.log('Fetching template data for categoryEventId:', categoryEventId);
-      const response = await fetch(`/api/template?storeToken=${storeToken}&category_event_id=${categoryEventId}`);
+      const response = await fetch(`/api/category-template?storeToken=${storeToken}&category_event_id=${categoryEventId}`);
       const result = await response.json();
 
       console.log('API Response:', result);
@@ -234,41 +234,39 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
                 </div>
 
                 {/* Chat Input */}
-                <div className="flex items-center bg-[url('/assets/wp_bg.svg')] bg-repeat overflow-y-hidden py-[9px] px-[4px]">
-                                    <Image
-                                      src="/assets/Emoji.svg"
-                                      alt="wp emoji"
-                                      height={100}
-                                      width={100}
-                                      className="max-h-[16px] max-w-[16px] absolute ml-[12px] cursor-pointer"
-                                    />
-                                    <input
-                                      type="text"
-                                      placeholder="Message"
-                                      className="flex-1 py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
-                                    />
-                                    <Image
-                                      src="/assets/wp_upload.svg"
-                                      alt="wp emoji"
-                                      height={100}
-                                      width={100}
-                                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[195px] md:ml-[180px] cursor-pointer"
-                                    />
-                                    <Image
-                                      src="/assets/wp_camera.svg"
-                                      alt="wp emoji"
-                                      height={100}
-                                      width={100}
-                                      className="max-h-[16px] max-w-[16px] z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
-                                    />
-                                    <Image
-                                      src="/assets/mic.svg"
-                                      alt="wp emoji"
-                                      height={100}
-                                      width={100}
-                                      className="max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full cursor-pointer"
-                                    />
-                                  </div>
+                <div 
+                  className="flex items-center py-[9px] px-[4px]"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5ddd5' fill-opacity='0.1'%3E%3Cpath d='m36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+                    backgroundColor: '#e5ddd5'
+                  }}
+                >
+                  <div className="relative flex-1">
+                    <svg className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M15.5 14h-.79l-.28-.27A6.5 6.5 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Message"
+                      className="flex-1 w-full py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
+                      readOnly
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center space-x-2">
+                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                      </svg>
+                      <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="w-[40px] h-[40px] bg-[#343E55] ml-[8px] rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 fill-white" viewBox="0 0 24 24">
+                      <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                      <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                    </svg>
+                  </div>
+                </div>
               </div>
             </div>
           )}
