@@ -127,40 +127,53 @@ export async function storePlacedOrder(data) {
     console.log("📦 Storing placed order...");
     console.log("➡️ Incoming data:", data);
 
-    const query = `
-      INSERT INTO placed_code_order 
-        (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at) 
-      VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-      ON DUPLICATE KEY UPDATE
-        order_status_url = VALUES(order_status_url),
-        payment_gateway_names = VALUES(payment_gateway_names),
-        phone = VALUES(phone),
-        order_number = VALUES(order_number),
-        updated_at = NOW()
-    `;
+    // check if order_id already exists
+    const [rows] = await pool.execute(
+      "SELECT id FROM placed_code_order WHERE order_id = ? LIMIT 1",
+      [data.id]
+    );
 
-    const values = [
-      data.id || "",
-      data.order_status_url || "",
-      Array.isArray(data.payment_gateway_names)
-        ? data.payment_gateway_names.join(", ")
-        : data.payment_gateway_names || "",
-      data.phone || "",
-      data.order_number || "",
-    ];
-
-    console.log("📝 Executing query:", query);
-    console.log("🔑 With values:", values);
-
-    const [result] = await pool.execute(query, values);
-
-    console.log("✅ Insert/Update successful!");
-    console.log("ℹ️ Result:", {
-      insertId: result.insertId,
-      affectedRows: result.affectedRows,
-    });
-
-    return { success: true, result };
+    if (rows.length > 0) {
+      console.log("🔄 Order already exists, updating...");
+      const [result] = await pool.execute(
+        `UPDATE placed_code_order
+         SET order_status_url = ?, 
+             payment_gateway_names = ?, 
+             phone = ?, 
+             order_number = ?, 
+             updated_at = NOW()
+         WHERE order_id = ?`,
+        [
+          data.order_status_url || "",
+          Array.isArray(data.payment_gateway_names)
+            ? data.payment_gateway_names.join(", ")
+            : data.payment_gateway_names || "",
+          data.phone || "",
+          data.order_number || "",
+          data.id,
+        ]
+      );
+      console.log("✅ Order updated:", result);
+      return { success: true, action: "updated", result };
+    } else {
+      console.log("🆕 Order not found, inserting...");
+      const [result] = await pool.execute(
+        `INSERT INTO placed_code_order 
+           (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at) 
+         VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+        [
+          data.id || "",
+          data.order_status_url || "",
+          Array.isArray(data.payment_gateway_names)
+            ? data.payment_gateway_names.join(", ")
+            : data.payment_gateway_names || "",
+          data.phone || "",
+          data.order_number || "",
+        ]
+      );
+      console.log("✅ Order inserted:", result);
+      return { success: true, action: "inserted", result };
+    }
   } catch (error) {
     console.error("❌ Query failed:", error.message);
     console.error("📄 Full error:", error);
