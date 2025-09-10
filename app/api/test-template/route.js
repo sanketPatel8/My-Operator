@@ -83,7 +83,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
     
     const value = JSON.parse(row.value || '{}');
     console.log("initial value", value);
-    
+    if(value || value!=null){
 
     switch (row.component_type) {
       case "HEADER":
@@ -121,7 +121,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         case "BUTTONS_COMPONENT":
          console.log("button info start");
 
-       if(value || value!=null){
+       
             const button = value.buttons[0];
              console.log("button info first:", button);
           // Step 2: Extract key name dynamically
@@ -134,13 +134,14 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
             [keyName]: button.url
           };
           console.log("button info second:", result);
-        }
+        
           
         break;
 
       default:
         break;
     }
+  }
   }
 
   if (templateContent.body) {
