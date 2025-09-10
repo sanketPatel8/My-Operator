@@ -34,12 +34,7 @@ async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateConten
           template_name: selectedTemplate,
           language: "en",
           body: templateContent.body.example || {},
-          "buttons": [
-            {
-              "index": 0,
-              "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
-            }
-          ]
+          buttons:templateContent.buttons || []
         }
       },
       reply_to: null,
