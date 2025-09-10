@@ -160,6 +160,8 @@ async function processReminder(order, reminderType, storeData) {
     const timeDiffMinutes = Math.floor((currentTime - deliveryTime) / (1000 * 60));
 
     console.log(`Time since delivery: ${timeDiffMinutes} minutes, Required: ${delayMinutes} minutes`);
+    console.log("times:::", order.updated_at, currentTime, deliveryTime);
+    
 
     // Check if enough time has passed since delivery
     if (timeDiffMinutes < delayMinutes) return;
