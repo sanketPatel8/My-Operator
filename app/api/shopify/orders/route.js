@@ -133,20 +133,22 @@ export async function storePlacedOrder(data) {
       VALUES (?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
-    // sanitize values to prevent "Incorrect arguments" error
+    // sanitize values: replace undefined with null, cast to safe types
     const values = [
-      data.id || "", // must be string
-      data.order_status_url || "",
-      data.payment_gateway_names || "",
-      data.phone ? Number(data.phone) : null, // ensure number or null
-      data.order_number || "",
+      data.id ?? null, // Shopify order_id (string or bigint)
+      data.order_status_url ?? null,
+      Array.isArray(data.payment_gateway_names)
+        ? data.payment_gateway_names.join(",")
+        : data.payment_gateway_names ?? null,
+      data.phone ?? null, // keep string; change column to VARCHAR if needed
+      data.order_number ?? null,
     ];
 
     console.log("📝 Executing query:", query);
     console.log("🔑 With values:", values);
     console.log(
       "🔍 Value types:",
-      values.map((v) => typeof v)
+      values.map((v) => [v, typeof v])
     );
 
     const [result] = await pool.execute(query, values);
