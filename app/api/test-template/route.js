@@ -118,10 +118,10 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues)
         buttons.forEach((btn, index) => {
           if (btn && Object.keys(btn).length > 0) {
             // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-            if (btn.type === "URL" && btn.text === "Click to Pay") {
+            if (btn.type === "URL" ) {
               const simplifiedButton = {
                 index: index,
-                "Click to pay": btn.url
+                "link": btn.url
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
