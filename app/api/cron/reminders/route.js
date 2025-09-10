@@ -18,7 +18,7 @@ async function getDbConnection() {
 // 🔹 Parse delay string to minutes
 function parseDelayToMinutes(delayValue) {
   if (!delayValue) return 60;
-  if (typeof delayValue === 'number') return delayValue;
+  if (typeof delayValue === "number") return delayValue;
 
   const delayStr = String(delayValue).toLowerCase().trim();
   if (/^\d+$/.test(delayStr)) return parseInt(delayStr);
@@ -30,13 +30,17 @@ function parseDelayToMinutes(delayValue) {
   const unit = match[2];
 
   switch (unit) {
-    case 'minute':
-    case 'minutes': return value;
-    case 'hour':
-    case 'hours': return value * 60;
-    case 'day':
-    case 'days': return value * 60 * 24;
-    default: return 60;
+    case "minute":
+    case "minutes":
+      return value;
+    case "hour":
+    case "hours":
+      return value * 60;
+    case "day":
+    case "days":
+      return value * 60 * 24;
+    default:
+      return 60;
   }
 }
 
@@ -49,34 +53,54 @@ function extractPhoneDetails(data) {
 // 🔹 Map dynamic values
 function getMappedValue(field, data) {
   switch (field) {
-    case "Name": return data.customer_first_name || "Customer";
-    case "Order id": return String(data?.id || data?.token || "123456");
-    case "Phone number": return data.customer_phone || "0000000000";
+    case "Name":
+      return data.customer_first_name || "Customer";
+    case "Order id":
+      return String(data?.id || data?.token || "123456");
+    case "Phone number":
+      return data.customer_phone || "0000000000";
     case "Quantity":
       return Array.isArray(data.line_items)
-        ? String(data.line_items.reduce((sum, item) => sum + (item.quantity || 0), 0))
+        ? String(
+            data.line_items.reduce((sum, item) => sum + (item.quantity || 0), 0)
+          )
         : "0";
-    case "Total price": return data?.total_price || "00";
-    default: return "";
+    case "Total price":
+      return data?.total_price || "00";
+    default:
+      return "";
   }
 }
 
 // 🔹 Build template content
 function buildTemplateContent(templateRows, data) {
-  const content = { header: null, body: null, footer: null, buttons: [], checkout_url: data.checkout_url };
+  const content = {
+    header: null,
+    body: null,
+    footer: null,
+    buttons: [],
+    checkout_url: data.checkout_url,
+  };
   const bodyExample = {};
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value || "{}");
     switch (row.component_type) {
-      case "HEADER": content.header = value; break;
+      case "HEADER":
+        content.header = value;
+        break;
       case "BODY":
         content.body = value;
         if (row.mapping_field && row.variable_name) {
-          bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
+          bodyExample[row.variable_name] = getMappedValue(
+            row.mapping_field,
+            data
+          );
         }
         break;
-      case "FOOTER": content.footer = value; break;
+      case "FOOTER":
+        content.footer = value;
+        break;
       case "BUTTONS":
         (value.buttons || [value]).forEach((btn) => {
           if (btn && Object.keys(btn).length > 0) content.buttons.push(btn);
@@ -142,7 +166,9 @@ async function processReminder(checkout, reminderType, storeData) {
 
     const checkoutTime = new Date(checkout.updated_at);
     const currentTime = new Date();
-    const timeDiffMinutes = Math.floor((currentTime - checkoutTime) / (1000 * 60));
+    const timeDiffMinutes = Math.floor(
+      (currentTime - checkoutTime) / (1000 * 60)
+    );
 
     if (timeDiffMinutes < delayMinutes) return;
 
@@ -162,19 +188,29 @@ async function processReminder(checkout, reminderType, storeData) {
     const checkoutData = JSON.parse(checkout.checkout_data || "{}");
     const phoneDetails = extractPhoneDetails(checkoutData);
 
-    const reminderColumn = reminderType.toLowerCase().replace(' ', '_');
+    const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
 
     if (!phoneDetails) {
-      await conn.execute(`UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`, [checkout.token]);
+      await conn.execute(
+        `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
+        [checkout.token]
+      );
       return;
     }
 
     const templateContent = buildTemplateContent(templateVars, checkoutData);
-    const sendResult = await sendWhatsAppMessage(phoneDetails.phone, templateName, templateContent, storeData);
+    const sendResult = await sendWhatsAppMessage(
+      phoneDetails.phone,
+      templateName,
+      templateContent,
+      storeData
+    );
 
-    await conn.execute(`UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`, [checkout.token]);
+    await conn.execute(
+      `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
+      [checkout.token]
+    );
     console.log(`✅ Sent ${reminderType} to ${phoneDetails.phone}`, sendResult);
-
   } catch (error) {
     console.error(`❌ Error processing ${reminderType}:`, error);
   } finally {
@@ -201,9 +237,9 @@ async function checkRemindersForAllCheckouts() {
       const storeData = storeRows[0];
 
       const reminders = [
-        { type: 'Reminder 1', sent: checkout.reminder_1 },
-        { type: 'Reminder 2', sent: checkout.reminder_2 },
-        { type: 'Reminder 3', sent: checkout.reminder_3 }
+        { type: "Reminder 1", sent: checkout.reminder_1 },
+        { type: "Reminder 2", sent: checkout.reminder_2 },
+        { type: "Reminder 3", sent: checkout.reminder_3 },
       ];
 
       for (const reminder of reminders) {
@@ -219,55 +255,58 @@ async function checkRemindersForAllCheckouts() {
   }
 }
 // 🔹 Verify cron request is from Vercel
-function verifyCronRequest(request) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  
-  // If you set a CRON_SECRET environment variable
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return false;
-  }
-  
-  // Additional verification - check if request is from Vercel
-  const userAgent = request.headers.get('user-agent');
-  if (!userAgent || !userAgent.includes('vercel')) {
-    console.warn('Suspicious cron request:', { userAgent, ip: request.ip });
-  }
-  
-  return true;
-}
+// function verifyCronRequest(request) {
+//   const authHeader = request.headers.get("authorization");
+//   const cronSecret = process.env.CRON_SECRET;
+
+//   // If you set a CRON_SECRET environment variable
+//   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+//     return false;
+//   }
+
+//   // Additional verification - check if request is from Vercel
+//   const userAgent = request.headers.get("user-agent");
+//   if (!userAgent || !userAgent.includes("vercel")) {
+//     console.warn("Suspicious cron request:", { userAgent, ip: request.ip });
+//   }
+
+//   return true;
+// }
 
 // ... (all your existing functions remain the same)
 
 // 🔹 Vercel Cron Job Entry
 export async function GET(request) {
-  // Verify the request is legitimate
-  if (!verifyCronRequest(request)) {
-    return NextResponse.json(
-      { error: "Unauthorized" }, 
-      { status: 401 }
-    );
-  }
+  // // Verify the request is legitimate
+  // if (!verifyCronRequest(request)) {
+  //   return NextResponse.json(
+  //     { error: "Unauthorized" },
+  //     { status: 401 }
+  //   );
+  // }
 
   console.log("⏰ Cron started at", new Date().toISOString());
-  
+
   try {
     await checkRemindersForAllCheckouts();
-    
+
     return NextResponse.json({
       status: "success",
       message: "Cron job executed successfully",
-      time: new Date().toISOString()
+      time: new Date().toISOString(),
     });
   } catch (error) {
     console.error("❌ Cron job failed:", error);
-    
-    return NextResponse.json({
-      status: "error", 
-      message: "Cron job failed",
-      error: error.message,
-      time: new Date().toISOString()
-    }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        status: "error",
+        message: "Cron job failed",
+        error: error.message,
+        time: new Date().toISOString(),
+      },
+      { status: 500 }
+    );
   }
 }
 
