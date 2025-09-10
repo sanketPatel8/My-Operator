@@ -104,7 +104,7 @@ async function sendWhatsAppMessage(
   }
 }
 
-export async function storePlacedOrder(data) {
+export async function storePlacedOrder(data, shopurl) {
   try {
     console.log("📦 Storing placed order...");
     console.log("➡️ Incoming data:", data);
@@ -133,13 +133,14 @@ export async function storePlacedOrder(data) {
         const rowId = existingRows[0].id;
         const [updateResult] = await connection.execute(
           `UPDATE placed_code_order
-           SET order_status_url = ?, 
+           SET shop = ?, order_status_url = ?, 
                payment_gateway_names = ?, 
                phone = ?, 
                order_number = ?, 
                updated_at = NOW()
            WHERE id = ?`,
           [
+            shopurl,
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
@@ -154,10 +155,11 @@ export async function storePlacedOrder(data) {
         // 3️⃣ Insert safely if no existing row
         const [insertResult] = await connection.execute(
           `INSERT INTO placed_code_order 
-             (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+             (order_id, shop , order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           [
             data.id,
+            shopurl,
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
@@ -338,7 +340,7 @@ export async function POST(req) {
           data.payment_gateway_names.includes("Cash on Delivery (COD)")
         ) {
           eventTitles = ["Order Placed", "COD Order Confirmation or Cancel"];
-          storePlacedOrder(data);
+          storePlacedOrder(data, shopDomain);
         } else {
           eventTitles = ["Order Placed"];
         }
