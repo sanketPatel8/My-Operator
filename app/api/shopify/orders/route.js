@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import mysql from 'mysql2/promise';
+import mysql from "mysql2/promise";
 
 // Database connection configuration
 const dbConfig = {
   host: process.env.DATABASE_HOST,
   user: process.env.DATABASE_USER,
   password: process.env.DATABASE_PASSWORD,
-  database: process.env.DATABASE_NAME
+  database: process.env.DATABASE_NAME,
 };
 
 // ✅ In-memory orders store
@@ -18,7 +18,7 @@ async function getDbConnection() {
     const connection = await mysql.createConnection(dbConfig);
     return connection;
   } catch (error) {
-    console.error('❌ Database connection failed:', error);
+    console.error("❌ Database connection failed:", error);
     throw error;
   }
 }
@@ -27,29 +27,34 @@ async function getDbConnection() {
 function extractPhoneDetails(orderData) {
   try {
     const customer = orderData;
-    
+
     if (!customer || !customer.phone) {
-      console.warn('⚠️ No phone number found in customer data');
+      console.warn("⚠️ No phone number found in customer data");
       return null;
     }
-    
+
     let phone = customer.phone;
-    
+
     phone = phone.slice(-10);
-    
+
     console.log(`📞 Extracted - Phone: ${phone},`);
-    
+
     return {
       phone: phone,
     };
   } catch (error) {
-    console.error('❌ Error extracting phone details:', error);
+    console.error("❌ Error extracting phone details:", error);
     return null;
   }
 }
 
 // Helper function to send WhatsApp message
-async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, storeData) {
+async function sendWhatsAppMessage(
+  phoneNumber,
+  templateName,
+  templateContent,
+  storeData
+) {
   try {
     const messagePayload = {
       phone_number_id: storeData.phone_number_id,
@@ -62,34 +67,98 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
           template_name: templateName,
           language: "en",
           body: templateContent.body.example || {},
-          buttons: templateContent.dynamicButtons || [] // Use dynamic buttons array
-        }
+          buttons: templateContent.dynamicButtons || [], // Use dynamic buttons array
+        },
       },
-     // reply_to: null,
-     // myop_ref_id: "csat_123"
+      // reply_to: null,
+      // myop_ref_id: "csat_123"
     };
-    
-    console.log('📤 Sending message payload:', JSON.stringify(messagePayload, null, 2));
-    
+
+    console.log(
+      "📤 Sending message payload:",
+      JSON.stringify(messagePayload, null, 2)
+    );
+
     // Make API call to send message.
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${storeData.whatsapp_api_key}`,
-        'X-MYOP-COMPANY-ID': `${storeData.company_id}`
-      },
-      body: JSON.stringify(messagePayload)
-    });
-    
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${storeData.whatsapp_api_key}`,
+          "X-MYOP-COMPANY-ID": `${storeData.company_id}`,
+        },
+        body: JSON.stringify(messagePayload),
+      }
+    );
+
     const result = await response.json();
-    console.log('✅ Message sent successfully:', result);
+    console.log("✅ Message sent successfully:", result);
     return result;
-    
   } catch (error) {
-    console.error('❌ Error sending WhatsApp message:', error);
+    console.error("❌ Error sending WhatsApp message:", error);
     throw error;
+  }
+}
+
+// async function storePlacedOrder(data) {
+//   connection = await getDbConnection();
+//   const [result] = await connection.execute(
+//     `INSERT INTO placed_code_order
+//         (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at)
+//        VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+//     [
+//       data.id,
+//       data.order_status_url,
+//       data.payment_gateway_names,
+//       data.phone,
+//       data.order_number,
+//     ]
+//   );
+// }
+
+async function storePlacedOrder(data) {
+  let connection;
+
+  try {
+    console.log("📦 Storing placed order...");
+    console.log("➡️ Incoming data:", data);
+
+    connection = await getDbConnection();
+    console.log("✅ Database connection established");
+
+    const query = `
+      INSERT INTO placed_code_order 
+        (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at) 
+      VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+    `;
+
+    const values = [
+      data.id, // double-check: is this Shopify order_id or your own?
+      data.order_status_url,
+      data.payment_gateway_names,
+      data.phone,
+      data.order_number,
+    ];
+
+    console.log("📝 Executing query:", query);
+    console.log("🔑 With values:", values);
+
+    const [result] = await connection.execute(query, values);
+
+    console.log("✅ Insert successful:", result);
+
+    return { success: true, insertId: result.insertId };
+  } catch (error) {
+    console.error("❌ Error inserting placed order:", error.message);
+    return { success: false, error: error.message };
+  } finally {
+    if (connection) {
+      await connection.end();
+      console.log("🔒 Database connection closed");
+    }
   }
 }
 
@@ -98,81 +167,85 @@ export async function POST(req) {
   let connection;
 
   const connect = await mysql.createConnection({
-        host: process.env.DATABASE_HOST,
-        user: process.env.DATABASE_USER,
-        password: process.env.DATABASE_PASSWORD,
-        database: process.env.DATABASE_NAME,
-        charset: 'utf8mb4',
-        collation: 'utf8mb4_unicode_ci',
-      });
+    host: process.env.DATABASE_HOST,
+    user: process.env.DATABASE_USER,
+    password: process.env.DATABASE_PASSWORD,
+    database: process.env.DATABASE_NAME,
+    charset: "utf8mb4",
+    collation: "utf8mb4_unicode_ci",
+  });
 
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shopDomain = req.headers.get("x-shop");
     const data = await req.json();
 
-    console.log(`📦 Order received [${topic}] from shop ${shopDomain}:`, JSON.stringify(data, null, 2));
+    console.log(
+      `📦 Order received [${topic}] from shop ${shopDomain}:`,
+      JSON.stringify(data, null, 2)
+    );
 
     function getISTDateTime() {
-    const now = new Date();
-    const ist = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
-    );
-    const year = ist.getFullYear();
-    const month = String(ist.getMonth() + 1).padStart(2, "0");
-    const day = String(ist.getDate()).padStart(2, "0");
-    const hours = String(ist.getHours()).padStart(2, "0");
-    const minutes = String(ist.getMinutes()).padStart(2, "0");
-    const seconds = String(ist.getSeconds()).padStart(2, "0");
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+      const now = new Date();
+      const ist = new Date(
+        now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+      );
+      const year = ist.getFullYear();
+      const month = String(ist.getMonth() + 1).padStart(2, "0");
+      const day = String(ist.getDate()).padStart(2, "0");
+      const hours = String(ist.getHours()).padStart(2, "0");
+      const minutes = String(ist.getMinutes()).padStart(2, "0");
+      const seconds = String(ist.getSeconds()).padStart(2, "0");
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     }
 
-      const createdAt = getISTDateTime();
-      const updatedAt = getISTDateTime();
+    const createdAt = getISTDateTime();
+    const updatedAt = getISTDateTime();
 
     if (topic === "orders/updated") {
-    // Check if fulfillments exist and the first fulfillment has delivered status
-    if (Array.isArray(data.fulfillments) && 
-        data.fulfillments.length > 0 && 
-        data.fulfillments[0].shipment_status && 
-        data.fulfillments[0].shipment_status.includes("delivered")) {
-        
+      // Check if fulfillments exist and the first fulfillment has delivered status
+      if (
+        Array.isArray(data.fulfillments) &&
+        data.fulfillments.length > 0 &&
+        data.fulfillments[0].shipment_status &&
+        data.fulfillments[0].shipment_status.includes("delivered")
+      ) {
         // Extract relevant data from the order
         const orderDeliveredData = {
-            // Order basic info
-            id: data.id,
-            shop_url: shopDomain,
-            customer_first_name: data.customer?.first_name,
-            customer_last_name: data.customer?.last_name,
-            customer_email: data.customer?.email,
-            customer_phone: data.customer?.phone,
-            
-            // Order financial details
-            currency: data.currency,
-            subtotal_price: data.current_subtotal_price,
-            total_price: data.current_total_price,
-            total_tax: data.current_total_tax,
-            
-            
-            // Shipping address
-            shipping_first_name: data.shipping_address?.first_name,
-            shipping_last_name: data.shipping_address?.last_name,
-            shipping_address1: data.shipping_address?.address1,
-            shipping_address2: data.shipping_address?.address2,
-            shipping_city: data.shipping_address?.city,
-            shipping_province: data.shipping_address?.province,
-            shipping_country: data.shipping_address?.country,
-            shipping_zip: data.shipping_address?.zip,
-            shipping_phone: data.shipping_address?.phone,
-            shipment_status: data.fulfillments[0].shipment_status,
-            updated_at: updatedAt,
-            created_at: createdAt,
-            quantity:  data.line_items.reduce((sum, item) => {
-              return sum + (item.current_quantity || 0);
-            }, 0)
+          // Order basic info
+          id: data.id,
+          shop_url: shopDomain,
+          customer_first_name: data.customer?.first_name,
+          customer_last_name: data.customer?.last_name,
+          customer_email: data.customer?.email,
+          customer_phone: data.customer?.phone,
+
+          // Order financial details
+          currency: data.currency,
+          subtotal_price: data.current_subtotal_price,
+          total_price: data.current_total_price,
+          total_tax: data.current_total_tax,
+
+          // Shipping address
+          shipping_first_name: data.shipping_address?.first_name,
+          shipping_last_name: data.shipping_address?.last_name,
+          shipping_address1: data.shipping_address?.address1,
+          shipping_address2: data.shipping_address?.address2,
+          shipping_city: data.shipping_address?.city,
+          shipping_province: data.shipping_address?.province,
+          shipping_country: data.shipping_address?.country,
+          shipping_zip: data.shipping_address?.zip,
+          shipping_phone: data.shipping_address?.phone,
+          shipment_status: data.fulfillments[0].shipment_status,
+          updated_at: updatedAt,
+          created_at: createdAt,
+          quantity: data.line_items.reduce((sum, item) => {
+            return sum + (item.current_quantity || 0);
+          }, 0),
         };
-            
-            await connect.execute(`
+
+        await connect.execute(
+          `
                 INSERT INTO order_delivered (
                     id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
                     currency, subtotal_price, total_price, total_tax,  shipping_first_name, 
@@ -180,22 +253,25 @@ export async function POST(req) {
                     shipping_city, shipping_province, shipping_country, shipping_zip, shipping_phone,
                     shipment_status, updated_at, created_at, quantity
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, Object.values(orderDeliveredData));
-            
-            
-            // For demonstration, just log the data
-            console.log("Order delivered data to insert:", orderDeliveredData);
-            console.log("Successfully processed delivered order:", data.order_number);
-            
-        }
+            `,
+          Object.values(orderDeliveredData)
+        );
+
+        // For demonstration, just log the data
+        console.log("Order delivered data to insert:", orderDeliveredData);
+        console.log(
+          "Successfully processed delivered order:",
+          data.order_number
+        );
       }
+    }
 
     // Store order in memory
     const orderRecord = {
       topic,
       shop: shopDomain,
       data,
-      receivedAt: new Date().toISOString()
+      receivedAt: new Date().toISOString(),
     };
 
     orders.unshift(orderRecord);
@@ -204,33 +280,36 @@ export async function POST(req) {
     // Get database connection
     connection = await getDbConnection();
 
-    // 1. Fetch store data from stores table 
+    // 1. Fetch store data from stores table
     const [storeRows] = await connection.execute(
-      'SELECT * FROM stores WHERE shop = ?',
+      "SELECT * FROM stores WHERE shop = ?",
       [shopDomain]
     );
 
     if (storeRows.length === 0) {
-      throw new Error('Store not found with id ');
+      throw new Error("Store not found with id ");
     }
 
     const storeData = storeRows[0];
-    console.log('🏪 Store data fetched:', storeData);
+    console.log("🏪 Store data fetched:", storeData);
 
     // 2. Extract phone details from order
-    console.log('🔍 Customer data from order:', JSON.stringify(data.customer, null, 2));
+    console.log(
+      "🔍 Customer data from order:",
+      JSON.stringify(data.customer, null, 2)
+    );
     const phoneDetails = extractPhoneDetails(data);
     if (!phoneDetails) {
-      console.warn('⚠️ Skipping message send - no phone number found');
-      return NextResponse.json({ 
-        status: "success", 
+      console.warn("⚠️ Skipping message send - no phone number found");
+      return NextResponse.json({
+        status: "success",
         order: data,
-        message: "Order received but no phone number found"
+        message: "Order received but no phone number found",
       });
     }
 
-    console.log('📞 Extracted phone details:', phoneDetails);
-    
+    console.log("📞 Extracted phone details:", phoneDetails);
+
     // 🔍 3. Get event titles based on topic
     let eventTitles = [];
 
@@ -241,6 +320,7 @@ export async function POST(req) {
           data.payment_gateway_names.includes("Cash on Delivery (COD)")
         ) {
           eventTitles = ["Order Placed", "COD Order Confirmation or Cancel"];
+          storePlacedOrder(data);
         } else {
           eventTitles = ["Order Placed"];
         }
@@ -253,7 +333,10 @@ export async function POST(req) {
           Array.isArray(data.payment_gateway_names) &&
           data.payment_gateway_names.includes("Cash on Delivery (COD)")
         ) {
-          eventTitles = ["Order Cancelled", "COD Order Cancellation Event Triggered"];
+          eventTitles = [
+            "Order Cancelled",
+            "COD Order Cancellation Event Triggered",
+          ];
         } else {
           eventTitles = ["Order Cancelled"];
         }
@@ -267,9 +350,7 @@ export async function POST(req) {
         }
         break;
       case "orders/updated":
-        if (
-          data.fulfillment_status.includes("fulfilled")
-        ) {
+        if (data.fulfillment_status.includes("fulfilled")) {
           eventTitles = ["Order Out for Delivery"];
         }
         break;
@@ -293,26 +374,28 @@ export async function POST(req) {
     // ✅ 1. Helper to map values from DB fields to dynamic data
     function getMappedValue(mappingField, data) {
       switch (mappingField) {
-        case 'Name':
-          return data.billing_address?.first_name || data?.first_name || 'Customer';
-        case 'Order id':
-          return String(data?.id || '123456');
-        case 'Phone number':
-          return data.customer?.phone || '0000000000';
-        case 'Payment Url':
+        case "Name":
+          return (
+            data.billing_address?.first_name || data?.first_name || "Customer"
+          );
+        case "Order id":
+          return String(data?.id || "123456");
+        case "Phone number":
+          return data.customer?.phone || "0000000000";
+        case "Payment Url":
           return data.order_status_url || "no url";
-        case 'Quantity':
+        case "Quantity":
           if (Array.isArray(data.line_items)) {
             const totalQuantity = data.line_items.reduce((sum, item) => {
               return sum + (item.current_quantity || 0);
             }, 0);
             return String(totalQuantity);
           }
-          return '0';
-        case 'Total price':
-          return data?.current_total_price || '00';
+          return "0";
+        case "Total price":
+          return data?.current_total_price || "00";
         default:
-          return '';
+          return "";
       }
     }
 
@@ -323,13 +406,13 @@ export async function POST(req) {
         body: null,
         footer: null,
         buttons: [],
-        dynamicButtons: [] // New array for dynamic buttons
+        dynamicButtons: [], // New array for dynamic buttons
       };
 
       const bodyExample = {};
 
       for (const row of templateRows) {
-        const value = JSON.parse(row.value || '{}');
+        const value = JSON.parse(row.value || "{}");
 
         switch (row.component_type) {
           case "HEADER":
@@ -341,7 +424,10 @@ export async function POST(req) {
 
             // Inject dynamic values using mapping_field
             if (row.mapping_field && row.variable_name) {
-              bodyExample[row.variable_name] = getMappedValue(row.mapping_field, data);
+              bodyExample[row.variable_name] = getMappedValue(
+                row.mapping_field,
+                data
+              );
             }
             break;
 
@@ -358,20 +444,24 @@ export async function POST(req) {
               if (btn && Object.keys(btn).length > 0) {
                 // Add format field if not present (default to STATIC for backward compatibility)
                 if (!btn.format) {
-                  btn.format = btn.url && btn.url.includes("{{") ? "DYNAMIC" : "STATIC";
+                  btn.format =
+                    btn.url && btn.url.includes("{{") ? "DYNAMIC" : "STATIC";
                 }
-                
+
                 // Add to original buttons array
                 templateContent.buttons.push(btn);
 
                 // Create dynamic button object for the new format
                 const dynamicButton = {
-                  index: index
+                  index: index,
                 };
 
                 // Add dynamic values if mapping_field exists for this button
                 if (row.mapping_field && row.variable_name) {
-                  dynamicButton[row.variable_name] = getMappedValue(row.mapping_field, data);
+                  dynamicButton[row.variable_name] = getMappedValue(
+                    row.mapping_field,
+                    data
+                  );
                 }
 
                 // Add to dynamic buttons array
@@ -389,14 +479,17 @@ export async function POST(req) {
         templateContent.body.example = bodyExample;
       }
 
-      console.log('🔘 Dynamic buttons created:', JSON.stringify(templateContent.dynamicButtons, null, 2));
+      console.log(
+        "🔘 Dynamic buttons created:",
+        JSON.stringify(templateContent.dynamicButtons, null, 2)
+      );
 
       return templateContent;
     }
 
-    // 🔍 3a. Get phone number and store_id from store 
+    // 🔍 3a. Get phone number and store_id from store
     const [storePhoneRows] = await connection.execute(
-      'SELECT phonenumber, id FROM stores WHERE shop = ? LIMIT 1',
+      "SELECT phonenumber, id FROM stores WHERE shop = ? LIMIT 1",
       [shopDomain]
     );
 
@@ -415,30 +508,38 @@ export async function POST(req) {
 
     for (const eventTitle of eventTitles) {
       console.log(`🔍 Trying to find template for event: ${eventTitle}`);
-      
+
       try {
         // Fetch template_id and template_data_id from category_event using title + phone number + store_id
         const [categoryRows] = await connection.execute(
-          'SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
+          "SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? AND store_id = ? LIMIT 1",
           [eventTitle, storePhoneNumber, storeId]
         );
 
         if (categoryRows.length === 0) {
-          console.log(`⚠️ No template found for event: ${eventTitle} with store_id: ${storeId}`);
+          console.log(
+            `⚠️ No template found for event: ${eventTitle} with store_id: ${storeId}`
+          );
           continue;
         }
 
         const { template_id, template_data_id, status } = categoryRows[0];
-        console.log(`🧩 Template IDs found for "${eventTitle}":`, template_id, template_data_id);
+        console.log(
+          `🧩 Template IDs found for "${eventTitle}":`,
+          template_id,
+          template_data_id
+        );
 
         // Fetch template name using template_id + phone number + store_id
         const [templateRowsMeta] = await connection.execute(
-          'SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? AND store_id = ? LIMIT 1',
+          "SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? AND store_id = ? LIMIT 1",
           [template_id, storePhoneNumber, storeId]
         );
 
         if (templateRowsMeta.length === 0) {
-          console.log(`⚠️ No template name found for template_id: ${template_id} with store_id: ${storeId}`);
+          console.log(
+            `⚠️ No template name found for template_id: ${template_id} with store_id: ${storeId}`
+          );
           continue;
         }
 
@@ -448,32 +549,43 @@ export async function POST(req) {
 
         // Check if this template is enabled
         if (status != 1) {
-          console.log(`⚠️ Template "${templateName}" is disabled (status: ${status})`);
+          console.log(
+            `⚠️ Template "${templateName}" is disabled (status: ${status})`
+          );
           continue;
         }
 
         // 🔍 Fetch template variables (assuming template_variable table also has store_id)
         const [templateRows] = await connection.execute(
-          'SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+          "SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id",
           [template_data_id]
         );
 
         if (templateRows.length === 0) {
-          console.log(`⚠️ No template variables found for template_data_id: ${template_data_id} with store_id: ${storeId}`);
+          console.log(
+            `⚠️ No template variables found for template_data_id: ${template_data_id} with store_id: ${storeId}`
+          );
           continue;
         }
 
-        console.log(`📄 Template data fetched (${templateName}): ${templateRows.length} rows`);
+        console.log(
+          `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
+        );
 
         // ✅ Build template content with mapped data
         const templateContent = buildTemplateContent(templateRows, data);
 
         if (!templateContent) {
-          console.log(`⚠️ Failed to build template content for: ${templateName}`);
+          console.log(
+            `⚠️ Failed to build template content for: ${templateName}`
+          );
           continue;
         }
 
-        console.log(`📝 Template content built for "${templateName}":`, JSON.stringify(templateContent, null, 2));
+        console.log(
+          `📝 Template content built for "${templateName}":`,
+          JSON.stringify(templateContent, null, 2)
+        );
 
         // ✅ Send WhatsApp message
         try {
@@ -484,76 +596,87 @@ export async function POST(req) {
             storeData
           );
 
-          console.log(`✅ WhatsApp message sent successfully for "${templateName}"`);
+          console.log(
+            `✅ WhatsApp message sent successfully for "${templateName}"`
+          );
           messageResults.push({
             eventTitle,
             templateName,
-            status: 'success',
-            result: messageResult
+            status: "success",
+            result: messageResult,
           });
           sentMessages.push(templateName);
-
         } catch (messageError) {
-          console.error(`❌ Failed to send WhatsApp message for "${templateName}":`, messageError);
+          console.error(
+            `❌ Failed to send WhatsApp message for "${templateName}":`,
+            messageError
+          );
           messageResults.push({
             eventTitle,
             templateName,
-            status: 'error',
-            error: messageError.message
+            status: "error",
+            error: messageError.message,
           });
         }
-
       } catch (templateError) {
-        console.error(`❌ Error processing template for "${eventTitle}":`, templateError);
+        console.error(
+          `❌ Error processing template for "${eventTitle}":`,
+          templateError
+        );
         messageResults.push({
           eventTitle,
           templateName: null,
-          status: 'error',
-          error: templateError.message
+          status: "error",
+          error: templateError.message,
         });
       }
     }
 
     if (!hasAnyTemplate) {
-      throw new Error(`No templates found for any of the event titles: ${eventTitles.join(', ')} with phone: ${storePhoneNumber}`);
+      throw new Error(
+        `No templates found for any of the event titles: ${eventTitles.join(
+          ", "
+        )} with phone: ${storePhoneNumber}`
+      );
     }
 
     // ✅ Return response based on results
-    const successCount = messageResults.filter(r => r.status === 'success').length;
+    const successCount = messageResults.filter(
+      (r) => r.status === "success"
+    ).length;
     const totalAttempts = messageResults.length;
 
     if (successCount === 0) {
-      return NextResponse.json({ 
-        status: "partial_success", 
+      return NextResponse.json({
+        status: "partial_success",
         order: data,
         message: "Order received but failed to send any WhatsApp messages",
-        messageResults: messageResults
+        messageResults: messageResults,
       });
     } else if (successCount === totalAttempts) {
-      return NextResponse.json({ 
-        status: "success", 
+      return NextResponse.json({
+        status: "success",
         order: data,
         message: `Order received and ${successCount} WhatsApp message(s) sent successfully`,
         sentTemplates: sentMessages,
-        messageResults: messageResults
+        messageResults: messageResults,
       });
     } else {
-      return NextResponse.json({ 
-        status: "partial_success", 
+      return NextResponse.json({
+        status: "partial_success",
         order: data,
         message: `Order received. ${successCount} of ${totalAttempts} messages sent successfully`,
         sentTemplates: sentMessages,
-        messageResults: messageResults
+        messageResults: messageResults,
       });
     }
-
   } catch (err) {
     console.error("❌ Error processing order:", err);
     return NextResponse.json(
-      { 
-        status: "error", 
+      {
+        status: "error",
         message: err.message,
-        order: req.body || null
+        order: req.body || null,
       },
       { status: 500 }
     );
@@ -567,10 +690,10 @@ export async function POST(req) {
 // ✅ Handle GET (return stored orders)
 export async function GET() {
   try {
-    return NextResponse.json({ 
-      status: "success", 
+    return NextResponse.json({
+      status: "success",
       orders: orders,
-      total: orders.length
+      total: orders.length,
     });
   } catch (error) {
     console.error("❌ Error fetching orders:", error);
