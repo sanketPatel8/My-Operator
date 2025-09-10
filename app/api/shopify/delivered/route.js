@@ -155,7 +155,7 @@ async function processReminder(order, reminderType, storeData) {
     console.log(`Processing ${title} for order ${order.id}, delay: ${delay} (${delayMinutes} minutes)`);
 
     // Calculate time difference from updated_at
-    const deliveryTime = new Date(order.updated_at);
+    const deliveryTime = new Date(order.created_at);
     const currentTime = new Date();
     const timeDiffMinutes = Math.floor((currentTime - deliveryTime) / (1000 * 60));
 
