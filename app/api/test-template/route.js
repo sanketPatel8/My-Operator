@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from 'mysql2/promise';
+import { validate } from "node-cron";
 
 // Database connection configuration
 const dbConfig = {
@@ -120,9 +121,9 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         case "BUTTONS_COMPONENT":
          console.log("button info start");
 
-       
+       if(value || value!=null){
             const button = value.buttons[0];
- console.log("button info first:", button);
+             console.log("button info first:", button);
           // Step 2: Extract key name dynamically
           const exampleKeys = Object.keys(button.example); // ["link"]
           const keyName = exampleKeys[0]; // "link"
@@ -133,7 +134,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
             [keyName]: button.url
           };
           console.log("button info second:", result);
-          
+        }
           
         break;
 
