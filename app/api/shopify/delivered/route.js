@@ -313,6 +313,9 @@ export async function GET() {
   const conn = await getDbConnection();
   
   try {
+
+    await checkRemindersForAllDeliveredOrders();
+
     const [pendingReminders] = await conn.execute(`
       SELECT 
         id,

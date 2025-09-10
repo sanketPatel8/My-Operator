@@ -20,6 +20,45 @@ function logWithTime(...args) {
   console.log(`[${now}]`, ...args);
 }
 
+// 🔹 Parse delay string to minutes
+function parseDelayToMinutes(delayValue) {
+  if (!delayValue) return 60; // default 1 hour
+  
+  // If it's already a number, treat as minutes
+  if (typeof delayValue === 'number') {
+    return delayValue;
+  }
+  
+  const delayStr = String(delayValue).toLowerCase().trim();
+  
+  // If it's just a number string, treat as minutes
+  if (/^\d+$/.test(delayStr)) {
+    return parseInt(delayStr);
+  }
+  
+  // Parse text format like "2 hours", "30 minutes"
+  const timeMatch = delayStr.match(/(\d+)\s*(minute|minutes|hour|hours|day|days)/);
+  
+  if (!timeMatch) return 60;
+  
+  const value = parseInt(timeMatch[1]);
+  const unit = timeMatch[2];
+  
+  switch (unit) {
+    case 'minute':
+    case 'minutes':
+      return value;
+    case 'hour':
+    case 'hours':
+      return value * 60;
+    case 'day':
+    case 'days':
+      return value * 60 * 24;
+    default:
+      return 60;
+  }
+}
+
 
 // 🔹 Extract phone number
 function extractPhoneDetails(data) {
@@ -141,7 +180,7 @@ async function processReminder(checkout, reminderType, storeData) {
     const { title, template_id, template_data_id, delay } = eventRows[0];
     
     // Convert delay to number and treat as minutes
-    const delayMinutes = parseInt(delay) || 60; // Default to 60 minutes if invalid
+    const delayMinutes = parseDelayToMinutes(delay) || 60; // Default to 60 minutes if invalid
 
     const checkoutTime = new Date(checkout.updated_at);
     const currentTime = new Date();
