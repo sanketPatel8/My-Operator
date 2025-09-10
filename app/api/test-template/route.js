@@ -121,10 +121,9 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         
         
 
-            // ✅ SIMPLIFIED BUTTON PAYLOAD - Extract {{link}} and replace with data.order_status_url
-            if (value.buttons?.[0].type === "URL") {
+         
               // Extract the button link value (could be a URL with variables)
-              let processedButtonLink = buttonLink;
+              let processedButtonLink = url;
               
               // Check if buttonLink contains any variable in {{}} format
               if (url && url.includes('{{')) {
@@ -139,10 +138,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
-            } else {
-              // For other button types, keep the original structure
-              templateContent.buttons.push(btn);
-            }
+            
           
         break;
 
