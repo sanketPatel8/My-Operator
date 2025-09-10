@@ -52,17 +52,30 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
   };
 
   const getTemplateContentBlocks = () => {
-    if (!templateData || !templateData.data || templateData.data.length === 0) {
-      return [];
-    }
+  console.log('Template data structure:', templateData);
+  
+  if (!templateData || !templateData.data || templateData.data.length === 0) {
+    console.log('No template data available');
+    return [];
+  }
 
-    const firstTemplateData = templateData.data[0];
-    if (!firstTemplateData.content || !firstTemplateData.content.components) {
-      return [];
-    }
-
+  const firstTemplateData = templateData.data[0];
+  console.log('First template data:', firstTemplateData);
+  
+  // Based on your data structure, content is directly an array
+  if (firstTemplateData && Array.isArray(firstTemplateData.content)) {
+    console.log('Content blocks found:', firstTemplateData.content);
+    return firstTemplateData.content;
+  }
+  
+  // Fallback: if content is an object with components property
+  if (firstTemplateData && firstTemplateData.content && firstTemplateData.content.components) {
     return firstTemplateData.content.components;
-  };
+  }
+
+  console.log('No content blocks found');
+  return [];
+};
 
   const getTemplateMessage = () => {
     const contentBlocks = getTemplateContentBlocks();
