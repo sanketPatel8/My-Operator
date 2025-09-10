@@ -9,7 +9,7 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken, onErro
   const [loading, setLoading] = useState(false);
   
   const { success, error } = useToastContext();
-  
+   
 
   useEffect(() => {
     
