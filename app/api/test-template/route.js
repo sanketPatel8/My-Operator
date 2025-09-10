@@ -64,7 +64,7 @@ async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateConten
   }
 }
 
-// ✅ Updated function to build template content using USER-ENTERED fallback values
+// ✅ Updated function to build template content with simplified button payload
 function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues) {
   const templateContent = {
     header: null,
@@ -115,9 +115,20 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues)
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
         const buttons = value.buttons || [value];
-        buttons.forEach((btn) => {
+        buttons.forEach((btn, index) => {
           if (btn && Object.keys(btn).length > 0) {
-            templateContent.buttons.push(btn);
+            // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
+            if (btn.type === "URL" && btn.text === "Click to Pay") {
+              const simplifiedButton = {
+                index: index,
+                "Click to pay": btn.url
+              };
+              templateContent.buttons.push(simplifiedButton);
+              console.log(`✅ Simplified button payload:`, simplifiedButton);
+            } else {
+              // For other button types, keep the original structure
+              templateContent.buttons.push(btn);
+            }
           }
         });
         break;
