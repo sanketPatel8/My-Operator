@@ -102,6 +102,15 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
 export async function POST(req) {
   let connection;
 
+  const connect = await mysql.createConnection({
+        host: process.env.DATABASE_HOST,
+        user: process.env.DATABASE_USER,
+        password: process.env.DATABASE_PASSWORD,
+        database: process.env.DATABASE_NAME,
+        charset: 'utf8mb4',
+        collation: 'utf8mb4_unicode_ci',
+      });
+
   try {
     const topic = req.headers.get("x-shopify-topic");
     const shopDomain = req.headers.get("x-shop");
@@ -170,7 +179,7 @@ export async function POST(req) {
             }, 0)
         };
             
-            await db.query(`
+            await connect.execute(`
                 INSERT INTO order_delivered (
                     id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
                     currency, subtotal_price, total_price, total_tax, created_at, shipping_first_name, 
