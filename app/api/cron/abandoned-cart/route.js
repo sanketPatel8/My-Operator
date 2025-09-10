@@ -10,7 +10,7 @@ export async function GET() {
     const [abandonedCarts] = await pool.query(
       `SELECT *
        FROM checkouts
-       WHERE created_at < (NOW() - INTERVAL 30 MINUTE)
+       WHERE updated_at < (NOW() - INTERVAL 30 MINUTE)
        AND reminder_1 = 0`
     );
 
@@ -40,7 +40,7 @@ export async function GET() {
       );
       console.log(`Email: ${cart.customer_email}`);
       console.log(`Phone: ${cart.customer_phone}`);
-      console.log(`Created At: ${cart.created_at}`);
+      console.log(`updated_at: ${cart.updated_at}`);
       console.log(`Total Price: ${cart.total_price} ${cart.currency}`);
       console.log("Items:", items);
       console.log("-----------------------------");
