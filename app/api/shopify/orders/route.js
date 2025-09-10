@@ -158,8 +158,6 @@ export async function POST(req) {
             total_price: data.current_total_price,
             total_tax: data.current_total_tax,
             
-            // Order dates
-            created_at: data.created_at,
             
             // Shipping address
             shipping_first_name: data.shipping_address?.first_name,
@@ -182,11 +180,11 @@ export async function POST(req) {
             await connect.execute(`
                 INSERT INTO order_delivered (
                     id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
-                    currency, subtotal_price, total_price, total_tax, created_at, shipping_first_name, 
+                    currency, subtotal_price, total_price, total_tax,  shipping_first_name, 
                     shipping_last_name, shipping_address1, shipping_address2,
                     shipping_city, shipping_province, shipping_country, shipping_zip, shipping_phone,
                     shipment_status, updated_at, created_at, quantity
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, Object.values(orderDeliveredData));
             
             
