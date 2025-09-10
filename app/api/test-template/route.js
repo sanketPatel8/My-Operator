@@ -113,6 +113,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         break;
 
       case "BUTTONS":
+        case "BUTTONS_COMPONENT":
          console.log("button info start");
 
        
