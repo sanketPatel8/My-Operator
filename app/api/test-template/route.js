@@ -65,7 +65,7 @@ async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateConten
 }
 
 // ✅ Updated function to build template content with simplified button payload
-function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues) {
+function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues, data = {}) {
   const templateContent = {
     header: null,
     body: null,
@@ -115,13 +115,25 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues)
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
         const buttons = value.buttons || [value];
+        const [buttonKey, buttonLink] = Object.entries(buttons)[0];
+
         buttons.forEach((btn, index) => {
           if (btn && Object.keys(btn).length > 0) {
-            // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-            if (btn.type === "URL" ) {
+            // ✅ SIMPLIFIED BUTTON PAYLOAD - Extract {{link}} and replace with data.order_status_url
+            if (btn.type === "URL") {
+              // Extract the button link value (could be a URL with variables)
+              let processedButtonLink = buttonLink;
+              
+              // Check if buttonLink contains any variable in {{}} format
+              if (buttonLink && buttonLink.includes('{{')) {
+                // Replace any {{variable}} with data.order_status_url
+                processedButtonLink = buttonLink.replace(/\{\{[^}]*\}\}/g, data.order_status_url || '');
+                console.log(`✅ Replaced {{}} variable with data.order_status_url: ${data.order_status_url}`);
+              }
+              
               const simplifiedButton = {
                 index: index,
-                "link": btn.url
+                buttonKey: processedButtonLink
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
@@ -138,12 +150,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues)
     }
   }
 
-  if (templateContent.body) {
-    templateContent.body.example = bodyExample;
-  }
-
-  console.log('🏗️ Built template content:', JSON.stringify(templateContent, null, 2));
-  return templateContent;
+  return { templateContent, bodyExample };
 }
 
 // ✅ Handle POST request with user-entered fallback values
