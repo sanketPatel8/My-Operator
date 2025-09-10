@@ -12,6 +12,39 @@ const dbConfig = {
 // ✅ In-memory orders store
 let orders = [];
 
+// Helper function to build dynamic buttons from template data
+function buildDynamicButtons(templateContent, data, storeData) {
+  const dynamicButtons = [];
+  
+  if (templateContent.buttons && Array.isArray(templateContent.buttons)) {
+    templateContent.buttons.forEach((button, index) => {
+      if (button.type === "URL" && button.url) {
+        let finalUrl = button.url;
+        
+        // Check if URL format is dynamic (contains variables like {{1}}, {{order_id}}, etc.)
+        if (button.format === "DYNAMIC" || finalUrl.includes("{{")) {
+          // Replace dynamic variables in URL
+          finalUrl = replaceDynamicVariables(finalUrl, data, storeData);
+        }
+        // If format is "STATIC", use URL as-is
+        
+        dynamicButtons.push({
+          index: index,
+          id: finalUrl
+        });
+      } else if (button.type === "QUICK_REPLY") {
+        // Handle quick reply buttons
+        dynamicButtons.push({
+          index: index,
+          id: button.payload || `quick_reply_${index}`
+        });
+      }
+    });
+  }
+  
+  return dynamicButtons;
+}
+
 // Helper function to create database connection
 async function getDbConnection() {
   try {
@@ -62,12 +95,7 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
           template_name: templateName,
           language: "en",
           body: templateContent.body.example || {},
-         "buttons": [
-        {
-          "index": 0,
-          "id": "https://flask-01.myshopify.com/95355666717/checkouts/ac/hWN2TB7ZmvSu4DM4b8U70bgH/recover?key=65ed255c5950eaeb927a13420bb84879&locale=en-IN"
-        }
-      ]
+          buttons: dynamicButtons
         }
       },
       reply_to: null,
@@ -319,8 +347,8 @@ export async function POST(req) {
       }
     }
 
-    // ✅ 2. Function to build WhatsApp template content
-    function buildTemplateContent(templateRows, data) {
+    // Updated buildTemplateContent function to handle button format
+function buildTemplateContent(templateRows, data) {
   const templateContent = {
     header: null,
     body: null,
@@ -355,9 +383,13 @@ export async function POST(req) {
       case "BUTTONS_COMPONENT":
         const buttons = value.buttons || [value];
 
-        // Only push non-null & non-empty objects
+        // Process each button and add format information
         buttons.forEach((btn) => {
           if (btn && Object.keys(btn).length > 0) {
+            // Add format field if not present (default to STATIC for backward compatibility)
+            if (!btn.format) {
+              btn.format = btn.url && btn.url.includes("{{") ? "DYNAMIC" : "STATIC";
+            }
             templateContent.buttons.push(btn);
           }
         });
@@ -373,7 +405,7 @@ export async function POST(req) {
   }
 
   return templateContent;
-}storePhoneRows
+}
 
     // 🔍 3a. Get phone number from store 
     // 🔍 3a. Get phone number and store_id from store 
