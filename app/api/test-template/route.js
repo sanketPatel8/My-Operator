@@ -85,35 +85,35 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
     console.log("initial value", value);
     if(value!=null){
 
-    if (row.component_type == "HEADER") {
+    if (row.type == "HEADER") {
+ 
+        templateContent.header = value;
+    }
+    if (row.type == "HEADER_") {
  
         templateContent.header = value;
     }
 
-       if (row.component_type ==  "BODY"){
+    if (row.component_type ==  "BODY"){
         templateContent.body = value;
 
         // ✅ USE USER-ENTERED FALLBACK VALUES instead of database values
         if (row.variable_name) {
           // Clean variable name (remove {{ }} if present)
-          // let cleanVariableName = row.variable_name.replace(/[{}]/g, '');
+          let cleanVariableName = row.variable_name.replace(/[{}]/g, '');
           
-          // // Try to find user-entered fallback value
-          // const userFallback = userFallbackValues[cleanVariableName] || 
-          //                     userFallbackValues[row.variable_name];
+          // Try to find user-entered fallback value
+          const userFallback = userFallbackValues[cleanVariableName] || 
+                              userFallbackValues[row.variable_name];
 
-          // if (userFallback) {
-          //   bodyExample[row.variable_name] = userFallback;
-          //   console.log(`✅ Using user fallback for ${row.variable_name}: ${userFallback}`);
-          // } else {
-          //   console.warn(`⚠️ No user fallback found for variable: ${row.variable_name}`);
-          //   // Fallback to database value if no user value (shouldn't happen with frontend validation)
-          //   bodyExample[row.variable_name] = row.fallback_value || `[${cleanVariableName}]`;
-          // }
-         const bodypass = value.example;
-         console.log("body for pass", bodypass);
-         
-          return bodypass;
+          if (userFallback) {
+            bodyExample[row.variable_name] = userFallback;
+            console.log(`✅ Using user fallback for ${row.variable_name}: ${userFallback}`);
+          } else {
+            console.warn(`⚠️ No user fallback found for variable: ${row.variable_name}`);
+            // Fallback to database value if no user value (shouldn't happen with frontend validation)
+            bodyExample[row.variable_name] = row.fallback_value || `[${cleanVariableName}]`;
+          }
         }
       }
 
