@@ -14,6 +14,8 @@ export async function GET() {
        AND reminder_1 = 0`
     );
 
+    console.log(abandonedCarts, "abandonedCarts data");
+
     if (abandonedCarts.length === 0) {
       console.log("✅ No abandoned carts found.");
       return NextResponse.json({ message: "No abandoned carts" });
