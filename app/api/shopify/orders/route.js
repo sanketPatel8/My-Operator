@@ -332,6 +332,10 @@ export async function POST(req) {
           return String(data?.id || '123456');
         case 'Phone number':
           return data.customer?.phone || '0000000000';
+        case 'Payment Url':
+          return data.order_status_url || "no url";
+        case 'Payment Url':
+          return data.order_status_url || "no url";
         case 'Quantity':
           if (Array.isArray(data.line_items)) {
             const totalQuantity = data.line_items.reduce((sum, item) => {

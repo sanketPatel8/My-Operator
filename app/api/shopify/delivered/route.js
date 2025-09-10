@@ -246,14 +246,14 @@ async function checkAndDeleteCompletedOrder(conn, orderId) {
     const { reorder_reminder, order_feedback } = orderRows[0];
 
     // If both reminders are complete (status = 1), delete the row
-    // if (reorder_reminder === 1 && order_feedback === 1) {
-    //   await conn.execute(
-    //     "DELETE FROM order_delivered WHERE id = ?",
-    //     [orderId]
-    //   );
+    if (reorder_reminder === 1 && order_feedback === 1) {
+      await conn.execute(
+        "DELETE FROM order_delivered WHERE id = ?",
+        [orderId]
+      );
 
-    //   console.log(`🗑️ Deleted completed order: ${orderId} (both reminders sent)`);
-    // }
+      console.log(`🗑️ Deleted completed order: ${orderId} (both reminders sent)`);
+    }
 
   } catch (error) {
     console.error(`❌ Error checking/deleting completed order ${orderId}:`, error);

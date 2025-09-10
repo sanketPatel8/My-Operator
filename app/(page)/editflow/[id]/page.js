@@ -251,7 +251,7 @@ const normalizeTemplateData = (data) => {
       .map(variable => variable.mapping_field)
       .filter(field => field && field.trim() !== '');
     
-    const defaultOptions = ["Name", "Phone number", "Service number", "Order id", "Quantity","Total price"];
+    const defaultOptions = ["Name", "Phone number", "Service number", "Order id", "Quantity","Total price", "Payment Url", "Abandoned Cart Url"];
     const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
     setMappingFieldOptions(combinedOptions);
     
