@@ -116,7 +116,7 @@ export async function POST(req) {
 
     const data = await response.json();
 
-    // Get existing templates for comparison (before filtering API results)
+    // Get existing templates for comparison (before filtering API results) - NOW WITH store_id
     const [existingTemplates] = await connection.execute(
       `SELECT template_id, template_name, category FROM template 
        WHERE store_id = ? AND phonenumber = ?`,
@@ -139,7 +139,7 @@ export async function POST(req) {
       if (existingTemplates.length > 0) {
         await connection.beginTransaction();
         try {
-          deletedCount = await deleteTemplatesFromDatabase(connection, Array.from(existingTemplateMap.values()));
+          deletedCount = await deleteTemplatesFromDatabase(connection, Array.from(existingTemplateMap.values()), store_id);
           await connection.commit();
         } catch (deleteError) {
           await connection.rollback();
@@ -241,18 +241,19 @@ export async function POST(req) {
     await connection.beginTransaction();
 
     try {
-      // Delete templates that are no longer in API
+      // Delete templates that are no longer in API - NOW WITH store_id
       if (templatesToDelete.length > 0) {
         console.log(`Deleting ${templatesToDelete.length} templates that are no longer in API`);
-        deletedCount = await deleteTemplatesFromDatabase(connection, templatesToDelete);
+        deletedCount = await deleteTemplatesFromDatabase(connection, templatesToDelete, store_id);
       }
 
-      // Batch update existing templates
+      // Batch update existing templates - NOW WITH store_id validation
       if (templateUpdates.length > 0) {
         const placeholders = templateUpdates.map(() => '?').join(',');
         await connection.execute(
-          `UPDATE template SET updated_at = CURRENT_TIMESTAMP() WHERE template_id IN (${placeholders})`,
-          templateUpdates
+          `UPDATE template SET updated_at = CURRENT_TIMESTAMP() 
+           WHERE template_id IN (${placeholders}) AND store_id = ?`,
+          [...templateUpdates, store_id]
         );
       }
 
@@ -268,20 +269,20 @@ export async function POST(req) {
 
           const templateId = templateResult.insertId;
 
-          // Insert template_data if components exist
+          // Insert template_data if components exist - NOW WITH store_id
           if (templateData.components.length > 0) {
             const content = JSON.stringify(templateData.components);
             
             const [templateDataResult] = await connection.execute(
-              `INSERT INTO template_data (template_id, content, phonenumber, created_at, updated_at)
-               VALUES (?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-              [templateId, content, templateData.phonenumber]
+              `INSERT INTO template_data (template_id, content, phonenumber, store_id, created_at, updated_at)
+               VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+              [templateId, content, templateData.phonenumber, templateData.store_id]
             );
 
             const templateDataId = templateDataResult.insertId;
 
-            // Process variables for this template
-            await processTemplateVariables(connection, templateData.components, templateDataId, templateData.phonenumber, extractVariables);
+            // Process variables for this template - NOW WITH store_id
+            await processTemplateVariables(connection, templateData.components, templateDataId, templateData.phonenumber, templateData.store_id, extractVariables);
           }
         }
       }
@@ -353,42 +354,46 @@ export async function POST(req) {
   }
 }
 
-// Helper function to delete templates and all related data
-async function deleteTemplatesFromDatabase(connection, templateIds) {
+// Helper function to delete templates and all related data - NOW WITH store_id
+async function deleteTemplatesFromDatabase(connection, templateIds, store_id) {
   if (templateIds.length === 0) return 0;
 
   try {
     const placeholders = templateIds.map(() => '?').join(',');
     
-    // Get template_data_ids for these templates
+    // Get template_data_ids for these templates - NOW WITH store_id validation
     const [templateDataRows] = await connection.execute(
-      `SELECT template_data_id FROM template_data WHERE template_id IN (${placeholders})`,
-      templateIds
+      `SELECT template_data_id FROM template_data 
+       WHERE template_id IN (${placeholders}) AND store_id = ?`,
+      [...templateIds, store_id]
     );
     
     const templateDataIds = templateDataRows.map(row => row.template_data_id);
     
-    // Delete template variables first (child records)
+    // Delete template variables first (child records) - NOW WITH store_id validation
     if (templateDataIds.length > 0) {
       const templateDataPlaceholders = templateDataIds.map(() => '?').join(',');
       await connection.execute(
-        `DELETE FROM template_variable WHERE template_data_id IN (${templateDataPlaceholders})`,
-        templateDataIds
+        `DELETE FROM template_variable 
+         WHERE template_data_id IN (${templateDataPlaceholders}) AND store_id = ?`,
+        [...templateDataIds, store_id]
       );
       console.log(`Deleted template variables for ${templateDataIds.length} template_data records`);
     }
     
-    // Delete template_data records
+    // Delete template_data records - NOW WITH store_id validation
     await connection.execute(
-      `DELETE FROM template_data WHERE template_id IN (${placeholders})`,
-      templateIds
+      `DELETE FROM template_data 
+       WHERE template_id IN (${placeholders}) AND store_id = ?`,
+      [...templateIds, store_id]
     );
     console.log(`Deleted template_data for ${templateIds.length} templates`);
     
-    // Delete templates
+    // Delete templates - Already has store_id validation in existing query
     const [deleteResult] = await connection.execute(
-      `DELETE FROM template WHERE template_id IN (${placeholders})`,
-      templateIds
+      `DELETE FROM template 
+       WHERE template_id IN (${placeholders}) AND store_id = ?`,
+      [...templateIds, store_id]
     );
     
     console.log(`Deleted ${deleteResult.affectedRows} templates from database`);
@@ -400,8 +405,8 @@ async function deleteTemplatesFromDatabase(connection, templateIds) {
   }
 }
 
-// Helper function to process template variables
-async function processTemplateVariables(connection, components, templateDataId, phonenumber, extractVariables) {
+// Helper function to process template variables - NOW WITH store_id
+async function processTemplateVariables(connection, components, templateDataId, phonenumber, store_id, extractVariables) {
   try {
     for (const component of components) {
       const { type, format } = component;
@@ -437,14 +442,14 @@ async function processTemplateVariables(connection, components, templateDataId, 
           break;
       }
 
-      // Insert individual variables
+      // Insert individual variables - NOW WITH store_id
       for (const variable of variables) {
         try {
           await connection.execute(
             `INSERT IGNORE INTO template_variable 
-             (template_data_id, type, value, variable_name, component_type, mapping_field, fallback_value, phonenumber, created_at, updated_at) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-            [templateDataId, type, null, variable, type, null, null, phonenumber]
+             (template_data_id, type, value, variable_name, component_type, mapping_field, fallback_value, phonenumber, store_id, created_at, updated_at) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+            [templateDataId, type, null, variable, type, null, null, phonenumber, store_id]
           );
         } catch (variableError) {
           console.error('Error inserting variable:', variableError);
@@ -452,14 +457,14 @@ async function processTemplateVariables(connection, components, templateDataId, 
         }
       }
 
-      // Insert component data
+      // Insert component data - NOW WITH store_id
       const componentType = `${type}_COMPONENT`;
       try {
         await connection.execute(
           `INSERT IGNORE INTO template_variable 
-           (template_data_id, type, value, variable_name, component_type, mapping_field, fallback_value, phonenumber, created_at, updated_at) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
-          [templateDataId, componentType, JSON.stringify(component), null, type, null, null, phonenumber]
+           (template_data_id, type, value, variable_name, component_type, mapping_field, fallback_value, phonenumber, store_id, created_at, updated_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP())`,
+          [templateDataId, componentType, JSON.stringify(component), null, type, null, null, phonenumber, store_id]
         );
       } catch (componentError) {
         console.error('Error inserting component:', componentError);
