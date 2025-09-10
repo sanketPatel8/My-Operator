@@ -114,27 +114,28 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
       case "BUTTONS":
         const buttons = value.buttons?.[0].example || [value];
+        const url = value.buttons?.[0].url;
+        
         const [buttonKey, buttonLink] = Object.entries(buttons)[0];
         console.log("buttons::", buttons);
         
+        
 
-        buttons.forEach((btn, index) => {
-          if (btn && Object.keys(btn).length > 0) {
             // ✅ SIMPLIFIED BUTTON PAYLOAD - Extract {{link}} and replace with data.order_status_url
-            if (btn.type === "URL") {
+            if (value.buttons?.[0].type === "URL") {
               // Extract the button link value (could be a URL with variables)
               let processedButtonLink = buttonLink;
               
               // Check if buttonLink contains any variable in {{}} format
-              if (buttonLink && buttonLink.includes('{{')) {
+              if (url && url.includes('{{')) {
                 // Replace any {{variable}} with data.order_status_url
-                processedButtonLink = buttonLink.replace(/\{\{[^}]*\}\}/g, data.order_status_url || '');
+                processedButtonLink = url.replace(/\{\{[^}]*\}\}/g, data.order_status_url || '');
                 console.log(`✅ Replaced {{}} variable with data.order_status_url: ${data.order_status_url}`);
               }
               
               const simplifiedButton = {
-                index: index,
-                buttonKey: processedButtonLink
+                index: 0,
+                "link": processedButtonLink
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
@@ -142,8 +143,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
               // For other button types, keep the original structure
               templateContent.buttons.push(btn);
             }
-          }
-        });
+          
         break;
 
       default:
