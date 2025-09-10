@@ -148,7 +148,7 @@ async function storePlacedOrder(data) {
     console.log("🔑 With values:", values);
 
     try {
-      const [result] = await connection.execute(query, values);
+      const [result] = await pool.execute(query, values);
       console.log("✅ Insert successful!");
       console.log("ℹ️ Insert result:", {
         insertId: result.insertId,
@@ -163,11 +163,6 @@ async function storePlacedOrder(data) {
   } catch (error) {
     console.error("❌ Error inserting placed order:", error.message);
     return { success: false, error: error.message };
-  } finally {
-    if (connection) {
-      await connection.end();
-      console.log("🔒 Database connection closed");
-    }
   }
 }
 
