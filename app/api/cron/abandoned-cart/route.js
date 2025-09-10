@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import pool from "@/app/lib/db"; // adjust this path to your db connection
+import pool from "@/lib/db"; // adjust this path to your db connection
 
 // Abandoned cart threshold (30 mins)
 const ABANDONED_TIME = 30 * 60 * 1000;
