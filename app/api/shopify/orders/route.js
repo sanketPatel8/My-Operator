@@ -120,15 +120,12 @@ async function sendWhatsAppMessage(
 //   );
 // }
 
-async function storePlacedOrder(data) {
-  let connection;
+// adjust the path to where you defined pool
 
+export async function storePlacedOrder(data) {
   try {
     console.log("📦 Storing placed order...");
     console.log("➡️ Incoming data:", data);
-
-    connection = await getDbConnection();
-    console.log("✅ Database connection established");
 
     const query = `
       INSERT INTO placed_code_order 
@@ -136,32 +133,35 @@ async function storePlacedOrder(data) {
       VALUES (?, ?, ?, ?, ?, NOW(), NOW())
     `;
 
+    // sanitize values to prevent "Incorrect arguments" error
     const values = [
-      data.id, // double-check: is this Shopify order_id or your own?
-      data.order_status_url,
-      data.payment_gateway_names,
-      data.phone,
-      data.order_number,
+      data.id || "", // must be string
+      data.order_status_url || "",
+      data.payment_gateway_names || "",
+      data.phone ? Number(data.phone) : null, // ensure number or null
+      data.order_number || "",
     ];
 
     console.log("📝 Executing query:", query);
     console.log("🔑 With values:", values);
+    console.log(
+      "🔍 Value types:",
+      values.map((v) => typeof v)
+    );
 
-    try {
-      const [result] = await pool.execute(query, values);
-      console.log("✅ Insert successful!");
-      console.log("ℹ️ Insert result:", {
-        insertId: result.insertId,
-        affectedRows: result.affectedRows,
-        warningStatus: result.warningStatus,
-      });
+    const [result] = await pool.execute(query, values);
 
-      return { success: true, insertId: result.insertId };
-    } catch (err) {
-      console.error("❌ Query failed:", err);
-    }
+    console.log("✅ Insert successful!");
+    console.log("ℹ️ Insert result:", {
+      insertId: result.insertId,
+      affectedRows: result.affectedRows,
+      warningStatus: result.warningStatus,
+    });
+
+    return { success: true, insertId: result.insertId };
   } catch (error) {
-    console.error("❌ Error inserting placed order:", error.message);
+    console.error("❌ Query failed:", error.message);
+    console.error("📄 Full error:", error);
     return { success: false, error: error.message };
   }
 }
