@@ -109,7 +109,6 @@ export async function storePlacedOrder(data) {
     console.log("📦 Storing placed order...");
     console.log("➡️ Incoming data:", data);
 
-    // Ensure order_id exists
     if (!data.id) {
       throw new Error("Order ID is required");
     }
@@ -118,95 +117,65 @@ export async function storePlacedOrder(data) {
       ? data.payment_gateway_names.join(", ")
       : data.payment_gateway_names || "";
 
-    // Check if order_id already exists
-    const [rows] = await pool.execute(
-      "SELECT id FROM placed_code_order WHERE order_id = ? LIMIT 1",
-      [data.id]
-    );
+    // get a connection for transaction
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
 
-    if (rows.length > 0) {
-      console.log("🔄 Order already exists, updating...");
-      const [result] = await pool.execute(
-        `UPDATE placed_code_order
-         SET order_status_url = ?, 
-             payment_gateway_names = ?, 
-             phone = ?, 
-             order_number = ?, 
-             updated_at = NOW()
-         WHERE order_id = ?`,
-        [
-          data.order_status_url || "",
-          paymentGateways,
-          data.phone || "",
-          data.order_number || "",
-          data.id,
-        ]
+      // 1️⃣ Check if the order already exists
+      const [existingRows] = await connection.execute(
+        "SELECT id FROM placed_code_order WHERE order_id = ? ORDER BY id ASC LIMIT 1",
+        [data.id]
       );
-      console.log("✅ Order updated:", result);
-      return { success: true, action: "updated", result };
-    } else {
-      console.log("🆕 Order not found, inserting...");
 
-      // Insert safely using transaction to prevent race conditions
-      const connection = await pool.getConnection();
-      try {
-        await connection.beginTransaction();
-
-        // Double-check inside transaction
-        const [checkRows] = await connection.execute(
-          "SELECT id FROM placed_code_order WHERE order_id = ? LIMIT 1",
-          [data.id]
+      if (existingRows.length > 0) {
+        // 2️⃣ Update only the first matched row
+        const rowId = existingRows[0].id;
+        const [updateResult] = await connection.execute(
+          `UPDATE placed_code_order
+           SET order_status_url = ?, 
+               payment_gateway_names = ?, 
+               phone = ?, 
+               order_number = ?, 
+               updated_at = NOW()
+           WHERE id = ?`,
+          [
+            data.order_status_url || "",
+            paymentGateways,
+            data.phone || "",
+            data.order_number || "",
+            rowId,
+          ]
         );
-
-        if (checkRows.length > 0) {
-          // Another process inserted meanwhile, update instead
-          const [updateResult] = await connection.execute(
-            `UPDATE placed_code_order
-             SET order_status_url = ?, 
-                 payment_gateway_names = ?, 
-                 phone = ?, 
-                 order_number = ?, 
-                 updated_at = NOW()
-             WHERE order_id = ?`,
-            [
-              data.order_status_url || "",
-              paymentGateways,
-              data.phone || "",
-              data.order_number || "",
-              data.id,
-            ]
-          );
-          await connection.commit();
-          console.log("✅ Order updated in transaction:", updateResult);
-          return { success: true, action: "updated", result: updateResult };
-        } else {
-          // Safe to insert
-          const [insertResult] = await connection.execute(
-            `INSERT INTO placed_code_order 
-               (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at) 
-             VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
-            [
-              data.id,
-              data.order_status_url || "",
-              paymentGateways,
-              data.phone || "",
-              data.order_number || "",
-            ]
-          );
-          await connection.commit();
-          console.log("✅ Order inserted in transaction:", insertResult);
-          return { success: true, action: "inserted", result: insertResult };
-        }
-      } catch (txError) {
-        await connection.rollback();
-        throw txError;
-      } finally {
-        connection.release();
+        await connection.commit();
+        console.log("✅ Order updated (first row only):", updateResult);
+        return { success: true, action: "updated", result: updateResult };
+      } else {
+        // 3️⃣ Insert safely if no existing row
+        const [insertResult] = await connection.execute(
+          `INSERT INTO placed_code_order 
+             (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, NOW(), NOW())`,
+          [
+            data.id,
+            data.order_status_url || "",
+            paymentGateways,
+            data.phone || "",
+            data.order_number || "",
+          ]
+        );
+        await connection.commit();
+        console.log("✅ Order inserted:", insertResult);
+        return { success: true, action: "inserted", result: insertResult };
       }
+    } catch (txError) {
+      await connection.rollback();
+      throw txError;
+    } finally {
+      connection.release();
     }
   } catch (error) {
     console.error("❌ Query failed:", error.message);
-    console.error("📄 Full error:", error);
     return { success: false, error: error.message };
   }
 }
