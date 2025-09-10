@@ -113,9 +113,10 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         break;
 
       case "BUTTONS":
-      case "BUTTONS_COMPONENT":
-        const buttons = value.buttons.example || [value];
+        const buttons = value.buttons?.[0].example || [value];
         const [buttonKey, buttonLink] = Object.entries(buttons)[0];
+        console.log("buttons::", buttons);
+        
 
         buttons.forEach((btn, index) => {
           if (btn && Object.keys(btn).length > 0) {
