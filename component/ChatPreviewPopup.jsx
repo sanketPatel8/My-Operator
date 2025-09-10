@@ -51,51 +51,101 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
     }
   };
 
+  // Replace the existing getTemplateContentBlocks function with this:
   const getTemplateContentBlocks = () => {
-  console.log('Template data structure:', templateData);
-  
-  if (!templateData || !templateData.data || templateData.data.length === 0) {
-    console.log('No template data available');
+    console.log('Template data structure:', templateData);
+    
+    if (!templateData || !templateData.data || templateData.data.length === 0) {
+      console.log('No template data available');
+      return [];
+    }
+
+    const firstTemplateData = templateData.data[0];
+    console.log('First template data:', firstTemplateData);
+    
+    // Based on your data structure, content is directly an array
+    if (firstTemplateData && Array.isArray(firstTemplateData.content)) {
+      console.log('Content blocks found:', firstTemplateData.content);
+      return firstTemplateData.content;
+    }
+    
+    // Fallback: if content is an object with components property
+    if (firstTemplateData && firstTemplateData.content && firstTemplateData.content.components) {
+      return firstTemplateData.content.components;
+    }
+
+    console.log('No content blocks found');
     return [];
-  }
+  };
 
-  const firstTemplateData = templateData.data[0];
-  console.log('First template data:', firstTemplateData);
-  
-  // Based on your data structure, content is directly an array
-  if (firstTemplateData && Array.isArray(firstTemplateData.content)) {
-    console.log('Content blocks found:', firstTemplateData.content);
-    return firstTemplateData.content;
-  }
-  
-  // Fallback: if content is an object with components property
-  if (firstTemplateData && firstTemplateData.content && firstTemplateData.content.components) {
-    return firstTemplateData.content.components;
-  }
+  // Add this new function (place it before getTemplateMessage):
+  const getVariableMappings = () => {
+    if (!templateData || !templateData.data || templateData.data.length === 0) {
+      return {};
+    }
 
-  console.log('No content blocks found');
-  return [];
-};
+    const firstTemplateData = templateData.data[0];
+    const variableMap = {};
 
+    // Extract variables from the template data
+    if (firstTemplateData && firstTemplateData.variables && Array.isArray(firstTemplateData.variables)) {
+      firstTemplateData.variables.forEach((variable, index) => {
+        const variableNumber = (index + 1).toString(); // Variables are typically 1-indexed
+        
+        // Prioritize fallback_value for preview, then mapping_field, then variable_name
+        const displayValue = variable.fallback_value || 
+                            variable.mapping_field || 
+                            variable.variable_name || 
+                            `Variable ${variableNumber}`;
+        
+        variableMap[variableNumber] = displayValue;
+        
+        // Also map by variable_name if it exists
+        if (variable.variable_name) {
+          variableMap[variable.variable_name] = displayValue;
+        }
+      });
+    }
+
+    console.log('Variable mappings:', variableMap);
+    return variableMap;
+  };
+
+  // Replace the existing getTemplateMessage function with this:
   const getTemplateMessage = () => {
     const contentBlocks = getTemplateContentBlocks();
+    
+    // Find the body block
     const bodyBlock = contentBlocks.find(block => block.type === "BODY");
     
     if (bodyBlock?.text) {
-      // Replace variables with actual values or placeholders
       let message = bodyBlock.text;
+      const variableMappings = getVariableMappings();
       
-      // Replace variable placeholders with sample data
+      console.log('Original message:', message);
+      console.log('Available variable mappings:', variableMappings);
+      
+      // Replace variable placeholders with mapped values
+      // Handle {{1}}, {{2}}, etc. format
       message = message.replace(/\{\{(\d+)\}\}/g, (match, num) => {
-        const variableMap = {
-          '1': 'John Doe',
-          '2': 'Order #12345',
-          '3': '$99.99',
-          '4': 'Today'
-        };
-        return variableMap[num] || `Variable ${num}`;
+        const replacement = variableMappings[num] || `{{${num}}}`;
+        console.log(`Replacing ${match} with ${replacement}`);
+        return replacement;
       });
       
+      // Handle {{variable_name}} format
+      message = message.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
+        // Skip if it's already a number (handled above)
+        if (/^\d+$/.test(varName)) {
+          return match;
+        }
+        
+        const replacement = variableMappings[varName] || match;
+        console.log(`Replacing ${match} with ${replacement}`);
+        return replacement;
+      });
+      
+      console.log('Final message:', message);
       return message;
     }
     
