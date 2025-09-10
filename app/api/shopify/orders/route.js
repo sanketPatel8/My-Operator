@@ -131,36 +131,36 @@ export async function storePlacedOrder(data) {
       INSERT INTO placed_code_order 
         (order_id, order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at) 
       VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+      ON DUPLICATE KEY UPDATE
+        order_status_url = VALUES(order_status_url),
+        payment_gateway_names = VALUES(payment_gateway_names),
+        phone = VALUES(phone),
+        order_number = VALUES(order_number),
+        updated_at = NOW()
     `;
 
-    // sanitize values: replace undefined with null, cast to safe types
     const values = [
-      data.id ?? null, // Shopify order_id (string or bigint)
-      data.order_status_url ?? null,
+      data.id || "",
+      data.order_status_url || "",
       Array.isArray(data.payment_gateway_names)
-        ? data.payment_gateway_names.join(",")
-        : data.payment_gateway_names ?? null,
-      data.phone ?? null, // keep string; change column to VARCHAR if needed
-      data.order_number ?? null,
+        ? data.payment_gateway_names.join(", ")
+        : data.payment_gateway_names || "",
+      data.phone || "",
+      data.order_number || "",
     ];
 
     console.log("📝 Executing query:", query);
     console.log("🔑 With values:", values);
-    console.log(
-      "🔍 Value types:",
-      values.map((v) => [v, typeof v])
-    );
 
     const [result] = await pool.execute(query, values);
 
-    console.log("✅ Insert successful!");
-    console.log("ℹ️ Insert result:", {
+    console.log("✅ Insert/Update successful!");
+    console.log("ℹ️ Result:", {
       insertId: result.insertId,
       affectedRows: result.affectedRows,
-      warningStatus: result.warningStatus,
     });
 
-    return { success: true, insertId: result.insertId };
+    return { success: true, result };
   } catch (error) {
     console.error("❌ Query failed:", error.message);
     console.error("📄 Full error:", error);
