@@ -109,6 +109,85 @@ export async function POST(req) {
 
     console.log(`📦 Order received [${topic}] from shop ${shopDomain}:`, JSON.stringify(data, null, 2));
 
+    function getISTDateTime() {
+    const now = new Date();
+    const ist = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }),
+    );
+    const year = ist.getFullYear();
+    const month = String(ist.getMonth() + 1).padStart(2, "0");
+    const day = String(ist.getDate()).padStart(2, "0");
+    const hours = String(ist.getHours()).padStart(2, "0");
+    const minutes = String(ist.getMinutes()).padStart(2, "0");
+    const seconds = String(ist.getSeconds()).padStart(2, "0");
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
+
+      const createdAt = getISTDateTime();
+      const updatedAt = getISTDateTime();
+
+    if (topic === "orders/updated") {
+    // Check if fulfillments exist and the first fulfillment has delivered status
+    if (Array.isArray(data.fulfillments) && 
+        data.fulfillments.length > 0 && 
+        data.fulfillments[0].shipment_status && 
+        data.fulfillments[0].shipment_status.includes("delivered")) {
+        
+        // Extract relevant data from the order
+        const orderDeliveredData = {
+            // Order basic info
+            id: data.id,
+            shop_url: shopDomain,
+            customer_first_name: data.customer?.first_name,
+            customer_last_name: data.customer?.last_name,
+            customer_email: data.customer?.email,
+            customer_phone: data.customer?.phone,
+            
+            // Order financial details
+            currency: data.currency,
+            subtotal_price: data.current_subtotal_price,
+            total_price: data.current_total_price,
+            total_tax: data.current_total_tax,
+            
+            // Order dates
+            created_at: data.created_at,
+            
+            // Shipping address
+            shipping_first_name: data.shipping_address?.first_name,
+            shipping_last_name: data.shipping_address?.last_name,
+            shipping_address1: data.shipping_address?.address1,
+            shipping_address2: data.shipping_address?.address2,
+            shipping_city: data.shipping_address?.city,
+            shipping_province: data.shipping_address?.province,
+            shipping_country: data.shipping_address?.country,
+            shipping_zip: data.shipping_address?.zip,
+            shipping_phone: data.shipping_address?.phone,
+            shipment_status: data.fulfillments[0].shipment_status,
+            updated_at: updatedAt,
+            created_at: createdAt,
+            quantity:  data.line_items.reduce((sum, item) => {
+              return sum + (item.current_quantity || 0);
+            }, 0)
+        };
+            
+            await db.query(`
+                INSERT INTO order_delivered (
+                    id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
+                    currency, subtotal_price, total_price, total_tax, created_at, shipping_first_name, 
+                    shipping_last_name, shipping_address1, shipping_address2,
+                    shipping_city, shipping_province, shipping_country, shipping_zip, shipping_phone,
+                    shipment_status, updated_at, created_at, quantity
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, Object.values(orderDeliveredData));
+            
+            
+            // For demonstration, just log the data
+            console.log("Order delivered data to insert:", orderDeliveredData);
+            console.log("Successfully processed delivered order:", data.order_number);
+            
+        }
+      }
+
     // Store order in memory
     const orderRecord = {
       topic,

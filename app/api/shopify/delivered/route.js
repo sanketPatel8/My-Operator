@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 
-
 // Database connection configuration
 const dbConfig = {
   host: process.env.DATABASE_HOST,
@@ -54,30 +53,27 @@ function parseDelayToMinutes(delayValue) {
   }
 }
 
-// 🔹 Extract phone number
-function extractPhoneDetails(checkoutData) {
-  if (!checkoutData?.customer_phone) return null;
-  return { phone: checkoutData.customer_phone.slice(-10) };
+// 🔹 Extract phone number (now from order_delivered data)
+function extractPhoneDetails(orderData) {
+  if (!orderData?.customer_phone) return null;
+  return { phone: orderData.customer_phone.slice(-10) };
 }
 
-// 🔹 Map dynamic values
+// 🔹 Map dynamic values (updated for order_delivered structure)
 function getMappedValue(field, data) {
   switch (field) {
     case "Name": return data.customer_first_name || "Customer";
-    case "Order id": return String(data?.id || data?.token || "123456");
+    case "Order id": return String(data?.id || data?.order_number || "123456");
     case "Phone number": return data.customer_phone || "0000000000";
-    case "Quantity":
-      return Array.isArray(data.line_items)
-        ? String(data.line_items.reduce((s, i) => s + (i.quantity || 0), 0))
-        : "0";
-    case "Total price": return data?.total_price || "00";
+    case "Quantity": return String(data.quantity || "1"); // assuming quantity is stored in order_delivered
+    case "Total price": return String(data.total_price || "00");
     default: return "";
   }
 }
 
 // 🔹 Build template content
 function buildTemplateContent(templateRows, data) {
-  const content = { header: null, body: null, footer: null, buttons: [], checkout_url: data.checkout_url };
+  const content = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
   for (const row of templateRows) {
@@ -116,12 +112,7 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
         template_name: templateName,
         language: "en",
         body: templateContent.body.example || {},
-        buttons: [
-          {
-            index: 0,
-            id: templateContent.checkout_url || "https://example.com/checkout",
-          },
-        ],
+        buttons: templateContent.buttons || [],
       },
     },
   };
@@ -139,8 +130,8 @@ async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, s
   return res.json();
 }
 
-// 🔹 Process reminder for specific checkout and reminder type
-async function processReminder(checkout, reminderType, storeData) {
+// 🔹 Process reminder for specific order and reminder type
+async function processReminder(order, reminderType, storeData) {
   const conn = await getDbConnection();
   
   try {
@@ -161,16 +152,16 @@ async function processReminder(checkout, reminderType, storeData) {
     const { title, template_id, template_data_id, delay } = eventRows[0];
     const delayMinutes = parseDelayToMinutes(delay);
 
-    console.log(`Processing ${title} for checkout ${checkout.token}, delay: ${delay} (${delayMinutes} minutes)`);
+    console.log(`Processing ${title} for order ${order.id}, delay: ${delay} (${delayMinutes} minutes)`);
 
-    // Calculate time difference
-    const checkoutTime = new Date(checkout.updated_at);
+    // Calculate time difference from updated_at
+    const deliveryTime = new Date(order.updated_at);
     const currentTime = new Date();
-    const timeDiffMinutes = Math.floor((currentTime - checkoutTime) / (1000 * 60));
+    const timeDiffMinutes = Math.floor((currentTime - deliveryTime) / (1000 * 60));
 
-    console.log(`Time difference: ${timeDiffMinutes} minutes, Required: ${delayMinutes} minutes`);
+    console.log(`Time since delivery: ${timeDiffMinutes} minutes, Required: ${delayMinutes} minutes`);
 
-    // Check if enough time has passed
+    // Check if enough time has passed since delivery
     if (timeDiffMinutes < delayMinutes) return;
 
     // Get template details
@@ -187,29 +178,31 @@ async function processReminder(checkout, reminderType, storeData) {
     if (templateRows.length === 0 || templateVariableRows.length === 0) return;
 
     const templateName = templateRows[0].template_name;
-    const checkoutData = JSON.parse(checkout.checkout_data || "{}");
-    const phoneDetails = extractPhoneDetails(checkoutData);
+    const phoneDetails = extractPhoneDetails(order);
 
-    // Update reminder status regardless of phone details
-    const reminderColumn = reminderType.toLowerCase().replace(' ', '_');
+    // Determine column name based on reminder type
+    const reminderColumn = reminderType === 'Reorder Reminder' ? 'reorder_reminder' : 'order_feedback';
 
     if (!phoneDetails) {
-      console.log(`📞 Phone number not found for checkout ${checkout.token}`);
+      console.log(`📞 Phone number not found for order ${order.id}`);
       
       // Update reminder status to 1 even without phone details
       await conn.execute(
-        `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
-        [checkout.token]
+        `UPDATE order_delivered SET ${reminderColumn} = 1 WHERE id = ?`,
+        [order.id]
       );
 
-      console.log(`🔄 Database updated: ${reminderColumn} = 1 for checkout ${checkout.token} (phone not found)`);
+      console.log(`🔄 Database updated: ${reminderColumn} = 1 for order ${order.id} (phone not found)`);
+      
+      // Check if both reminders are now complete and delete if so
+      await checkAndDeleteCompletedOrder(conn, order.id);
       return;
     }
 
     // Build and send message
-    const templateContent = buildTemplateContent(templateVariableRows, checkoutData);
+    const templateContent = buildTemplateContent(templateVariableRows, order);
     if (!templateContent) {
-      console.log(`❌ Failed to build template content for checkout ${checkout.token}`);
+      console.log(`❌ Failed to build template content for order ${order.id}`);
       return;
     }
 
@@ -219,38 +212,69 @@ async function processReminder(checkout, reminderType, storeData) {
 
     // Update reminder status after successful message sending
     await conn.execute(
-      `UPDATE checkouts SET ${reminderColumn} = 1 WHERE token = ?`,
-      [checkout.token]
+      `UPDATE order_delivered SET ${reminderColumn} = 1 WHERE id = ?`,
+      [order.id]
     );
 
-    console.log(`🔄 Database updated: ${reminderColumn} = 1 for checkout ${checkout.token}`);
+    console.log(`🔄 Database updated: ${reminderColumn} = 1 for order ${order.id}`);
     console.log(`📱 Message sent successfully to ${phoneDetails.phone}`);
-    console.log(`✅ ${title} sent successfully for checkout ${checkout.token}`);
+    console.log(`✅ ${title} sent successfully for order ${order.id}`);
+
+    // Check if both reminders are now complete and delete if so
+    await checkAndDeleteCompletedOrder(conn, order.id);
 
   } catch (error) {
-    console.error(`❌ Error processing ${reminderType} for checkout ${checkout.token}:`, error);
+    console.error(`❌ Error processing ${reminderType} for order ${order.id}:`, error);
   } finally {
     await conn.end();
   }
 }
 
-// 🔹 Main cron function - check reminders for all checkouts
-async function checkRemindersForAllCheckouts() {
+// 🔹 Check and delete order if both reminders are complete
+async function checkAndDeleteCompletedOrder(conn, orderId) {
+  try {
+    // Get current status of both reminders
+    const [orderRows] = await conn.execute(
+      "SELECT reorder_reminder, order_feedback FROM order_delivered WHERE id = ? LIMIT 1",
+      [orderId]
+    );
+
+    if (orderRows.length === 0) return;
+
+    const { reorder_reminder, order_feedback } = orderRows[0];
+
+    // If both reminders are complete (status = 1), delete the row
+    if (reorder_reminder === 1 && order_feedback === 1) {
+      await conn.execute(
+        "DELETE FROM order_delivered WHERE id = ?",
+        [orderId]
+      );
+
+      console.log(`🗑️ Deleted completed order: ${orderId} (both reminders sent)`);
+    }
+
+  } catch (error) {
+    console.error(`❌ Error checking/deleting completed order ${orderId}:`, error);
+  }
+}
+
+// 🔹 Main cron function - check reminders for all delivered orders
+async function checkRemindersForAllDeliveredOrders() {
   const conn = await getDbConnection();
   
   try {
-    // Get all checkouts that haven't received all reminders
-    const [checkouts] = await conn.execute(
-      "SELECT * FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0"
+    // Get all delivered orders that haven't received all reminders
+    const [orders] = await conn.execute(
+      "SELECT * FROM order_delivered WHERE reorder_reminder = 0 OR order_feedback = 0"
     );
 
-    console.log(`Found ${checkouts.length} checkouts to process`);
+    console.log(`Found ${orders.length} delivered orders to process`);
 
-    for (const checkout of checkouts) {
+    for (const order of orders) {
       // Get store data
       const [storeRows] = await conn.execute(
         "SELECT * FROM stores WHERE shop = ? LIMIT 1", 
-        [checkout.shop_url]
+        [order.shop_url]
       );
 
       if (storeRows.length === 0) continue;
@@ -258,26 +282,23 @@ async function checkRemindersForAllCheckouts() {
 
       // Process each reminder type
       const reminders = [
-        { type: 'Reminder 1', sent: checkout.reminder_1 },
-        { type: 'Reminder 2', sent: checkout.reminder_2 },
-        { type: 'Reminder 3', sent: checkout.reminder_3 }
+        { type: 'Reorder Reminder', sent: order.reorder_reminder },
+        { type: 'Order Feedback', sent: order.order_feedback }
       ];
 
       for (const reminder of reminders) {
         if (reminder.sent === 0) {
-          await processReminder(checkout, reminder.type, storeData);
+          await processReminder(order, reminder.type, storeData);
         }
       }
     }
 
   } catch (error) {
-    console.error("❌ Error in checkRemindersForAllCheckouts:", error);
+    console.error("❌ Error in checkRemindersForAllDeliveredOrders:", error);
   } finally {
     await conn.end();
   }
 }
-
-
 
 // ✅ Handle POST (disabled)
 export async function POST() {
@@ -294,15 +315,18 @@ export async function GET() {
   try {
     const [pendingReminders] = await conn.execute(`
       SELECT 
-        token,
+        id,
         shop_url,
+        customer_first_name,
+        customer_email,
+        customer_phone,
         updated_at,
-        reminder_1,
-        reminder_2,
-        reminder_3,
-        TIMESTAMPDIFF(MINUTE, updated_at, NOW()) as minutes_since_checkout
-      FROM checkouts 
-      WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0
+        reorder_reminder,
+        created_at,
+        updated_at,
+        order_feedback
+      FROM order_delivered 
+      WHERE reorder_reminder = 0 OR order_feedback = 0
       ORDER BY updated_at DESC
       LIMIT 50
     `);
@@ -324,3 +348,6 @@ export async function GET() {
     await conn.end();
   }
 }
+
+// Export the main cron function for external use
+export { checkRemindersForAllDeliveredOrders };
