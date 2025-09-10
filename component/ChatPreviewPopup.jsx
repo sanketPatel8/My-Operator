@@ -79,83 +79,104 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
   };
 
   // Add this new function (place it before getTemplateMessage):
-  const getVariableMappings = () => {
-    if (!templateData || !templateData.data || templateData.data.length === 0) {
-      return {};
-    }
+  // Replace your existing getVariableMappings function with this improved version:
+const getVariableMappings = () => {
+  if (!templateData || !templateData.data || templateData.data.length === 0) {
+    return {};
+  }
 
-    const firstTemplateData = templateData.data[0];
-    const variableMap = {};
+  const firstTemplateData = templateData.data[0];
+  const variableMap = {};
 
-    // Extract variables from the template data
-    if (firstTemplateData && firstTemplateData.variables && Array.isArray(firstTemplateData.variables)) {
-      firstTemplateData.variables.forEach((variable, index) => {
-        const variableNumber = (index + 1).toString(); // Variables are typically 1-indexed
-        
-        // Prioritize fallback_value for preview, then mapping_field, then variable_name
-        const displayValue = variable.fallback_value || 
-                            variable.mapping_field || 
-                            variable.variable_name || 
-                            `Variable ${variableNumber}`;
-        
-        variableMap[variableNumber] = displayValue;
-        
-        // Also map by variable_name if it exists
-        if (variable.variable_name) {
-          variableMap[variable.variable_name] = displayValue;
-        }
-      });
-    }
+  console.log('Processing variables for mapping:', firstTemplateData.variables);
 
-    console.log('Variable mappings:', variableMap);
-    return variableMap;
-  };
-
-  // Replace the existing getTemplateMessage function with this:
-  const getTemplateMessage = () => {
-    const contentBlocks = getTemplateContentBlocks();
-    
-    // Find the body block
-    const bodyBlock = contentBlocks.find(block => block.type === "BODY");
-    
-    if (bodyBlock?.text) {
-      let message = bodyBlock.text;
-      const variableMappings = getVariableMappings();
+  // Extract variables from the template data
+  if (firstTemplateData && firstTemplateData.variables && Array.isArray(firstTemplateData.variables)) {
+    firstTemplateData.variables.forEach((variable) => {
+      // Get the variable position/number from template_variable_id or use a counter
+      const variableId = variable.template_variable_id;
+      const variablePosition = variable.variable_name; // This should be "1", "2", "4" etc.
       
-      console.log('Original message:', message);
-      console.log('Available variable mappings:', variableMappings);
+      console.log(`Processing variable:`, variable);
       
-      // Replace variable placeholders with mapped values
-      // Handle {{1}}, {{2}}, etc. format
-      message = message.replace(/\{\{(\d+)\}\}/g, (match, num) => {
-        const replacement = variableMappings[num] || `{{${num}}}`;
-        console.log(`Replacing ${match} with ${replacement}`);
+      // Prioritize fallback_value for preview, then mapping_field, then a default
+      let displayValue = variable.fallback_value || 
+                        variable.mapping_field || 
+                        `Variable ${variablePosition}`;
+      
+      // If fallback_value exists and it's meaningful, use it
+      if (variable.fallback_value && variable.fallback_value.trim() !== '') {
+        displayValue = variable.fallback_value;
+      }
+      // If mapping_field exists, use it as backup
+      else if (variable.mapping_field && variable.mapping_field.trim() !== '') {
+        displayValue = variable.mapping_field;
+      }
+      // Otherwise use variable name or position
+      else {
+        displayValue = variable.variable_name || `Variable ${variablePosition}`;
+      }
+      
+      // Map by variable_name (which seems to be the position: "1", "2", "4")
+      if (variable.variable_name) {
+        variableMap[variable.variable_name] = displayValue;
+        console.log(`Mapped variable ${variable.variable_name} to: ${displayValue}`);
+      }
+      
+      // Also map by template_variable_id as backup
+      if (variableId) {
+        variableMap[variableId.toString()] = displayValue;
+      }
+    });
+  }
+
+  console.log('Final variable mappings:', variableMap);
+  return variableMap;
+};
+
+// Also update your getTemplateMessage function to handle the mapping better:
+const getTemplateMessage = () => {
+  const contentBlocks = getTemplateContentBlocks();
+  
+  // Find the body block
+  const bodyBlock = contentBlocks.find(block => block.type === "BODY");
+  
+  if (bodyBlock?.text) {
+    let message = bodyBlock.text;
+    const variableMappings = getVariableMappings();
+    
+    console.log('Original message:', message);
+    console.log('Available variable mappings:', variableMappings);
+    
+    // Replace variable placeholders with mapped values
+    // Handle {{1}}, {{2}}, {{4}}, etc. format (based on your API structure)
+    message = message.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
+      console.log(`Looking for replacement for: ${match} (varName: ${varName})`);
+      
+      // Check if we have a mapping for this variable
+      if (variableMappings[varName]) {
+        const replacement = variableMappings[varName];
+        console.log(`Replacing ${match} with: ${replacement}`);
         return replacement;
-      });
+      }
       
-      // Handle {{variable_name}} format
-      message = message.replace(/\{\{([^}]+)\}\}/g, (match, varName) => {
-        // Skip if it's already a number (handled above)
-        if (/^\d+$/.test(varName)) {
-          return match;
-        }
-        
-        const replacement = variableMappings[varName] || match;
-        console.log(`Replacing ${match} with ${replacement}`);
-        return replacement;
-      });
-      
-      console.log('Final message:', message);
-      return message;
-    }
+      // If no mapping found, keep the original placeholder
+      console.log(`No mapping found for ${match}, keeping original`);
+      return match;
+    });
     
-    return '';
-  };
+    console.log('Final message:', message);
+    return message;
+  }
+  
+  return '';
+};
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50"
+    style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}>
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Popup Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
