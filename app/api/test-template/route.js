@@ -113,10 +113,11 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         break;
 
       case "BUTTONS":
-        
+         console.log("button info start");
+
        
             const button = value.buttons[0];
- 
+ console.log("button info first:", button);
           // Step 2: Extract key name dynamically
           const exampleKeys = Object.keys(button.example); // ["link"]
           const keyName = exampleKeys[0]; // "link"
@@ -126,7 +127,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
             index: button.index,
             [keyName]: button.url
           };
-          console.log("button info:", result);
+          console.log("button info second:", result);
           
           
         break;
