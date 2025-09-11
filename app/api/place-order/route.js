@@ -57,7 +57,7 @@ export async function POST(req) {
               template_name: templateName,
               language: "en",
               body: templateContent.body.example || {},
-              buttons: templateContent.dynamicButtons || [], // Use dynamic buttons array
+              buttons: templateContent.buttons || [], // Use dynamic buttons array
             },
           },
           // reply_to: null,
