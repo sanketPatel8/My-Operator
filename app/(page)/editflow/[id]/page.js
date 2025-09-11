@@ -199,7 +199,7 @@ function Editflow() {
       selectedTemplateObj = categoryData;
 
       const { content, mappingVariables: vars } = normalizeTemplateData(
-        categoryData.data
+        categoryData?.data
       );
       contentBlocks = content;
       mappingVariables = vars;
@@ -211,7 +211,7 @@ function Editflow() {
       );
       if (selectedTemplateObj) {
         const { content, mappingVariables: vars } = normalizeTemplateData(
-          selectedTemplateObj.data
+          selectedTemplateObj?.data
         );
         contentBlocks = content;
         mappingVariables = vars;
@@ -261,7 +261,7 @@ function Editflow() {
       setSelectedTemplateData(categoryTemplateData);
 
       const { content, mappingVariables: vars } = normalizeTemplateData(
-        categoryTemplateData.data
+        categoryTemplateData?.data
       );
       contentBlocks = content;
       mappingVariables = vars;
@@ -273,7 +273,7 @@ function Editflow() {
       );
       if (selectedTemplateObj) {
         const { content, mappingVariables: vars } = normalizeTemplateData(
-          selectedTemplateObj.data
+          selectedTemplateObj?.data
         );
         contentBlocks = content;
         mappingVariables = vars;
@@ -611,7 +611,7 @@ function Editflow() {
       if (selectedTemplateData && selectedTemplateData.hasSpecificData) {
         console.log("Using category-specific data for update");
         selectedTemplateObj = selectedTemplateData;
-        templateDataObj = selectedTemplateData.data;
+        templateDataObj = selectedTemplateData?.data;
 
         if (selectedTemplateData.template_variable_id) {
           const variableIds = selectedTemplateData.template_variable_id
@@ -631,7 +631,7 @@ function Editflow() {
           return;
         }
 
-        templateDataObj = selectedTemplateObj.data?.[0];
+        templateDataObj = selectedTemplateObj?.data?.[0];
 
         if (templateDataObj) {
           if (
@@ -791,9 +791,9 @@ function Editflow() {
     if (
       selectedTemplateData &&
       selectedTemplateData.hasSpecificData &&
-      selectedTemplateData.data?.content
+      selectedTemplateData?.data?.content
     ) {
-      return selectedTemplateData.data.content;
+      return selectedTemplateData?.data.content;
     }
 
     const template = allTemplatesData.find(
@@ -802,10 +802,10 @@ function Editflow() {
 
     if (!template) return [];
 
-    if (template.data && Array.isArray(template.data)) {
-      return template.data[0]?.content || [];
-    } else if (template.data?.content) {
-      return template.data.content;
+    if (template?.data && Array.isArray(template?.data)) {
+      return template?.data[0]?.content || [];
+    } else if (template?.data?.content) {
+      return template?.data.content;
     }
 
     return [];
@@ -1253,14 +1253,14 @@ function Editflow() {
     }
   };
 
-  const SERVER_URL = "https://xcoder.a2hosted.com/shopify/uploads/";
+ 
 
-  const variable = categoryTemplateData.data[0].variables[0];
+  const variable = categoryTemplateData?.data[0]?.variables[0];
 
   const hasImage =
-    variable.tamplate_image && variable.tamplate_image.trim() !== "";
+    variable?.tamplate_image && variable?.tamplate_image.trim() !== "";
 
-  const image = hasImage ? `${SERVER_URL}${variable.tamplate_image}` : null;
+  
 
   console.log(categoryTemplateData, "categoryTemplateData");
   console.log(hasImage, "hasImage");
@@ -1477,7 +1477,7 @@ function Editflow() {
                             <button
                               onClick={() =>
                                 delteTemImage(
-                                  categoryTemplateData.data[0].variables[0]
+                                  categoryTemplateData?.data[0]?.variables[0]
                                     .template_variable_id
                                 )
                               }

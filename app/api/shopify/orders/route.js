@@ -461,7 +461,12 @@ export async function POST(req) {
 
         switch (row.component_type) {
           case "HEADER":
-            templateContent.header = value;
+           templateContent.header = value;
+        console.log("value for header", value);
+        const media = value.media_id;
+        console.log("media id ", media);
+
+        templateContent.header = { media_id: media };
             break;
 
           case "BODY":

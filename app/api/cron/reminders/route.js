@@ -104,6 +104,11 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
     switch (row.component_type) {
       case "HEADER":
         content.header = value;
+        console.log("value for header", value);
+        const media = value.media_id;
+        console.log("media id ", media);
+
+        content.header = { media_id: media };
         break;
       case "BODY":
         content.body = value;

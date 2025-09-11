@@ -34,6 +34,7 @@ async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateConten
         context: {
           template_name: selectedTemplate,
           language: "en",
+          header: templateContent.header || {},
           body: templateContent.body.example || {},
           buttons:templateContent.buttons || []
         }
@@ -83,23 +84,19 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value) || null;
-    console.log("value", value);
-    
-    if(value!=null){
 
-      console.log("start loop");
-      
-      console.log("Component type",row.component_type);
     switch (row.component_type) {
       case "HEADER":
-        console.log("enter in header");
-        
         templateContent.header = value;
+        console.log("value for header", value);
+        const media = value.media_id;
+        console.log("media id ", media);
+
+        templateContent.header = { media_id: media };
+        
         break;
 
       case "BODY":
-        console.log("enter in body");
-        
         templateContent.body = value;
 
         // ✅ USE USER-ENTERED FALLBACK VALUES instead of database values
@@ -128,8 +125,6 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
-        console.log("enter in buttons");
-        
         // const buttons = value.buttons || [value];
         
         // buttons.forEach((btn, index) => {
@@ -155,26 +150,23 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
         if (templateContent.buttons.length === 0) {
 
-        // const values = Object.values(userFallbackValues).slice(-2);
-        // const result = values.map((value, i) => ({ index: i, "link": value }));
-
-        // console.log(result);
-        // templateContent.buttons.push(...result);
-
-        console.log("enter inside");
-      
+        
         const output = value.buttons.map(button => {
-       // const key = Object.keys(button.url)[0];
-        
-        console.log("inside in inside");
-        
+          if (button.format === "DYNAMIC"){
+        const key = Object.keys(button.example)[0];
         return {
+          index: button.index,
+          [key]: button.url
+        };
+      } else{
+        return{
           index: button.index,
           "url": button.url
         };
+      }
       });
 
-      console.log("processed button",...output);
+      console.log(output);
       templateContent.buttons.push(...output);
         }
       }
@@ -184,7 +176,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         break;
     }
   
-
+}
 
   if (templateContent.body) {
     templateContent.body.example = bodyExample;
@@ -192,8 +184,6 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
   console.log('🏗️ Built template content:', JSON.stringify(templateContent, null, 2));
   return templateContent;
-}
-}
 }
 
 // ✅ Handle POST request with user-entered fallback values

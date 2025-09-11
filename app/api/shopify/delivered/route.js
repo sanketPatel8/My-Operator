@@ -76,7 +76,14 @@ function buildTemplateContent(templateRows, data, url) {
   for (const row of templateRows) {
     const value = JSON.parse(row.value || "{}");
     switch (row.component_type) {
-      case "HEADER": content.header = value; break;
+      case "HEADER": 
+      content.header = value;
+        console.log("value for header", value);
+        const media = value.media_id;
+        console.log("media id ", media);
+
+        content.header = { media_id: media }; 
+      break;
       case "BODY":
         content.body = value;
         if (row.mapping_field && row.variable_name) {
