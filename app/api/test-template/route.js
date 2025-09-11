@@ -76,6 +76,9 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
   const bodyExample = {};
 
+  console.log("user fallbacks", userFallbackValues);
+  
+
   console.log(' Building template content with user-entered fallbacks:', templateRows);
 
   for (const row of templateRows) {
