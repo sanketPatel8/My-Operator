@@ -158,7 +158,9 @@ async function sendWhatsAppMessage(phonenumber, templateName, content, store) {
     body: JSON.stringify(payload),
   });
 
-  return res.json();
+  const result = await res.json();
+    console.log("✅ Message sent successfully:", result);
+    return result;
 }
 
 // 🔹 Process reminder
