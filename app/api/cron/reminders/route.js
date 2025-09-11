@@ -2,6 +2,7 @@
 
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
+import { getISTDateTime } from "@/lib/time";
 
 // 🔹 Database connection
 const dbConfig = {
@@ -16,7 +17,7 @@ async function getDbConnection() {
 }
 
 function logWithTime(...args) {
-  const now = new Date().toISOString();
+  const now = new Date()
   console.log(`[${now}]`, ...args);
 }
 
@@ -321,7 +322,7 @@ function verifyCronRequest(request) {
     userAgent,
     cronJobHeader,
     hasAuth: !!authHeader,
-    timestamp: new Date().toISOString()
+    timestamp: new Date()
   });
 
   return true;
@@ -332,9 +333,10 @@ export async function GET(request) {
   // Verify the request is legitimate
   
 
-  console.log("⏰ Cron job started at", new Date().toISOString());
+  console.log("⏰ Cron job started at", new Date());
   const startTime = Date.now();
   console.log("start", startTime);
+  console.log("IST Now:", getISTDateTime());
   
 
   try {
@@ -357,7 +359,7 @@ export async function GET(request) {
         status: "error",
         message: "Cron job failed",
         error: error.message,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(),
       },
       { status: 500 }
     );
