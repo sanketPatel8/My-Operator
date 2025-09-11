@@ -116,30 +116,43 @@ function buildTemplateContent(templateRows, data) {
         content.footer = value;
         break;
       case "BUTTONS":
-        if(value!=null){
+        if (value && typeof value === 'object') {
+            // Check if value.buttons exists and is an array
+            if (value.buttons && Array.isArray(value.buttons)) {
+              if (templateContent.buttons.length === 0) {
+                const output = value.buttons.map((button, index) => {
+                  if (button && button.example && typeof button.example === 'object') {
+                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
+                    const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
 
-        if (content.buttons.length === 0) {
+                    
 
-        // const values = Object.values(userFallbackValues).slice(-2);
-        // const result = values.map((value, i) => ({ index: i, "link": value }));
+                    // Replace {{key}} in URL with the specific value
+                    const replacedUrl = button.url.replace(placeholderRegex, "https://google.com");
 
-        // console.log(result);
-        // templateContent.buttons.push(...result);
+                    return {
+                      index: button.index !== undefined ? button.index : index,
+                      [key]: replacedUrl
+                    };
+                  }
 
-        const output = value.buttons.map(button => {
-        const key = Object.keys(button.example)[0];
-        console.log(button.url, "button.url");
-        
-        return {
-          index: button.index,
-          [key]: button.url
-        };
-      });
+                  // Fallback for malformed button data
+                  return {
+                    index: index,
+                    link: '#'
+                  };
+                });
 
-      console.log(output);
-      content.buttons.push(...output);
-        }
-      }
+                // ✅ Return processed button array here
+                console.log("✅ Processed buttons:", output);
+                templateContent.buttons.push(...output); // Insert into template
+              }
+            } else {
+              console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
+            }
+          } else {
+            console.warn("⚠️ Button value is null or invalid:", value);
+          }
       break;
     }
   }
