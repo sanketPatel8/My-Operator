@@ -122,9 +122,13 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         
             // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
             if (btn.type === "URL") {
+              
+              const matches = btn.url.match(/{{(.*?)}}/g);
+
+              const link = matches.map(match => match.replace(/{{|}}/g, data.order_status_url));
               const simplifiedButton = {
                 index: index,
-                "link": btn.url
+                "link": link
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
