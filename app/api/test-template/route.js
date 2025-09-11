@@ -123,9 +123,8 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
             // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
             if (btn.type === "URL") {
               
-              const matches = btn.url.match(/{{(.*?)}}/g);
 
-              const link = matches.map(match => match.replace(/{{|}}/g, data.order_status_url));
+              const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
               const simplifiedButton = {
                 index: index,
                 "link": link
