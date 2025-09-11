@@ -119,16 +119,17 @@ function buildTemplateContent(templateRows, data) {
         if (value && typeof value === 'object') {
             // Check if value.buttons exists and is an array
             if (value.buttons && Array.isArray(value.buttons)) {
-              if (templateContent.buttons.length === 0) {
+              if (content.buttons.length === 0) {
                 const output = value.buttons.map((button, index) => {
                   if (button && button.example && typeof button.example === 'object') {
                     const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
-
-                    
+                    console.log(placeholderRegex,"placeholder");
 
                     // Replace {{key}} in URL with the specific value
                     const replacedUrl = button.url.replace(placeholderRegex, "https://google.com");
+                    console.log("replaced url", replacedUrl);
+                    
 
                     return {
                       index: button.index !== undefined ? button.index : index,
@@ -144,8 +145,8 @@ function buildTemplateContent(templateRows, data) {
                 });
 
                 // ✅ Return processed button array here
-                console.log("✅ Processed buttons:", output);
-                templateContent.buttons.push(...output); // Insert into template
+                console.log("✅ Processed buttons:", ...output);
+                content.buttons.push(...output); // Insert into template
               }
             } else {
               console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
@@ -174,12 +175,7 @@ async function sendWhatsAppMessage(phonenumber, templateName, content, store) {
         template_name: templateName,
         language: "en",
         body: content.body.example || {},
-        buttons: [
-          {
-            index: 0,
-            id: content.checkout_url || "https://example.com/checkout",
-          },
-        ],
+        buttons: content.buttons || [],
       },
     },
   };
