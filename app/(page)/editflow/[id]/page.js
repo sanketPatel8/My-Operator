@@ -283,30 +283,11 @@ function Editflow() {
 
     // Extract dropdown options from mappingVariables
     const mappingOptions = mappingVariables
-<<<<<<< Updated upstream
       .map(variable => variable.mapping_field)
       .filter(field => field && field.trim() !== '');
     
     const defaultOptions = ["Name", "Phone number", "Service number", "Order id", "Quantity","Total price", "Payment Url", "Abandoned Cart Url", "Custom Link"];
     const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
-=======
-      .map((variable) => variable.mapping_field)
-      .filter((field) => field && field.trim() !== "");
-
-    const defaultOptions = [
-      "Name",
-      "Phone number",
-      "Service number",
-      "Order id",
-      "Quantity",
-      "Total price",
-      "Payment Url",
-      "Abandoned Cart Url",
-    ];
-    const combinedOptions = [
-      ...new Set([...defaultOptions, ...mappingOptions]),
-    ];
->>>>>>> Stashed changes
     setMappingFieldOptions(combinedOptions);
 
     // Process template content
