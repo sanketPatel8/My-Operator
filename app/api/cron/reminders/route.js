@@ -253,22 +253,19 @@ async function processReminder(checkout, reminderType, storeData) {
     
     
 
-    const { customer } = getphone[0];
+    const { jsonstring } = getphone[0];
 
     console.log("getphone[0]", getphone[0]);
 
-    console.log("customer", customer);
+    console.log("customer", jsonstring);
+
+    
+   const customer = JSON.parse(jsonstring);
+   const phonenumber = customer.phone.replace('+91', '');
+   console.log(phonenumber, "phonenumber");
     
 
-    const enternumber = customer.phone;
-    console.log("enter number", enternumber);
     
-
-    if (enternumber) {
-    const phonenumber = String(enternumber).slice(-10);
-    console.log(phonenumber, "phone details");
-    return phonenumber;
-    }
 
     
 
