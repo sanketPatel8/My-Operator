@@ -143,11 +143,22 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
         if (templateContent.buttons.length === 0) {
 
-        const values = Object.values(userFallbackValues).slice(-2);
-        const result = values.map((value, i) => ({ index: i, "link": value }));
+        // const values = Object.values(userFallbackValues).slice(-2);
+        // const result = values.map((value, i) => ({ index: i, "link": value }));
 
-        console.log(result);
-        templateContent.buttons.push(...result);
+        // console.log(result);
+        // templateContent.buttons.push(...result);
+
+        const output = value.buttons.map(button => {
+        const key = Object.keys(button.example)[0];
+        return {
+          index: button.index,
+          [key]: button.url
+        };
+      });
+
+      console.log(output);
+      templateContent.buttons.push(...output);
         }
       }
         break;
