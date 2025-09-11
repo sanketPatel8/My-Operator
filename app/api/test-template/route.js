@@ -89,7 +89,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
       console.log("start loop");
       
-
+      console.log("Component type",row.component_type);
     switch (row.component_type) {
       case "HEADER":
         console.log("enter in header");
