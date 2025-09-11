@@ -130,11 +130,11 @@ function buildTemplateContent(templateRows, data) {
 }
 
 // 🔹 Send WhatsApp message
-async function sendWhatsAppMessage( templateName, content, store) {
+async function sendWhatsAppMessage(phoneDetails, templateName, content, store) {
   const payload = {
     phone_number_id: store.phone_number_id,
     customer_country_code: "91",
-    customer_number: "9510460652",
+    customer_number: phoneDetails,
     data: {
       type: "template",
       language: "en",
@@ -212,6 +212,9 @@ async function processReminder(checkout, reminderType, storeData) {
     const checkoutData = JSON.parse(checkout.checkout_data || "{}");
     const phoneDetails = extractPhoneDetails(checkoutData);
 
+    console.log(phoneDetails,"phone details");
+    
+
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
 
    
@@ -223,6 +226,7 @@ async function processReminder(checkout, reminderType, storeData) {
 
     const templateContent = buildTemplateContent(templateVars, checkoutData);
      await sendWhatsAppMessage(
+      phoneDetails,
       templateName,
       templateContent,
       storeData

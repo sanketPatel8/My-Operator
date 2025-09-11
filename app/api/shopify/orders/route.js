@@ -482,26 +482,45 @@ export async function POST(req) {
 
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
-            if (value != null) {
+            if (value && typeof value === 'object') {
+            // Check if value.buttons exists and is an array
+            if (value.buttons && Array.isArray(value.buttons)) {
               if (templateContent.buttons.length === 0) {
-                // const values = Object.values(userFallbackValues).slice(-2);
-                // const result = values.map((value, i) => ({ index: i, "link": value }));
+                const output = value.buttons.map((button, index) => {
+                  if (button && button.example && typeof button.example === 'object') {
+                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
+                    const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
 
-                // console.log(result);
-                // templateContent.buttons.push(...result);
+                    // Use corresponding data[key + '_url'] value
+                    const replacementValue = data[`${key}_url`] || '#';
 
-                const output = value.buttons.map((button) => {
-                  const key = Object.keys(button.example)[0];
+                    // Replace {{key}} in URL with the specific value
+                    const replacedUrl = button.url.replace(placeholderRegex, replacementValue);
+
+                    return {
+                      index: button.index !== undefined ? button.index : index,
+                      [key]: replacedUrl
+                    };
+                  }
+
+                  // Fallback for malformed button data
                   return {
-                    index: button.index,
-                    [key]: button.url,
+                    index: index,
+                    link: '#'
                   };
                 });
 
-                console.log(output);
-                templateContent.buttons.push(...output);
+                // ✅ Return processed button array here
+                console.log("✅ Processed buttons:", output);
+                templateContent.buttons.push(...output); // Insert into template
               }
+            } else {
+              console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
             }
+          } else {
+            console.warn("⚠️ Button value is null or invalid:", value);
+          }
+
             break;
 
           default:
