@@ -257,8 +257,12 @@ async function processReminder(checkout, reminderType, storeData) {
 
     console.log("getphone[0]", getphone[0]);
 
-    phonenumber = customer.phone.slice(-10);
+    console.log("customer", customer);
     
+
+    const enternumber = customer.phone;
+
+    const phonenumber = enternumber.slice(-10);
     console.log(phonenumber,"phone details");
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
