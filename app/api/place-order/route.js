@@ -181,6 +181,10 @@ export async function POST(req) {
       for (const row of templateRows) {
         const value = JSON.parse(row.value || "{}");
 
+        console.log(value, "all value");
+        
+
+
         switch (row.component_type) {
           case "HEADER":
             templateContent.header = value;
@@ -204,52 +208,58 @@ export async function POST(req) {
 
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
-          //   const buttons = value.buttons || [value];
-          //   console.log("buttons value ",buttons);
-            
-          //   buttons.forEach((btn) => {
-          //   buttons.forEach((btn, index) => {
-          //     if (btn && Object.keys(btn).length > 0) {
-            
-          //       // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-          //       if (btn.type === "URL") {
+          if (value && typeof value === 'object') {
+                // Check if value.buttons exists and is an array
+                if (value.buttons && Array.isArray(value.buttons)) {
+                  if (templateContent.buttons.length === 0) {
+                    const output = value.buttons.map((button, index) => {
+                      // Ensure button has the required properties
+                      if (button && button.example && typeof button.example === 'object') {
+                        const key = Object.keys(button.example)[0];
+                        return {
+                          index: button.index !== undefined ? button.index : index,
+                          [key]: button.url || button.example[key]
+                        };
+                      }
+                      // Fallback for malformed button data
+                      return {
+                        index: index,
+                        link: button.url || '#'
+                      };
+                    });
 
-                  
-                  
-          //         const link = btn.url.replace(/\{\{.*?\}\}/g, order_status_url);
-          //         const simplifiedButton = {
-          //           index: index,
-          //           "link": link
-          //         };
-          //         templateContent.buttons.push(simplifiedButton);
-          //         console.log(`✅ Simplified button payload:`, simplifiedButton);
-          //       } 
-          //     }
-          //   });
-          // });
+                    console.log("✅ Processed buttons:", output);
+                    templateContent.buttons.push(...output);
+                  }
+                } else {
+                  console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
+                }
+              } else {
+                console.warn("⚠️ Button value is null or invalid:", value);
+              }
 
-          if(value!=null){
+        //   if(value!=null){
 
-        if (templateContent.buttons.length === 0) {
+        // if (templateContent.buttons.length === 0) {
 
-        // const values = Object.values(userFallbackValues).slice(-2);
-        // const result = values.map((value, i) => ({ index: i, "link": value }));
+        // // const values = Object.values(userFallbackValues).slice(-2);
+        // // const result = values.map((value, i) => ({ index: i, "link": value }));
 
-        // console.log(result);
-        // templateContent.buttons.push(...result);
+        // // console.log(result);
+        // // templateContent.buttons.push(...result);
 
-            const output = value.buttons.map(button => {
-            const key = Object.keys(button.example)[0];
-            return {
-              index: button.index,
-              [key]: button.url
-            };
-          });
+        //     const output = value.buttons.map(button => {
+        //     const key = Object.keys(button.example)[0];
+        //     return {
+        //       index: button.index,
+        //       [key]: button.url
+        //     };
+        //   });
 
-          console.log(output);
-          templateContent.buttons.push(...output);
-            }
-          }
+        //   console.log(output);
+        //   templateContent.buttons.push(...output);
+        //     }
+        //   }
             break;
 
           default:
