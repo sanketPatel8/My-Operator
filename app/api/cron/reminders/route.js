@@ -17,7 +17,7 @@ async function getDbConnection() {
 }
 
 function logWithTime(...args) {
-  const now = new Date()
+  const now = getISTDateTime();
   console.log(`[${now}]`, ...args);
 }
 
@@ -186,10 +186,13 @@ async function processReminder(checkout, reminderType, storeData) {
     const delayMinutes = parseDelayToMinutes(delay) || 60; // Default to 60 minutes if invalid
 
     const checkoutTime = new Date(checkout.updated_at);
-    const currentTime = new Date();
+    const currentTime = getISTDateTime();
     const timeDiffMinutes = Math.floor(
       (currentTime - checkoutTime) / (1000 * 60)
     );
+
+    console.log("checkout time", checkoutTime);
+    
 
     logWithTime(`🕒 Time since checkout updated: ${timeDiffMinutes} minutes (Required: ${delayMinutes})`);
 
@@ -322,7 +325,7 @@ function verifyCronRequest(request) {
     userAgent,
     cronJobHeader,
     hasAuth: !!authHeader,
-    timestamp: new Date()
+    timestamp: getISTDateTime()
   });
 
   return true;
@@ -333,23 +336,22 @@ export async function GET(request) {
   // Verify the request is legitimate
   
 
-  console.log("⏰ Cron job started at", new Date());
-  const startTime = Date.now();
+  console.log("⏰ Cron job started at", getISTDateTime());
+  const startTime = getISTDateTime();
   console.log("start", startTime);
-  console.log("IST Now:", getISTDateTime());
   
 
   try {
     await checkRemindersForAllCheckouts();
     
-    const executionTime = Date.now() - startTime;
+    const executionTime = getISTDateTime() - startTime;
     console.log(`✅ Cron job completed in ${executionTime}ms`);
 
     return NextResponse.json({
       status: "success",
       message: "Cron job executed successfully",
       executionTime: `${executionTime}ms`,
-      timestamp: new Date().toISOString(),
+      timestamp: getISTDateTime(),
     });
   } catch (error) {
     console.error("❌ Cron job failed:", error);
@@ -359,7 +361,7 @@ export async function GET(request) {
         status: "error",
         message: "Cron job failed",
         error: error.message,
-        timestamp: new Date(),
+        timestamp: getISTDateTime(),
       },
       { status: 500 }
     );
