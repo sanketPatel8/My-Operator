@@ -20,6 +20,20 @@ function logWithTime(...args) {
   console.log(`[${now}]`, ...args);
 }
 
+  function getISTDateTime() {
+        const now = new Date();
+        const ist = new Date(
+          now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
+        );
+        const year = ist.getFullYear();
+        const month = String(ist.getMonth() + 1).padStart(2, "0");
+        const day = String(ist.getDate()).padStart(2, "0");
+        const hours = String(ist.getHours()).padStart(2, "0");
+        const minutes = String(ist.getMinutes()).padStart(2, "0");
+        const seconds = String(ist.getSeconds()).padStart(2, "0");
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
 // 🔹 Parse delay string to minutes
 function parseDelayToMinutes(delayValue) {
   if (!delayValue) return 60; // default 1 hour
@@ -183,7 +197,7 @@ async function processReminder(checkout, reminderType, storeData) {
     const delayMinutes = parseDelayToMinutes(delay) || 60; // Default to 60 minutes if invalid
 
     const checkoutTime = new Date(checkout.updated_at);
-    const currentTime = new Date();
+    const currentTime = getISTDateTime();
     const timeDiffMinutes = Math.floor(
       (currentTime - checkoutTime) / (1000 * 60)
     );
@@ -319,7 +333,7 @@ function verifyCronRequest(request) {
     userAgent,
     cronJobHeader,
     hasAuth: !!authHeader,
-    timestamp: new Date().toISOString()
+    timestamp: getISTDateTime()
   });
 
   return true;
@@ -330,8 +344,10 @@ export async function GET(request) {
   // Verify the request is legitimate
   
 
-  console.log("⏰ Cron job started at", new Date().toISOString());
-  const startTime = Date.now();
+  console.log("⏰ Cron job started at", getISTDateTime());
+  const startTime = getISTDateTime();
+  console.log("start", startTime);
+  
 
   try {
     await checkRemindersForAllCheckouts();
