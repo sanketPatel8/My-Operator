@@ -66,11 +66,11 @@ function parseDelayToMinutes(delayValue) {
 function getMappedValue(field, data) {
   switch (field) {
     case "Name":
-      return data.customer_first_name || "Customer";
+      return data.customer.customer_first_name || "Customer";
     case "Order id":
       return String(data?.id || data?.token || "123456");
     case "Phone number":
-      return data.customer_phone || "0000000000";
+      return data.customer.customer_phone || "0000000000";
     case "Quantity":
       return Array.isArray(data.line_items)
         ? String(
@@ -91,7 +91,7 @@ function buildTemplateContent(templateRows, data) {
     body: null,
     footer: null,
     buttons: [],
-    checkout_url: data.checkout_url,
+    checkout_url: data.abandoned_checkout_url,
   };
   const bodyExample = {};
 
@@ -127,7 +127,7 @@ function buildTemplateContent(templateRows, data) {
                     console.log(placeholderRegex,"placeholder");
 
                     // Replace {{key}} in URL with the specific value
-                    const replacedUrl = button.url.replace(placeholderRegex, "https://google.com");
+                    const replacedUrl = button.url.replace(placeholderRegex, data.abandoned_checkout_url);
                     console.log("replaced url", replacedUrl);
                     
 
@@ -246,23 +246,19 @@ async function processReminder(checkout, reminderType, storeData) {
     const templateName = templateRows[0].template_name;
     const checkoutData = JSON.parse(checkout.checkout_data || "{}");
     const [getphone] = await conn.execute(
-      "SELECT customer_phone FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0 AND token = ?",
+      "SELECT customer FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0 AND token = ?",
       [checkout.token]
     );
 
     
     
 
-    const { customer_phone } = getphone[0];
+    const { customer } = getphone[0];
 
     console.log("getphone[0]", getphone[0]);
+
+    phonenumber = customer.phone.slice(-10);
     
-
-    console.log("customer_phone", customer_phone);
-    
-
-    const phonenumber =  customer_phone.slice(-10)
-
     console.log(phonenumber,"phone details");
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");

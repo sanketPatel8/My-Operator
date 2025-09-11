@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
+import { getISTDateTime, getISTDateTimeString } from "@/lib/time";
 
 // Database connection configuration
 const dbConfig = {
@@ -53,11 +54,7 @@ function parseDelayToMinutes(delayValue) {
   }
 }
 
-// 🔹 Extract phone number (now from order_delivered data)
-function extractPhoneDetails(orderData) {
-  if (!orderData?.customer_phone) return null;
-  return { phone: orderData.customer_phone.slice(-10) };
-}
+
 
 // 🔹 Map dynamic values (updated for order_delivered structure)
 function getMappedValue(field, data) {
@@ -88,9 +85,44 @@ function buildTemplateContent(templateRows, data) {
         break;
       case "FOOTER": content.footer = value; break;
       case "BUTTONS":
-        (value.buttons || [value]).forEach((btn) => {
-          if (btn && Object.keys(btn).length > 0) content.buttons.push(btn);
-        });
+        if (value && typeof value === 'object') {
+            // Check if value.buttons exists and is an array
+            if (value.buttons && Array.isArray(value.buttons)) {
+              if (content.buttons.length === 0) {
+                const output = value.buttons.map((button, index) => {
+                  if (button && button.example && typeof button.example === 'object') {
+                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
+                    const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
+                    console.log(placeholderRegex,"placeholder");
+
+                    // Replace {{key}} in URL with the specific value
+                    const replacedUrl = button.url.replace(placeholderRegex, "https://google.com");
+                    console.log("replaced url", replacedUrl);
+                    
+
+                    return {
+                      index: button.index !== undefined ? button.index : index,
+                      [key]: replacedUrl
+                    };
+                  }
+
+                  // Fallback for malformed button data
+                  return {
+                    index: index,
+                    link: '#'
+                  };
+                });
+
+                // ✅ Return processed button array here
+                console.log("✅ Processed buttons:", ...output);
+                content.buttons.push(...output); // Insert into template
+              }
+            } else {
+              console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
+            }
+          } else {
+            console.warn("⚠️ Button value is null or invalid:", value);
+          }
         break;
     }
   }
@@ -100,11 +132,11 @@ function buildTemplateContent(templateRows, data) {
 }
 
 // 🔹 Send WhatsApp message
-async function sendWhatsAppMessage(phoneNumber, templateName, templateContent, storeData) {
+async function sendWhatsAppMessage(phonenumber, templateName, templateContent, storeData) {
   const payload = {
     phone_number_id: storeData.phone_number_id,
     customer_country_code: "91",
-    customer_number: phoneNumber,
+    customer_number: phonenumber,
     data: {
       type: "template",
       language: "en",
@@ -156,11 +188,11 @@ async function processReminder(order, reminderType, storeData) {
 
     // Calculate time difference from updated_at
     const deliveryTime = new Date(order.created_at);
-    const currentTime = new Date();
+    const currentTime = getISTDateTime();
     const timeDiffMinutes = Math.floor((currentTime - deliveryTime) / (1000 * 60));
 
     console.log(`Time since delivery: ${timeDiffMinutes} minutes, Required: ${delayMinutes} minutes`);
-    console.log("times:::", order.updated_at, currentTime, deliveryTime);
+    console.log("times:::", order.created_at, currentTime, deliveryTime);
     
 
     // Check if enough time has passed since delivery
@@ -180,7 +212,23 @@ async function processReminder(order, reminderType, storeData) {
     if (templateRows.length === 0 || templateVariableRows.length === 0) return;
 
     const templateName = templateRows[0].template_name;
-    const phoneDetails = extractPhoneDetails(order);
+    const [getphone] = await conn.execute(
+      "SELECT customer_phone FROM order_delivered WHERE reorder_reminder = 0 OR order_feedback = 0 OR reminder_3 = 0 AND id = ?",
+      [order.id]
+    );
+
+
+    const { customer_phone } = getphone[0];
+
+    console.log("getphone[0]", getphone[0]);
+    
+
+    console.log("customer_phone", customer_phone);
+    
+
+    const phonenumber =  customer_phone.slice(-10)
+
+    console.log(phonenumber,"phone details");
 
     // Determine column name based on reminder type
     const reminderColumn = reminderType === 'Reorder Reminder' ? 'reorder_reminder' : 'order_feedback';
@@ -209,7 +257,7 @@ async function processReminder(order, reminderType, storeData) {
     }
 
     console.log(`📤 Sending WhatsApp message...`);
-    const sendResult = await sendWhatsAppMessage(phoneDetails.phone, templateName, templateContent, storeData);
+    const sendResult = await sendWhatsAppMessage(phonenumber, templateName, templateContent, storeData);
     console.log(`📤 WhatsApp API Response:`, sendResult);
 
     // Update reminder status after successful message sending
@@ -343,7 +391,7 @@ export async function GET() {
       pendingReminders,
       totalPending: pendingReminders.length,
       cronStatus: "active",
-      lastRun: new Date().toISOString()
+      lastRun: getISTDateTimeString()
     });
 
   } catch (error) {
