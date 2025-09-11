@@ -60,11 +60,7 @@ function parseDelayToMinutes(delayValue) {
   }
 }
 
-// 🔹 Extract phone number
-function extractPhoneDetails(data) {
-  if (!data?.customer_phone) return null;
-  return { phone: data.customer_phone.slice(-10) };
-}
+
 
 // 🔹 Map dynamic values
 function getMappedValue(field, data) {
@@ -225,9 +221,15 @@ async function processReminder(checkout, reminderType, storeData) {
 
     const { customer_phone } = getphone[0];
 
+    console.log("getphone[0]", getphone[0]);
+    
+
+    console.log("customer_phone", customer_phone);
+    
+
     const phonenumber =  customer_phone.slice(-10)
 
-    console.log(phoneDetails,"phone details");
+    console.log(phonenumber,"phone details");
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
     const templateContent = buildTemplateContent(templateVars, checkoutData);
