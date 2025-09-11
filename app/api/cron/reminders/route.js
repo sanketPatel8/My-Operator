@@ -185,7 +185,7 @@ async function processReminder(checkout, reminderType, storeData) {
     // Convert delay to number and treat as minutes
     const delayMinutes = parseDelayToMinutes(delay) || 60; // Default to 60 minutes if invalid
 
-    const checkoutTime = getISTDateTime(checkout.updated_at);
+    const checkoutTime = checkout.updated_at;
     const currentTime = getISTDateTime();
     const timeDiffMinutes = Math.floor(
       (currentTime - checkoutTime) / (1000 * 60)
@@ -194,7 +194,7 @@ async function processReminder(checkout, reminderType, storeData) {
     console.log("checkout time", checkoutTime);
     
 
-    logWithTime(`🕒 Time since checkout updated: ${timeDiffMinutes} minutes (Required: ${delayMinutes})`);
+    logWithTime(`🕒 Time since checkout updated: ${timeDiffMinutes} minutes (Required: ${delayMinutes} minutes)`);
 
     // Skip if not enough time has passed
     if (timeDiffMinutes < delayMinutes) {
