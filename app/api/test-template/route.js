@@ -164,13 +164,13 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         console.log("enter inside");
       
         const output = value.buttons.map(button => {
-        const key = Object.keys(button.example)[0];
+       // const key = Object.keys(button.url)[0];
         
         console.log("inside in inside");
         
         return {
           index: button.index,
-          [key]: button.url
+          "url": button.url
         };
       });
 
