@@ -20,7 +20,7 @@ const TestPage = () => {
     }
 
     // Open new tab with query parameters
-    const url = `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${orderId}`;
+    const url = `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=yes&order_id=${orderId}`;
     window.open(url, "_blank");
   };
 

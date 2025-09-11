@@ -1,0 +1,383 @@
+{
+  "id": 6161544249558,
+  "admin_graphql_api_id": "gid://shopify/Order/6161544249558",
+  "app_id": 580111,
+  "browser_ip": "2401:4900:1f3f:889a:6964:fcd0:76f3:1538",
+  "buyer_accepts_marketing": false,
+  "cancel_reason": null,
+  "cancelled_at": null,
+  "cart_token": "hWN2qSkgWJPOluYG2auYnLGr",
+  "checkout_id": 36613727781078,
+  "checkout_token": "979b9b90a71f1d2db795710ed00f3652",
+  "client_details": {
+    "accept_language": "en-US",
+    "browser_height": null,
+    "browser_ip": "2401:4900:1f3f:889a:6964:fcd0:76f3:1538",
+    "browser_width": null,
+    "session_hash": null,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+  },
+  "closed_at": null,
+  "confirmation_number": "2NFX6QRAD",
+  "confirmed": true,
+  "contact_email": null,
+  "created_at": "2025-09-11T03:39:17-04:00",
+  "currency": "USD",
+  "current_shipping_price_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "current_subtotal_price": "70.00",
+  "current_subtotal_price_set": {
+    "shop_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    }
+  },
+  "current_total_additional_fees_set": null,
+  "current_total_discounts": "0.00",
+  "current_total_discounts_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "current_total_duties_set": null,
+  "current_total_price": "70.00",
+  "current_total_price_set": {
+    "shop_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    }
+  },
+  "current_total_tax": "0.00",
+  "current_total_tax_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "customer_locale": "en-US",
+  "device_id": null,
+  "discount_codes": [],
+  "duties_included": false,
+  "email": "",
+  "estimated_taxes": false,
+  "financial_status": "pending",
+  "fulfillment_status": null,
+  "landing_site": "/?_bt=eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaEpJaVJoY0hCc1pTMXpkRzl5WlMwek5EY3pOQzV0ZVhOb2IzQnBabmt1WTI5dEJqb0dSVlE9IiwiZXhwIjoiMjAyNS0wOS0wOVQwNjo0MDo1NC40NjJaIiwicHVyIjoicGVybWFuZW50X3Bhc3N3b3JkX2J5cGFzcyJ9fQ==--cfaa9b9d57a93cbdfcd558ada26909ff77d52357",
+  "landing_site_ref": null,
+  "location_id": null,
+  "merchant_business_entity_id": "17647337686",
+  "merchant_of_record_app_id": null,
+  "name": "#1040",
+  "note": null,
+  "note_attributes": [],
+  "number": 40,
+  "order_number": 1040,
+  "order_status_url": "https://apple-store-34734.myshopify.com/77716717782/orders/af2ed78e14d08f6a971abe6ee5d6011c/authenticate?key=12f9f9f618ef95f3c6e14eb049dcaeda",
+  "original_total_additional_fees_set": null,
+  "original_total_duties_set": null,
+  "payment_gateway_names": [
+    "Cash on Delivery (COD)"
+  ],
+  "phone": "+919898894881",
+  "po_number": null,
+  "presentment_currency": "USD",
+  "processed_at": "2025-09-11T03:39:16-04:00",
+  "reference": null,
+  "referring_site": "https://admin.shopify.com/",
+  "source_identifier": null,
+  "source_name": "web",
+  "source_url": null,
+  "subtotal_price": "70.00",
+  "subtotal_price_set": {
+    "shop_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    }
+  },
+  "tags": "",
+  "tax_exempt": false,
+  "tax_lines": [],
+  "taxes_included": false,
+  "test": false,
+  "token": "af2ed78e14d08f6a971abe6ee5d6011c",
+  "total_cash_rounding_payment_adjustment_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_cash_rounding_refund_adjustment_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_discounts": "0.00",
+  "total_discounts_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_line_items_price": "70.00",
+  "total_line_items_price_set": {
+    "shop_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_outstanding": "70.00",
+  "total_price": "70.00",
+  "total_price_set": {
+    "shop_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "70.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_shipping_price_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_tax": "0.00",
+  "total_tax_set": {
+    "shop_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    },
+    "presentment_money": {
+      "amount": "0.00",
+      "currency_code": "USD"
+    }
+  },
+  "total_tip_received": "0.00",
+  "total_weight": 0,
+  "user_id": null,
+  "billing_address": {
+    "first_name": "sanket",
+    "address1": "1 World Way",
+    "phone": null,
+    "city": "Los Angeles",
+    "zip": "90045",
+    "province": "California",
+    "country": "United States",
+    "last_name": "bhuva",
+    "address2": null,
+    "company": null,
+    "latitude": 33.9421539,
+    "longitude": -118.4036027,
+    "name": "sanket bhuva",
+    "country_code": "US",
+    "province_code": "CA"
+  },
+  "customer": {
+    "id": 8240075309270,
+    "created_at": "2025-09-09T01:58:37-04:00",
+    "updated_at": "2025-09-11T03:39:18-04:00",
+    "first_name": "sanket",
+    "last_name": "bhuva",
+    "state": "disabled",
+    "note": null,
+    "verified_email": true,
+    "multipass_identifier": null,
+    "tax_exempt": false,
+    "email": null,
+    "phone": "+919898894881",
+    "currency": "USD",
+    "tax_exemptions": [],
+    "admin_graphql_api_id": "gid://shopify/Customer/8240075309270",
+    "default_address": {
+      "id": 9661698015446,
+      "customer_id": 8240075309270,
+      "first_name": "sanket",
+      "last_name": "bhuva",
+      "company": null,
+      "address1": "1 World Way",
+      "address2": null,
+      "city": "Los Angeles",
+      "province": "California",
+      "country": "United States",
+      "zip": "90045",
+      "phone": null,
+      "name": "sanket bhuva",
+      "province_code": "CA",
+      "country_code": "US",
+      "country_name": "United States",
+      "default": true
+    }
+  },
+  "discount_applications": [],
+  "fulfillments": [],
+  "line_items": [
+    {
+      "id": 14863421079766,
+      "admin_graphql_api_id": "gid://shopify/LineItem/14863421079766",
+      "attributed_staffs": [],
+      "current_quantity": 1,
+      "fulfillable_quantity": 1,
+      "fulfillment_service": "manual",
+      "fulfillment_status": null,
+      "gift_card": false,
+      "grams": 0,
+      "name": "Blue Silk Tuxedo",
+      "price": "70.00",
+      "price_set": {
+        "shop_money": {
+          "amount": "70.00",
+          "currency_code": "USD"
+        },
+        "presentment_money": {
+          "amount": "70.00",
+          "currency_code": "USD"
+        }
+      },
+      "product_exists": true,
+      "product_id": 9086695243990,
+      "properties": [],
+      "quantity": 1,
+      "requires_shipping": true,
+      "sales_line_item_group_id": null,
+      "sku": null,
+      "taxable": true,
+      "title": "Blue Silk Tuxedo",
+      "total_discount": "0.00",
+      "total_discount_set": {
+        "shop_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        },
+        "presentment_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        }
+      },
+      "variant_id": 47246482473174,
+      "variant_inventory_management": null,
+      "variant_title": null,
+      "vendor": "partners-demo",
+      "tax_lines": [],
+      "duties": [],
+      "discount_allocations": []
+    }
+  ],
+  "payment_terms": null,
+  "refunds": [],
+  "shipping_address": {
+    "first_name": "sanket",
+    "address1": "1 World Way",
+    "phone": null,
+    "city": "Los Angeles",
+    "zip": "90045",
+    "province": "California",
+    "country": "United States",
+    "last_name": "bhuva",
+    "address2": null,
+    "company": null,
+    "latitude": 33.9421539,
+    "longitude": -118.4036027,
+    "name": "sanket bhuva",
+    "country_code": "US",
+    "province_code": "CA"
+  },
+  "shipping_lines": [
+    {
+      "id": 5008663216342,
+      "carrier_identifier": null,
+      "code": "Economy",
+      "current_discounted_price_set": {
+        "shop_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        },
+        "presentment_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        }
+      },
+      "discounted_price": "0.00",
+      "discounted_price_set": {
+        "shop_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        },
+        "presentment_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        }
+      },
+      "is_removed": false,
+      "phone": null,
+      "price": "0.00",
+      "price_set": {
+        "shop_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        },
+        "presentment_money": {
+          "amount": "0.00",
+          "currency_code": "USD"
+        }
+      },
+      "requested_fulfillment_service_id": null,
+      "source": "shopify",
+      "title": "Economy",
+      "tax_lines": [],
+      "discount_allocations": []
+    }
+  ],
+  "returns": []
+}
