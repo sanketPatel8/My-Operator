@@ -230,6 +230,7 @@ function Editflow() {
       "Phone number",
       "Service number",
       "Order id",
+      "Quantity","Total price", "Payment Url", "Abandoned Cart Url", "Custom Link"
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
