@@ -2,7 +2,7 @@
 
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
-import { getISTDateTime } from "@/lib/time";
+import { getISTDateTime, getISTDateTimeString } from "@/lib/time";
 
 // 🔹 Database connection
 const dbConfig = {
@@ -17,11 +17,9 @@ async function getDbConnection() {
 }
 
 function logWithTime(...args) {
-  const now = getISTDateTime();
+  const now = getISTDateTimeString(); // Use string version for logging
   console.log(`[${now}]`, ...args);
 }
-
-
 
 // 🔹 Parse delay string to minutes
 function parseDelayToMinutes(delayValue) {
@@ -61,7 +59,6 @@ function parseDelayToMinutes(delayValue) {
       return 60;
   }
 }
-
 
 // 🔹 Extract phone number
 function extractPhoneDetails(data) {
@@ -186,13 +183,13 @@ async function processReminder(checkout, reminderType, storeData) {
     const delayMinutes = parseDelayToMinutes(delay) || 60; // Default to 60 minutes if invalid
 
     const checkoutTime = new Date(checkout.updated_at);
-    const currentTime = getISTDateTime();
+    const currentTime = getISTDateTime(); // Now returns Date object
     const timeDiffMinutes = Math.floor(
       (currentTime - checkoutTime) / (1000 * 60)
     );
 
     console.log("checkout time", checkoutTime);
-    
+    console.log("current time", currentTime);
 
     logWithTime(`🕒 Time since checkout updated: ${timeDiffMinutes} minutes (Required: ${delayMinutes} minutes)`);
 
@@ -219,19 +216,11 @@ async function processReminder(checkout, reminderType, storeData) {
     const phoneDetails = extractPhoneDetails(checkoutData);
 
     console.log(phoneDetails,"phone details");
-    
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
-
-   
-    
-
-
-    
-
-
     const templateContent = buildTemplateContent(templateVars, checkoutData);
-     await sendWhatsAppMessage(
+    
+    await sendWhatsAppMessage(
       phoneDetails,
       templateName,
       templateContent,
@@ -239,7 +228,6 @@ async function processReminder(checkout, reminderType, storeData) {
     );
 
     console.log("message sent success");
-    
 
     // Mark reminder as sent
     await conn.execute(
@@ -248,8 +236,6 @@ async function processReminder(checkout, reminderType, storeData) {
     );
 
     console.log("status updated");
-    
-    
     
   } catch (error) {
     console.error(`❌ Error processing ${reminderType}:`, error);
@@ -325,7 +311,7 @@ function verifyCronRequest(request) {
     userAgent,
     cronJobHeader,
     hasAuth: !!authHeader,
-    timestamp: getISTDateTime()
+    timestamp: getISTDateTimeString()
   });
 
   return true;
@@ -333,25 +319,22 @@ function verifyCronRequest(request) {
 
 // 🔹 GET endpoint for cron jobs
 export async function GET(request) {
-  // Verify the request is legitimate
-  
-
-  console.log("⏰ Cron job started at", getISTDateTime());
-  const startTime = getISTDateTime();
+  console.log("⏰ Cron job started at", getISTDateTimeString());
+  const startTime = getISTDateTime(); // Date object for calculation
   console.log("start", startTime);
-  
 
   try {
     await checkRemindersForAllCheckouts();
     
-    const executionTime = getISTDateTime() - startTime;
+    const endTime = getISTDateTime(); // Date object for calculation
+    const executionTime = endTime - startTime; // Now this will work correctly
     console.log(`✅ Cron job completed in ${executionTime}ms`);
 
     return NextResponse.json({
       status: "success",
       message: "Cron job executed successfully",
       executionTime: `${executionTime}ms`,
-      timestamp: getISTDateTime(),
+      timestamp: getISTDateTimeString(),
     });
   } catch (error) {
     console.error("❌ Cron job failed:", error);
@@ -361,7 +344,7 @@ export async function GET(request) {
         status: "error",
         message: "Cron job failed",
         error: error.message,
-        timestamp: getISTDateTime(),
+        timestamp: getISTDateTimeString(),
       },
       { status: 500 }
     );
