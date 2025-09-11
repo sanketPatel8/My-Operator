@@ -118,27 +118,32 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
-        const buttons = value.buttons || [value];
-        buttons.forEach((btn) => {
-        buttons.forEach((btn, index) => {
-          if (btn && Object.keys(btn).length > 0) {
+        // const buttons = value.buttons || [value];
         
-            // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-            if (btn.type === "URL") {
+        // buttons.forEach((btn, index) => {
+        //   if (btn && Object.keys(btn).length > 0) {
+        
+        //     // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
+        //     if (btn.type === "URL") {
 
               
-              const lastValue = Object.values(userFallbackValues).pop();
-              const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
-              const simplifiedButton = {
-                index: index,
-                "link": lastValue
-              };
-              templateContent.buttons.push(simplifiedButton);
-              console.log(`✅ Simplified button payload:`, simplifiedButton);
-            } 
-          }
-        });
-      });
+        //       const lastValue = Object.values(userFallbackValues).pop();
+        //       const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
+        //       const simplifiedButton = {
+        //         index: index,
+        //         "link": lastValue
+        //       };
+        //       templateContent.buttons.push(simplifiedButton);
+        //       console.log(`✅ Simplified button payload:`, simplifiedButton);
+        //     } 
+        //   }
+        // });
+
+        const values = Object.values(userFallbackValues).slice(-2);
+        const result = values.map((value, i) => ({ index: i, "link": value }));
+
+        console.log(result);
+      
         break;
 
       default:
