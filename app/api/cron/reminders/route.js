@@ -261,9 +261,16 @@ async function processReminder(checkout, reminderType, storeData) {
     
 
     const enternumber = customer.phone;
+    console.log("enter number", enternumber);
+    
 
-    const phonenumber = enternumber.slice(-10);
-    console.log(phonenumber,"phone details");
+    if (enternumber) {
+    const phonenumber = String(enternumber).slice(-10);
+    console.log(phonenumber, "phone details");
+    return phonenumber;
+    }
+
+    
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
     const templateContent = buildTemplateContent(templateVars, checkoutData);
