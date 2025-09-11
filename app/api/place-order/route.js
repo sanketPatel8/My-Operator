@@ -216,15 +216,16 @@ export async function POST(req) {
                       // Ensure button has the required properties
                       if (button && button.example && typeof button.example === 'object') {
                         const key = Object.keys(button.example)[0];
+                        const replace_url = button.url.replace(/{{.*?}}/, data.order_status_url);
                         return {
                           index: button.index !== undefined ? button.index : index,
-                          [key]: button.url || button.example[key]
+                          [key]: replace_url || button.example[key]
                         };
                       }
                       // Fallback for malformed button data
                       return {
                         index: index,
-                        link: button.url || '#'
+                        link: replace_url || '#'
                       };
                     });
 
