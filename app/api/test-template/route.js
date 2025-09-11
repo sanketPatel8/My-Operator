@@ -82,7 +82,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
   console.log(' Building template content with user-entered fallbacks:', templateRows);
 
   for (const row of templateRows) {
-    const value = JSON.parse(row.value || '{}');
+    const value = JSON.parse(row.value) || null;
 
     switch (row.component_type) {
       case "HEADER":
@@ -139,12 +139,17 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         //   }
         // });
 
+        if(value!=null){
+
+        if (templateContent.buttons.length === 0) {
+
         const values = Object.values(userFallbackValues).slice(-2);
         const result = values.map((value, i) => ({ index: i, "link": value }));
 
         console.log(result);
         templateContent.buttons.push(result);
-      
+        }
+      }
         break;
 
       default:
