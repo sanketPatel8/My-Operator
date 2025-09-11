@@ -410,6 +410,14 @@ export async function POST(req) {
             result: messageResult,
           });
           sentMessages.push(templateName);
+          return NextResponse.json(
+      {
+        success: true,
+        message: "message done",
+        data: "helo",
+      },
+      { status: 200 }
+    );
         } catch (messageError) {
           console.error(
             `❌ Failed to send WhatsApp message for "${templateName}":`,
