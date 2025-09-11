@@ -117,7 +117,12 @@ export async function storePlacedOrder(data, shopurl) {
       ? data.payment_gateway_names.join(", ")
       : data.payment_gateway_names || "";
 
-    // get a connection for transaction
+    // ✅ Convert objects/arrays to JSON strings
+    const customerJSON = data.customer ? JSON.stringify(data.customer) : "{}";
+    const lineItemsJSON = data.line_items
+      ? JSON.stringify(data.line_items)
+      : "[]";
+
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -129,7 +134,6 @@ export async function storePlacedOrder(data, shopurl) {
       );
 
       if (existingRows.length > 0) {
-        // 2️⃣ Update only the first matched row
         const rowId = existingRows[0].id;
         const [updateResult] = await connection.execute(
           `UPDATE placed_code_order
@@ -149,11 +153,11 @@ export async function storePlacedOrder(data, shopurl) {
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
-            data.customer || {},
-            data.line_items,
-            data.total_price,
-            data.total_discounts,
-            data.total_tax,
+            customerJSON, // ✅ fixed
+            lineItemsJSON, // ✅ fixed
+            data.total_price || 0,
+            data.total_discounts || 0,
+            data.total_tax || 0,
             data.order_number || "",
             rowId,
           ]
@@ -162,10 +166,9 @@ export async function storePlacedOrder(data, shopurl) {
         console.log("✅ Order updated (first row only):", updateResult);
         return { success: true, action: "updated", result: updateResult };
       } else {
-        // 3️⃣ Insert safely if no existing row
         const [insertResult] = await connection.execute(
           `INSERT INTO placed_code_order 
-             (order_id, shop , order_status_url, payment_gateway_names, phone, customer, line_items, 	total_price, 	total_discounts, 	total_tax, order_number, created_at, updated_at)
+             (order_id, shop , order_status_url, payment_gateway_names, phone, customer, line_items, total_price, total_discounts, total_tax, order_number, created_at, updated_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           [
             data.id,
@@ -173,11 +176,11 @@ export async function storePlacedOrder(data, shopurl) {
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
-            data.customer || {},
-            data.line_items,
-            data.total_price,
-            data.total_discounts,
-            data.total_tax,
+            customerJSON, // ✅ fixed
+            lineItemsJSON, // ✅ fixed
+            data.total_price || 0,
+            data.total_discounts || 0,
+            data.total_tax || 0,
             data.order_number || "",
           ]
         );
