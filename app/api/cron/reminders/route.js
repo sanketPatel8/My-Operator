@@ -130,11 +130,11 @@ function buildTemplateContent(templateRows, data) {
 }
 
 // 🔹 Send WhatsApp message
-async function sendWhatsAppMessage(phoneDetails, templateName, content, store) {
+async function sendWhatsAppMessage(phonenumber, templateName, content, store) {
   const payload = {
     phone_number_id: store.phone_number_id,
     customer_country_code: "91",
-    customer_number: phoneDetails,
+    customer_number: phonenumber,
     data: {
       type: "template",
       language: "en",
@@ -211,9 +211,21 @@ async function processReminder(checkout, reminderType, storeData) {
 
     if (templateRows.length === 0 || templateVars.length === 0) return;
 
+    console.log("token for checkout", checkout.token);
+
     const templateName = templateRows[0].template_name;
     const checkoutData = JSON.parse(checkout.checkout_data || "{}");
-    const phoneDetails = extractPhoneDetails(checkoutData);
+    const [getphone] = await conn.execute(
+      "SELECT customer_phone FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0 AND token = ?",
+      [checkout.token]
+    );
+
+    
+    
+
+    const { customer_phone } = getphone[0];
+
+    const phonenumber =  customer_phone.slice(-10)
 
     console.log(phoneDetails,"phone details");
 
@@ -221,7 +233,7 @@ async function processReminder(checkout, reminderType, storeData) {
     const templateContent = buildTemplateContent(templateVars, checkoutData);
     
     await sendWhatsAppMessage(
-      phoneDetails,
+      phonenumber,
       templateName,
       templateContent,
       storeData
