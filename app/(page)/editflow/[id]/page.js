@@ -761,7 +761,8 @@ const handleSendTestMessage = async () => {
     buttonFallbackValues[variable] = fallbackValue.trim();
   }
 }
-
+  console.log("input link", buttonFallbackValues);
+  
   if (missingFallbacks.length > 0) {
     error(`Please provide fallback values for the following variables: ${missingFallbacks.map(v => `{{${v}}}`).join(', ')}`);
     return;
