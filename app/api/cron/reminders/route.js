@@ -63,14 +63,16 @@ function parseDelayToMinutes(delayValue) {
 
 
 // 🔹 Map dynamic values
-function getMappedValue(field, data) {
+function getMappedValue(field, data, customerData) {
+
+
   switch (field) {
     case "Name":
-      return data.customer.first_name || "Customer";
+      return customerData.first_name || "Customer";
     case "Order id":
       return String(data?.id || data?.token || "123456");
     case "Phone number":
-      return data.customer.phone || "0000000000";
+      return customerData.phone || "0000000000";
     case "Quantity":
       return Array.isArray(data.line_items)
         ? String(
@@ -85,7 +87,7 @@ function getMappedValue(field, data) {
 }
 
 // 🔹 Build template content
-function buildTemplateContent(templateRows, data, abandoned_checkout_url) {
+function buildTemplateContent(templateRows, data, abandoned_checkout_url, customerData) {
   const content = {
     header: null,
     body: null,
@@ -108,6 +110,7 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url) {
         if (row.mapping_field && row.variable_name) {
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
+            customerData,
             data
           );
         }
@@ -278,7 +281,7 @@ async function processReminder(checkout, reminderType, storeData) {
     
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
-    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url);
+    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url, customerData);
     
     await sendWhatsAppMessage(
       phonenumber,
