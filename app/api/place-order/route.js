@@ -211,7 +211,7 @@ export async function POST(req) {
 
                   
                   const lastValue = Object.values(userFallbackValues).pop();
-                  const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
+                  const link = btn.url.replace(/\{\{.*?\}\}/g, order_status_url);
                   const simplifiedButton = {
                     index: index,
                     "link": link
