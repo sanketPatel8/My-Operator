@@ -66,11 +66,11 @@ function parseDelayToMinutes(delayValue) {
 function getMappedValue(field, data) {
   switch (field) {
     case "Name":
-      return data.customer.customer_first_name || "Customer";
+      return data.customer.first_name || "Customer";
     case "Order id":
       return String(data?.id || data?.token || "123456");
     case "Phone number":
-      return data.customer.customer_phone || "0000000000";
+      return data.customer.phone || "0000000000";
     case "Quantity":
       return Array.isArray(data.line_items)
         ? String(
@@ -85,7 +85,7 @@ function getMappedValue(field, data) {
 }
 
 // 🔹 Build template content
-function buildTemplateContent(templateRows, data) {
+function buildTemplateContent(templateRows, data, abandoned_checkout_url) {
   const content = {
     header: null,
     body: null,
@@ -126,8 +126,10 @@ function buildTemplateContent(templateRows, data) {
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
                     console.log(placeholderRegex,"placeholder");
 
+
+
                     // Replace {{key}} in URL with the specific value
-                    const replacedUrl = button.url.replace(placeholderRegex, data.abandoned_checkout_url);
+                    const replacedUrl = button.url.replace(placeholderRegex, abandoned_checkout_url);
                     console.log("replaced url", replacedUrl);
                     
 
@@ -245,6 +247,12 @@ async function processReminder(checkout, reminderType, storeData) {
 
     const templateName = templateRows[0].template_name;
     const checkoutData = JSON.parse(checkout.checkout_data || "{}");
+    const abandoned_checkout_url = checkout.abandoned_checkout_url;
+
+    console.log("checkout data", checkoutData);
+    console.log("checkout url", abandoned_checkout_url);
+
+    
     const [getphone] = await conn.execute(
       "SELECT customer FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0 AND token = ?",
       [checkout.token]
@@ -270,7 +278,7 @@ async function processReminder(checkout, reminderType, storeData) {
     
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
-    const templateContent = buildTemplateContent(templateVars, checkoutData);
+    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url);
     
     await sendWhatsAppMessage(
       phonenumber,
