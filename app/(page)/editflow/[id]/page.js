@@ -737,8 +737,12 @@ const handleSendTestMessage = async () => {
     ...templateVariables.buttons
   ];
 
+  const buttonVariables = [...templateVariables.buttons];
+
   const missingFallbacks = [];
   const fallbackValues = {};
+  const buttonFallbackValues = {};
+  const missingButtonFallbacks = [];
   
   for (const variable of allVariables) {
     const fallbackValue = variableSettings[variable]?.fallback;
@@ -748,6 +752,15 @@ const handleSendTestMessage = async () => {
       fallbackValues[variable] = fallbackValue.trim();
     }
   }
+
+  for (const variable of buttonVariables) {
+  const fallbackValue = variableSettings[variable]?.fallback;
+  if (!fallbackValue || fallbackValue.trim() === '') {
+    missingButtonFallbacks.push(variable);
+  } else {
+    buttonFallbackValues[variable] = fallbackValue.trim();
+  }
+}
 
   if (missingFallbacks.length > 0) {
     error(`Please provide fallback values for the following variables: ${missingFallbacks.map(v => `{{${v}}}`).join(', ')}`);
@@ -761,7 +774,8 @@ const handleSendTestMessage = async () => {
     const testPayload = {
       category_event_id: currentWorkflowData.category_event_id,
       phonenumber: testPhoneNumber.trim(),
-      fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
+      fallbackValues: fallbackValues,
+      linkinput: buttonFallbackValues,// ✅ Send user-entered fallback values
       variableSettings: variableSettings,
       selectedTemplate: selectedTemplate // ✅ Send complete variable settings
     };

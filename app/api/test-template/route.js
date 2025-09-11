@@ -66,7 +66,7 @@ async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateConten
 }
 
 // ✅ Updated function to build template content with simplified button payload
-function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues, data = {}) {
+function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues, linkinput, data = {}) {
   const templateContent = {
     header: null,
     body: null,
@@ -77,6 +77,8 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
   const bodyExample = {};
 
   console.log("user fallbacks", userFallbackValues);
+  console.log("buttons link input", linkinput);
+  
   
 
   console.log(' Building template content with user-entered fallbacks:', templateRows);
@@ -125,12 +127,13 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         
             // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
             if (btn.type === "URL") {
-              
 
+              
+              const values = Object.values(linkinput);
               const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
               const simplifiedButton = {
                 index: index,
-                "link": link
+                "link": values
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
@@ -160,7 +163,7 @@ export async function POST(req) {
 
   try {
     const requestData = await req.json();
-    const { category_event_id, phonenumber, fallbackValues, variableSettings, selectedTemplate } = requestData;
+    const { category_event_id, phonenumber, fallbackValues, linkinput, variableSettings, selectedTemplate } = requestData;
 
     console.log(`📦 Test request received:`, {
       category_event_id,
@@ -247,7 +250,7 @@ export async function POST(req) {
     console.log(`📄 Template structure fetched: ${templateRows} variables`);
 
     // ✅ 5. Build template content using USER-ENTERED fallback values
-    const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues);
+    const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues, linkinput);
 
     
 
