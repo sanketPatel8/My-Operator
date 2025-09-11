@@ -136,6 +136,11 @@ export async function storePlacedOrder(data, shopurl) {
            SET shop = ?, order_status_url = ?, 
                payment_gateway_names = ?, 
                phone = ?, 
+               customer = ?,
+               line_items = ?,
+               total_price = ?,
+               total_discounts = ?,
+               total_tax = ?,
                order_number = ?, 
                updated_at = NOW()
            WHERE id = ?`,
@@ -144,6 +149,11 @@ export async function storePlacedOrder(data, shopurl) {
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
+            data.customer || {},
+            data.line_items,
+            data.total_price,
+            data.total_discounts,
+            data.total_tax,
             data.order_number || "",
             rowId,
           ]
@@ -155,14 +165,19 @@ export async function storePlacedOrder(data, shopurl) {
         // 3️⃣ Insert safely if no existing row
         const [insertResult] = await connection.execute(
           `INSERT INTO placed_code_order 
-             (order_id, shop , order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+             (order_id, shop , order_status_url, payment_gateway_names, phone, customer, line_items, 	total_price, 	total_discounts, 	total_tax, order_number, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           [
             data.id,
             shopurl,
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
+            data.customer || {},
+            data.line_items,
+            data.total_price,
+            data.total_discounts,
+            data.total_tax,
             data.order_number || "",
           ]
         );
@@ -335,8 +350,8 @@ export async function POST(req) {
 
     switch (topic) {
       case "cod/paid":
-        eventTitles = ["Convert COD to Paid"]
-      break;
+        eventTitles = ["Convert COD to Paid"];
+        break;
       case "orders/create":
         if (
           Array.isArray(data.payment_gateway_names) &&
@@ -434,11 +449,9 @@ export async function POST(req) {
 
       const bodyExample = {};
 
-      console.log("rows",templateRows);
-      
+      console.log("rows", templateRows);
 
       console.log("data whole", data);
-      
 
       for (const row of templateRows) {
         const value = JSON.parse(row.value || "{}");
@@ -466,28 +479,26 @@ export async function POST(req) {
 
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
-            if(value!=null){
+            if (value != null) {
+              if (templateContent.buttons.length === 0) {
+                // const values = Object.values(userFallbackValues).slice(-2);
+                // const result = values.map((value, i) => ({ index: i, "link": value }));
 
-            if (templateContent.buttons.length === 0) {
+                // console.log(result);
+                // templateContent.buttons.push(...result);
 
-            // const values = Object.values(userFallbackValues).slice(-2);
-            // const result = values.map((value, i) => ({ index: i, "link": value }));
+                const output = value.buttons.map((button) => {
+                  const key = Object.keys(button.example)[0];
+                  return {
+                    index: button.index,
+                    [key]: button.url,
+                  };
+                });
 
-            // console.log(result);
-            // templateContent.buttons.push(...result);
-
-            const output = value.buttons.map(button => {
-            const key = Object.keys(button.example)[0];
-            return {
-              index: button.index,
-              [key]: button.url
-            };
-          });
-
-          console.log(output);
-          templateContent.buttons.push(...output);
+                console.log(output);
+                templateContent.buttons.push(...output);
+              }
             }
-          }
             break;
 
           default:
