@@ -119,19 +119,16 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         buttons.forEach((btn) => {
         buttons.forEach((btn, index) => {
           if (btn && Object.keys(btn).length > 0) {
-            templateContent.buttons.push(btn);
+        
             // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-            if (btn.type === "URL" && btn.text === "Click to Pay") {
+            if (btn.type === "URL") {
               const simplifiedButton = {
                 index: index,
-                "Click to pay": btn.url
+                "link": btn.url
               };
               templateContent.buttons.push(simplifiedButton);
               console.log(`✅ Simplified button payload:`, simplifiedButton);
-            } else {
-              // For other button types, keep the original structure
-              templateContent.buttons.push(btn);
-            }
+            } 
           }
         });
       });
