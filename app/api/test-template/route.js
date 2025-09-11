@@ -83,15 +83,23 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value) || null;
-
+    console.log("value", value);
+    
     if(value!=null){
+
+      console.log("start loop");
+      
 
     switch (row.component_type) {
       case "HEADER":
+        console.log("enter in header");
+        
         templateContent.header = value;
         break;
 
       case "BODY":
+        console.log("enter in body");
+        
         templateContent.body = value;
 
         // ✅ USE USER-ENTERED FALLBACK VALUES instead of database values
@@ -120,49 +128,56 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
 
       case "BUTTONS":
       case "BUTTONS_COMPONENT":
-        const buttons = value.buttons || [value];
+        console.log("enter in buttons");
         
-        buttons.forEach((btn, index) => {
-          if (btn && Object.keys(btn).length > 0) {
+        // const buttons = value.buttons || [value];
         
-            // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-            if (btn.type === "URL") {
+        // buttons.forEach((btn, index) => {
+        //   if (btn && Object.keys(btn).length > 0) {
+        
+        //     // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
+        //     if (btn.type === "URL") {
 
               
-              const lastValue = Object.values(userFallbackValues).pop();
-              const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
-              const simplifiedButton = {
-                index: index,
-                "link": lastValue
-              };
-              templateContent.buttons.push(simplifiedButton);
-              console.log(`✅ Simplified button payload:`, simplifiedButton);
-            } 
-          }
-        });
+        //       const lastValue = Object.values(userFallbackValues).pop();
+        //       const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
+        //       const simplifiedButton = {
+        //         index: index,
+        //         "link": lastValue
+        //       };
+        //       templateContent.buttons.push(simplifiedButton);
+        //       console.log(`✅ Simplified button payload:`, simplifiedButton);
+        //     } 
+        //   }
+        // });
 
-      //   if(value!=null){
+        if(value!=null){
 
-      //   if (templateContent.buttons.length === 0) {
+        if (templateContent.buttons.length === 0) {
 
-      //   // const values = Object.values(userFallbackValues).slice(-2);
-      //   // const result = values.map((value, i) => ({ index: i, "link": value }));
+        // const values = Object.values(userFallbackValues).slice(-2);
+        // const result = values.map((value, i) => ({ index: i, "link": value }));
 
-      //   // console.log(result);
-      //   // templateContent.buttons.push(...result);
+        // console.log(result);
+        // templateContent.buttons.push(...result);
 
-      //   const output = value.buttons.map(button => {
-      //   const key = Object.keys(button.example)[0];
-      //   return {
-      //     index: button.index,
-      //     [key]: button.url
-      //   };
-      // });
+        console.log("enter inside");
+      
+        const output = value.buttons.map(button => {
+        const key = Object.keys(button.example)[0];
+        
+        console.log("inside in inside");
+        
+        return {
+          index: button.index,
+          [key]: button.url
+        };
+      });
 
-      // console.log(output);
-      // templateContent.buttons.push(...output);
-      //   }
-      // }
+      console.log("processed button",...output);
+      templateContent.buttons.push(...output);
+        }
+      }
         break;
 
       default:
