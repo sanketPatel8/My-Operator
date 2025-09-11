@@ -86,7 +86,10 @@ export async function POST(req) {
 
         const result = await response.json();
         console.log("✅ Message sent successfully:", result);
-        return result;
+        return NextResponse.json(
+        { success: true, message: "success" },
+        { status: 200 }
+      );
       } catch (error) {
         console.error("❌ Error sending WhatsApp message:", error);
         throw error;
@@ -121,6 +124,8 @@ export async function POST(req) {
 
     const { shop, order_id, order_status_url, payment_gateway_names, phonenumber, order_number, access_token } = rows[0];
 
+    const data = rows[0];
+
     console.log(rows, "Fetched order and store details");
 
     if(status=="yes"){
@@ -135,11 +140,11 @@ export async function POST(req) {
             "Deval"
           );
         case "Order id":
-          return String(order_id);
+          return String(data.order_id);
         case "Phone number":
-          return phonenumber;
+          return data.phonenumber;
         case "Payment Url":
-          return order_status_url;
+          return data.order_status_url;
         case "Quantity":
           if (Array.isArray(data.line_items)) {
             const totalQuantity = data.line_items.reduce((sum, item) => {
