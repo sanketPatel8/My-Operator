@@ -334,6 +334,9 @@ export async function POST(req) {
     let eventTitles = [];
 
     switch (topic) {
+      case "cod/paid":
+        eventTitles = ["Convert COD to Paid"]
+      break;
       case "orders/create":
         if (
           Array.isArray(data.payment_gateway_names) &&
