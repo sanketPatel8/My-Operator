@@ -117,7 +117,12 @@ export async function storePlacedOrder(data, shopurl) {
       ? data.payment_gateway_names.join(", ")
       : data.payment_gateway_names || "";
 
-    // get a connection for transaction
+    // ✅ Convert objects/arrays to JSON strings
+    const customerJSON = data.customer ? JSON.stringify(data.customer) : "{}";
+    const lineItemsJSON = data.line_items
+      ? JSON.stringify(data.line_items)
+      : "[]";
+
     const connection = await pool.getConnection();
     try {
       await connection.beginTransaction();
@@ -129,13 +134,17 @@ export async function storePlacedOrder(data, shopurl) {
       );
 
       if (existingRows.length > 0) {
-        // 2️⃣ Update only the first matched row
         const rowId = existingRows[0].id;
         const [updateResult] = await connection.execute(
           `UPDATE placed_code_order
            SET shop = ?, order_status_url = ?, 
                payment_gateway_names = ?, 
                phone = ?, 
+               customer = ?,
+               line_items = ?,
+               total_price = ?,
+               total_discounts = ?,
+               total_tax = ?,
                order_number = ?, 
                updated_at = NOW()
            WHERE id = ?`,
@@ -144,6 +153,11 @@ export async function storePlacedOrder(data, shopurl) {
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
+            customerJSON, // ✅ fixed
+            lineItemsJSON, // ✅ fixed
+            data.total_price || 0,
+            data.total_discounts || 0,
+            data.total_tax || 0,
             data.order_number || "",
             rowId,
           ]
@@ -152,17 +166,21 @@ export async function storePlacedOrder(data, shopurl) {
         console.log("✅ Order updated (first row only):", updateResult);
         return { success: true, action: "updated", result: updateResult };
       } else {
-        // 3️⃣ Insert safely if no existing row
         const [insertResult] = await connection.execute(
           `INSERT INTO placed_code_order 
-             (order_id, shop , order_status_url, payment_gateway_names, phone, order_number, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+             (order_id, shop , order_status_url, payment_gateway_names, phone, customer, line_items, total_price, total_discounts, total_tax, order_number, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
           [
             data.id,
             shopurl,
             data.order_status_url || "",
             paymentGateways,
             data.phone || "",
+            customerJSON, // ✅ fixed
+            lineItemsJSON, // ✅ fixed
+            data.total_price || 0,
+            data.total_discounts || 0,
+            data.total_tax || 0,
             data.order_number || "",
           ]
         );
@@ -335,8 +353,8 @@ export async function POST(req) {
 
     switch (topic) {
       case "cod/paid":
-        eventTitles = ["Convert COD to Paid"]
-      break;
+        eventTitles = ["Convert COD to Paid"];
+        break;
       case "orders/create":
         if (
           Array.isArray(data.payment_gateway_names) &&
@@ -434,11 +452,9 @@ export async function POST(req) {
 
       const bodyExample = {};
 
-      console.log("rows",templateRows);
-      
+      console.log("rows", templateRows);
 
       console.log("data whole", data);
-      
 
       for (const row of templateRows) {
         const value = JSON.parse(row.value || "{}");
@@ -466,28 +482,26 @@ export async function POST(req) {
 
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
-            if(value!=null){
+            if (value != null) {
+              if (templateContent.buttons.length === 0) {
+                // const values = Object.values(userFallbackValues).slice(-2);
+                // const result = values.map((value, i) => ({ index: i, "link": value }));
 
-            if (templateContent.buttons.length === 0) {
+                // console.log(result);
+                // templateContent.buttons.push(...result);
 
-            // const values = Object.values(userFallbackValues).slice(-2);
-            // const result = values.map((value, i) => ({ index: i, "link": value }));
+                const output = value.buttons.map((button) => {
+                  const key = Object.keys(button.example)[0];
+                  return {
+                    index: button.index,
+                    [key]: button.url,
+                  };
+                });
 
-            // console.log(result);
-            // templateContent.buttons.push(...result);
-
-            const output = value.buttons.map(button => {
-            const key = Object.keys(button.example)[0];
-            return {
-              index: button.index,
-              [key]: button.url
-            };
-          });
-
-          console.log(output);
-          templateContent.buttons.push(...output);
+                console.log(output);
+                templateContent.buttons.push(...output);
+              }
             }
-          }
             break;
 
           default:
