@@ -185,7 +185,7 @@ async function processReminder(checkout, reminderType, storeData) {
     // Convert delay to number and treat as minutes
     const delayMinutes = parseDelayToMinutes(delay) || 60; // Default to 60 minutes if invalid
 
-    const checkoutTime = checkout.updated_at;
+    const checkoutTime = new Date(checkout.updated_at);
     const currentTime = getISTDateTime();
     const timeDiffMinutes = Math.floor(
       (currentTime - checkoutTime) / (1000 * 60)
