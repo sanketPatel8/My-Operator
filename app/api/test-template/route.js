@@ -147,7 +147,7 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         const result = values.map((value, i) => ({ index: i, "link": value }));
 
         console.log(result);
-        templateContent.buttons.push(result);
+        templateContent.buttons.push(...result);
         }
       }
         break;
