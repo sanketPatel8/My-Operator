@@ -97,6 +97,8 @@ function buildTemplateContent(templateRows, data) {
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value || "{}");
+    console.log("value",value);
+    
     switch (row.component_type) {
       case "HEADER":
         content.header = value;
@@ -114,10 +116,31 @@ function buildTemplateContent(templateRows, data) {
         content.footer = value;
         break;
       case "BUTTONS":
-        (value.buttons || [value]).forEach((btn) => {
-          if (btn && Object.keys(btn).length > 0) content.buttons.push(btn);
-        });
-        break;
+        if(value!=null){
+
+        if (content.buttons.length === 0) {
+
+        // const values = Object.values(userFallbackValues).slice(-2);
+        // const result = values.map((value, i) => ({ index: i, "link": value }));
+
+        // console.log(result);
+        // templateContent.buttons.push(...result);
+
+        const output = value.buttons.map(button => {
+        const key = Object.keys(button.example)[0];
+        console.log(button.url, "button.url");
+        
+        return {
+          index: button.index,
+          [key]: button.url
+        };
+      });
+
+      console.log(output);
+      content.buttons.push(...output);
+        }
+      }
+      break;
     }
   }
 
