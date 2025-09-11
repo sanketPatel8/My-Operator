@@ -79,29 +79,21 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
   console.log(' Building template content with user-entered fallbacks:', templateRows);
 
   for (const row of templateRows) {
-    console.log("row ", row.template_variable_id);
-    
-    const value = JSON.parse(row.value) || null ;
-    console.log("initial value", value);
-    if(value!=null){
+    const value = JSON.parse(row.value || '{}');
 
-    if (row.type == "HEADER") {
- 
+    switch (row.component_type) {
+      case "HEADER":
         templateContent.header = value;
-    }
-    if (row.type == "HEADER_") {
- 
-        templateContent.header = value;
-    }
+        break;
 
-    if (row.component_type ==  "BODY"){
+      case "BODY":
         templateContent.body = value;
 
         // ✅ USE USER-ENTERED FALLBACK VALUES instead of database values
         if (row.variable_name) {
           // Clean variable name (remove {{ }} if present)
           let cleanVariableName = row.variable_name.replace(/[{}]/g, '');
-          
+
           // Try to find user-entered fallback value
           const userFallback = userFallbackValues[cleanVariableName] || 
                               userFallbackValues[row.variable_name];
@@ -115,36 +107,41 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
             bodyExample[row.variable_name] = row.fallback_value || `[${cleanVariableName}]`;
           }
         }
-      }
+        break;
 
-       if (row.component_type ==  "FOOTER"){
-               templateContent.footer = value;
-       }
- 
-       
+      case "FOOTER":
+        templateContent.footer = value;
+        break;
 
-        if (row.component_type ==   "BUTTONS"){
-     
-         console.log("button info start");
+      case "BUTTONS":
+      case "BUTTONS_COMPONENT":
+        const buttons = value.buttons || [value];
+        buttons.forEach((btn) => {
+        buttons.forEach((btn, index) => {
+          if (btn && Object.keys(btn).length > 0) {
+            templateContent.buttons.push(btn);
+            // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
+            if (btn.type === "URL" && btn.text === "Click to Pay") {
+              const simplifiedButton = {
+                index: index,
+                "Click to pay": btn.url
+              };
+              templateContent.buttons.push(simplifiedButton);
+              console.log(`✅ Simplified button payload:`, simplifiedButton);
+            } else {
+              // For other button types, keep the original structure
+              templateContent.buttons.push(btn);
+            }
+          }
+        });
+      });
+        break;
 
-       
-            const button = value.buttons[0];
-             console.log("button info first:", button);
-          // Step 2: Extract key name dynamically
-          const exampleKeys = Object.keys(button.example); // ["link"]
-          const keyName = exampleKeys[0]; // "link"
-          
-          // Step 3: Build result
-          const result = {
-            index: button.index,
-            [keyName]: button.url
-          };
-          console.log("button info second:", result);
-        
-  
-      }
+      default:
+        break;
     }
-  }
+  
+}
 
   if (templateContent.body) {
     templateContent.body.example = bodyExample;
