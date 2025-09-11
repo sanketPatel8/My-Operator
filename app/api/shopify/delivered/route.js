@@ -69,7 +69,7 @@ function getMappedValue(field, data) {
 }
 
 // 🔹 Build template content
-function buildTemplateContent(templateRows, data) {
+function buildTemplateContent(templateRows, data, url) {
   const content = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
@@ -96,13 +96,13 @@ function buildTemplateContent(templateRows, data) {
                     console.log(placeholderRegex,"placeholder");
 
                     // Replace {{key}} in URL with the specific value
-                    const replacedUrl = button.url.replace(placeholderRegex, "https://google.com");
+                    const replacedUrl = button.url.replace(placeholderRegex, url);
                     console.log("replaced url", replacedUrl);
                     
 
                     return {
                       index: button.index !== undefined ? button.index : index,
-                      [key]: replacedUrl
+                      [key]: url
                     };
                   }
 
@@ -226,7 +226,7 @@ async function processReminder(order, reminderType, storeData) {
     console.log("customer_phone", customer_phone);
     
 
-    const phonenumber =  customer_phone.slice(-10)
+    const phonenumber =  customer_phone.replace('+91', '');
 
     console.log(phonenumber,"phone details");
 
@@ -249,8 +249,16 @@ async function processReminder(order, reminderType, storeData) {
       return;
     }
 
+    const[url] = await conn.execute(
+      "SELECT fallback_value FROM template_variable WHERE type = ? AND template_data_id = ?",
+      ["BUTTONS", template_data_id]
+    );
+
+    console.log("fallback url", url);
+    
+
     // Build and send message
-    const templateContent = buildTemplateContent(templateVariableRows, order);
+    const templateContent = buildTemplateContent(templateVariableRows, order, url);
     if (!templateContent) {
       console.log(`❌ Failed to build template content for order ${order.id}`);
       return;
