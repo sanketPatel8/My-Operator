@@ -466,29 +466,28 @@ export async function POST(req) {
 
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
-            const buttons = value.buttons || [value];
-            console.log("buttons value ",buttons);
-            
-            buttons.forEach((btn) => {
-            buttons.forEach((btn, index) => {
-              if (btn && Object.keys(btn).length > 0) {
-            
-                // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
-                if (btn.type === "URL") {
+            if(value!=null){
 
-                  
-                  const lastValue = Object.values(userFallbackValues).pop();
-                  const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
-                  const simplifiedButton = {
-                    index: index,
-                    "link": link
-                  };
-                  templateContent.buttons.push(simplifiedButton);
-                  console.log(`✅ Simplified button payload:`, simplifiedButton);
-                } 
-              }
-            });
+            if (templateContent.buttons.length === 0) {
+
+            // const values = Object.values(userFallbackValues).slice(-2);
+            // const result = values.map((value, i) => ({ index: i, "link": value }));
+
+            // console.log(result);
+            // templateContent.buttons.push(...result);
+
+            const output = value.buttons.map(button => {
+            const key = Object.keys(button.example)[0];
+            return {
+              index: button.index,
+              [key]: button.url
+            };
           });
+
+          console.log(output);
+          templateContent.buttons.push(...output);
+            }
+          }
             break;
 
           default:

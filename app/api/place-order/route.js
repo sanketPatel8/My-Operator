@@ -242,7 +242,7 @@ export async function POST(req) {
     }
 
     // 🔍 3a. Get phone number and store_id from store
-    const [storePhoneRows] = await connection.execute(
+    const [storePhoneRows] = await pool.query(
       "SELECT phonenumber, id FROM stores WHERE shop = ? LIMIT 1",
       [shop]
     );
@@ -251,7 +251,7 @@ export async function POST(req) {
       throw new Error("No store found with shop domain");
     }
 
-    const [storeRows] = await connection.execute(
+    const [storeRows] = await pool.query(
       "SELECT * FROM stores WHERE shop = ?",
       [shop]
     );
@@ -276,7 +276,7 @@ export async function POST(req) {
 
       try {
         // Fetch template_id and template_data_id from category_event using title + phone number + store_id
-        const [categoryRows] = await connection.execute(
+        const [categoryRows] = await pool.query(
           "SELECT template_id, template_data_id, status FROM category_event WHERE title = ? AND phonenumber = ? AND store_id = ? LIMIT 1",
           [eventTitle, storePhoneNumber, storeId]
         );
@@ -296,7 +296,7 @@ export async function POST(req) {
         );
 
         // Fetch template name using template_id + phone number + store_id
-        const [templateRowsMeta] = await connection.execute(
+        const [templateRowsMeta] = await pool.query(
           "SELECT template_name FROM template WHERE template_id = ? AND phonenumber = ? AND store_id = ? LIMIT 1",
           [template_id, storePhoneNumber, storeId]
         );
@@ -321,7 +321,7 @@ export async function POST(req) {
         }
 
         // 🔍 Fetch template variables (assuming template_variable table also has store_id)
-        const [templateRows] = await connection.execute(
+        const [templateRows] = await pool.query(
           "SELECT * FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id",
           [template_data_id]
         );
