@@ -431,6 +431,12 @@ export async function POST(req) {
 
       const bodyExample = {};
 
+      console.log("rows",templateRows);
+      
+
+      console.log("data whole", data);
+      
+
       for (const row of templateRows) {
         const value = JSON.parse(row.value || "{}");
 
@@ -458,36 +464,28 @@ export async function POST(req) {
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
             const buttons = value.buttons || [value];
-
-            // Process each button and add to both arrays
+            console.log("buttons value ",buttons);
+            
+            buttons.forEach((btn) => {
             buttons.forEach((btn, index) => {
               if (btn && Object.keys(btn).length > 0) {
-                // Add format field if not present (default to STATIC for backward compatibility)
-                if (!btn.format) {
-                  btn.format =
-                    btn.url && btn.url.includes("{{") ? "DYNAMIC" : "STATIC";
-                }
+            
+                // ✅ SIMPLIFIED BUTTON PAYLOAD - Exact format requested
+                if (btn.type === "URL") {
 
-                // Add to original buttons array
-                templateContent.buttons.push(btn);
-
-                // Create dynamic button object for the new format
-                const dynamicButton = {
-                  index: index,
-                };
-
-                // Add dynamic values if mapping_field exists for this button
-                if (row.mapping_field && row.variable_name) {
-                  dynamicButton[row.variable_name] = getMappedValue(
-                    row.mapping_field,
-                    data
-                  );
-                }
-
-                // Add to dynamic buttons array
-                templateContent.dynamicButtons.push(dynamicButton);
+                  
+                  const lastValue = Object.values(userFallbackValues).pop();
+                  const link = btn.url.replace(/\{\{.*?\}\}/g, data.order_status_url);
+                  const simplifiedButton = {
+                    index: index,
+                    "link": link
+                  };
+                  templateContent.buttons.push(simplifiedButton);
+                  console.log(`✅ Simplified button payload:`, simplifiedButton);
+                } 
               }
             });
+          });
             break;
 
           default:
