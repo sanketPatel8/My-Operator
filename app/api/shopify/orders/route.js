@@ -639,10 +639,15 @@ export async function POST(req) {
 
         const [idrow] = await pool.query(
           "SELECT id FROM placed_code_order WHERE order_id = ? LIMIT 1",
-          [shop]
+          [data.id]
         );
 
         const { id } = idrow[0];
+
+        console.log("idrow[0]", idrow[0]);
+        console.log("id for place code order", id);
+        
+        
 
         console.log(
           `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
