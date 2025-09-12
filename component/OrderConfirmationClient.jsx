@@ -117,8 +117,10 @@ export default function OrderConfirmationClient() {
               ? "Order confirmed! 🎉"
               : "Order not confirmed ❌"
           );
+          window.close();
         } else {
           setStatus("Order failed ❌");
+          window.close();
         }
       } catch (error) {
         console.error(error);
@@ -140,13 +142,6 @@ export default function OrderConfirmationClient() {
         size={50}
         aria-label="Loading Spinner"
       />
-      {/* <p style={{ marginTop: 20, fontSize: 18 }}>{status}</p>
-      <p>
-        <strong>Order ID:</strong> {order_id || "N/A"}
-      </p>
-      <p>
-        <strong>Confirmed:</strong> {confirmed || "N/A"}
-      </p> */}
     </div>
   );
 }
