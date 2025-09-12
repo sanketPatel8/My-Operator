@@ -382,10 +382,7 @@ export async function POST(req) {
           Array.isArray(data.payment_gateway_names) &&
           data.payment_gateway_names.includes("Cash on Delivery (COD)")
         ) {
-          eventTitles = [
-            "Order Cancelled",
-            "COD Order Cancellation Event Triggered",
-          ];
+          eventTitles = ["COD Order Cancellation Event Triggered"];
         } else {
           eventTitles = ["Order Cancelled"];
         }
