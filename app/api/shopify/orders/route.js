@@ -325,7 +325,7 @@ export async function POST(req) {
     );
 
     if (storeRows.length === 0) {
-      throw new Error("Store not found with id ");
+      throw new Error("Store not found with shop ");
     }
 
     const storeData = storeRows[0];
@@ -494,8 +494,8 @@ export async function POST(req) {
                   const template = button.example[key];       // e.g., "redirect?url={{approval}}"
 
                   const urlMap = {
-                    approve: `confirmed=yes&order_id=${id}`,
-                    cancel: `confirmed=no&order_id=${id}`
+                    approve: `?confirmed=yes&order_id=${id}`,
+                    cancel: `?confirmed=no&order_id=${id}`
                   };
 
                   // Check if the template contains {{...}}
