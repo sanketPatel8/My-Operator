@@ -486,61 +486,42 @@ export async function POST(req) {
 
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
-            if (value && typeof value === 'object') {
-            // Check if value.buttons exists and is an array
             if (value.buttons && Array.isArray(value.buttons)) {
-              if (templateContent.buttons.length === 0) {
-                const output = value.buttons.map((button, index) => {
-                  if (button && button.example && typeof button.example === 'object') {
-                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
-                    const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
+            if (templateContent.buttons.length === 0) {
+              const output = value.buttons.map((button, index) => {
+                if (button && button.example && typeof button.example === 'object') {
+                  const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
+                  const template = button.example[key];       // e.g., "redirect?url={{approval}}"
 
-                    console.log("id:::", id);
-                    
+                  const urlMap = {
+                    approval: `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=yes&order_id=${id}`,
+                    cancel: `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${id}`
+                  };
 
-                    const url = {
-                      "approval":`${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=yes&order_id=${id}`,
-                      "cancel":`${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${id}`
-                    };
+                  // Replace {{...}} in the template with actual values from urlMap
+                  const replacedUrl = template.replace(/\{\{(.*?)\}\}/g, (_, match) => urlMap[match] || '#');
 
-                    const exampleValue = button.example[key];
-                    const exampleKeyMatch = exampleValue.match(/{{(.*?)}}/);
-                    const exampleKey = exampleKeyMatch ? exampleKeyMatch[1] : null;
-                    const replacementValue = url[exampleKey] || '#';
-                    console.log(replacementValue, "replacement value");
-                    console.log(placeholderRegex,"placeholder regex");
-                    console.log("example key", exampleKey);
-                    console.log(exampleKeyMatch,"example key match");
-                    console.log("example value", exampleValue);
-                    
-                    // Replace {{key}} in URL with the specific value
-                    const replacedUrl = button.url.replace(placeholderRegex, replacementValue);
-                    console.log("replaced url", replacedUrl);
-                    
-
-                    return {
-                      index: button.index !== undefined ? button.index : index,
-                      [key]: replacedUrl
-                    };
-                  }
-
+                  return {
+                    index: button.index !== undefined ? button.index : index,
+                    [key]: replacedUrl
+                  };
+                } else {
                   // Fallback for malformed button data
                   return {
                     index: index,
                     link: '#'
                   };
-                });
+                }
+              });
 
-                // ✅ Return processed button array here
-                console.log("✅ Processed buttons:", output);
-                templateContent.buttons.push(...output); // Insert into template
-              }
-            } else {
-              console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
+              // ✅ Return processed button array here
+              console.log("✅ Processed buttons:", output);
+              templateContent.buttons.push(...output); // Spread instead of nested array
             }
           } else {
-            console.warn("⚠️ Button value is null or invalid:", value);
+            console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
           }
+
 
             break;
 
