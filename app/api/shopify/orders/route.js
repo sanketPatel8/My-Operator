@@ -168,7 +168,9 @@ export async function storePlacedOrder(data, shopurl) {
         await connection.commit();
         console.log("✅ Order updated (first row only):", updateResult);
         place_cod_order_id = updateResult.insertId;
-        
+
+        console.log(updateResult.insertId, "updateResult.insertIds");
+
         return { success: true, action: "updated", result: updateResult };
       } else {
         const [insertResult] = await connection.execute(
@@ -192,6 +194,9 @@ export async function storePlacedOrder(data, shopurl) {
         await connection.commit();
         console.log("✅ Order inserted:", insertResult);
         place_cod_order_id = insertResult.insertId;
+
+        console.log(insertResult.insertId, "insertResult.insertId");
+
         return { success: true, action: "inserted", result: insertResult };
       }
     } catch (txError) {
@@ -206,7 +211,7 @@ export async function storePlacedOrder(data, shopurl) {
   }
 }
 
-console.log(place_cod_order_id , "place_cod_order_id");
+console.log(place_cod_order_id, "place_cod_order_id");
 
 // ✅ Handle POST (receive new order and send message)
 export async function POST(req) {
@@ -470,12 +475,12 @@ export async function POST(req) {
 
         switch (row.component_type) {
           case "HEADER":
-           templateContent.header = value;
-        console.log("value for header", value);
-        const media = value.media_id;
-        console.log("media id ", media);
+            templateContent.header = value;
+            console.log("value for header", value);
+            const media = value.media_id;
+            console.log("media id ", media);
 
-        templateContent.header = { media_id: media };
+            templateContent.header = { media_id: media };
             break;
 
           case "BODY":
@@ -497,50 +502,54 @@ export async function POST(req) {
           case "BUTTONS":
           case "BUTTONS_COMPONENT":
             if (value.buttons && Array.isArray(value.buttons)) {
-            if (templateContent.buttons.length === 0) {
-              const output = value.buttons.map((button, index) => {
-                if (button && button.example && typeof button.example === 'object') {
-                  const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
-                  const template = button.example[key]; // e.g., "redirect?url={{approval}}"
-                  
-                  console.log("place_cod_order_id", place_cod_order_id);
-                  
+              if (templateContent.buttons.length === 0) {
+                const output = value.buttons.map((button, index) => {
+                  if (
+                    button &&
+                    button.example &&
+                    typeof button.example === "object"
+                  ) {
+                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
+                    const template = button.example[key]; // e.g., "redirect?url={{approval}}"
 
-                  const urlMap = {
-                    approve: `?confirmed=yes&order_id=${place_cod_order_id}`,
-                    cancel: `?confirmed=no&order_id=${place_cod_order_id}`
-                  };
+                    console.log("place_cod_order_id", place_cod_order_id);
 
-                  // Check if the template contains {{...}}
-                  const match = template.match(/\{\{(.*?)\}\}/);
-                  let replacedUrl = '#';
+                    const urlMap = {
+                      approve: `?confirmed=yes&order_id=${place_cod_order_id}`,
+                      cancel: `?confirmed=no&order_id=${place_cod_order_id}`,
+                    };
 
-                  if (match) {
-                    const placeholderKey = match[1]; // e.g., "approval"
-                    replacedUrl = urlMap[placeholderKey] || '#';
+                    // Check if the template contains {{...}}
+                    const match = template.match(/\{\{(.*?)\}\}/);
+                    let replacedUrl = "#";
+
+                    if (match) {
+                      const placeholderKey = match[1]; // e.g., "approval"
+                      replacedUrl = urlMap[placeholderKey] || "#";
+                    }
+
+                    return {
+                      index: button.index !== undefined ? button.index : index,
+                      [key]: replacedUrl,
+                    };
+                  } else {
+                    // Fallback for malformed button data
+                    return {
+                      index: index,
+                      link: "#",
+                    };
                   }
+                });
 
-                  return {
-                    index: button.index !== undefined ? button.index : index,
-                    [key]: replacedUrl
-                  };
-                } else {
-                  // Fallback for malformed button data
-                  return {
-                    index: index,
-                    link: '#'
-                  };
-                }
-              });
-
-              console.log("✅ Processed buttons:", output);
-              templateContent.buttons.push(...output);
+                console.log("✅ Processed buttons:", output);
+                templateContent.buttons.push(...output);
+              }
+            } else {
+              console.warn(
+                "⚠️ value.buttons is not an array or doesn't exist:",
+                value
+              );
             }
-          } else {
-            console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
-          }
-
-
 
             break;
 
@@ -552,8 +561,6 @@ export async function POST(req) {
       if (templateContent.body) {
         templateContent.body.example = bodyExample;
       }
-
-      
 
       return templateContent;
     }
@@ -638,7 +645,6 @@ export async function POST(req) {
           );
           continue;
         }
-
 
         console.log(
           `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
