@@ -22,6 +22,7 @@ function Editflow() {
 
   const [selectedDelay, setSelectedDelay] = useState(null);
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [categoryTemplateData, setCategoryTemplateData] = useState(null);
   const [activePart, setActivePart] = useState("template");
   const [templateMessage, setTemplateMessage] = useState("");
@@ -161,6 +162,7 @@ function Editflow() {
         templateData.templates.length > 0
       ) {
         setSelectedTemplate(templateData.templates[0].template_name);
+        setSelectedTemplateId(templateData.templates[0].template_id);
       }
 
       // 5. Process initial template data (category-specific or default)
@@ -819,6 +821,8 @@ function Editflow() {
       return;
     }
 
+
+
     if (!currentWorkflowData?.category_event_id) {
       error("Category event ID not found");
       return;
@@ -855,13 +859,17 @@ function Editflow() {
     try {
       setTestLoading(true);
 
+      const storeToken = localStorage.getItem("storeToken");
+
       // ✅ SEND USER-ENTERED FALLBACK VALUES IN REQUEST
       const testPayload = {
         category_event_id: currentWorkflowData.category_event_id,
         phonenumber: testPhoneNumber.trim(),
         fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
         variableSettings: variableSettings,
-        selectedTemplate: selectedTemplate, // ✅ Send complete variable settings
+        selectedTemplate: selectedTemplate,
+        selectedTemplateId: selectedTemplateId,
+        storeToken: storeToken// ✅ Send complete variable settings
       };
 
       console.log("Sending test message with payload:", testPayload);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mysql from 'mysql2/promise';
 import { validate } from "node-cron";
+import crypto from "crypto";
 
 // Database connection configuration
 const dbConfig = {
@@ -9,6 +10,25 @@ const dbConfig = {
   password: process.env.DATABASE_PASSWORD,
   database: process.env.DATABASE_NAME
 };
+
+
+
+const ALGORITHM = "aes-256-cbc";
+const SECRET_KEY = Buffer.from(process.env.SECRET_KEY, "hex"); // 32 bytes
+
+function decrypt(token) {
+  try {
+    const [ivHex, encryptedData] = token.split(":");
+    const iv = Buffer.from(ivHex, "hex");
+    const encryptedText = Buffer.from(encryptedData, "hex");
+    const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    throw new Error("Invalid token");
+  }
+}
 
 // Helper function to create database connection
 async function getDbConnection() {
@@ -192,7 +212,14 @@ export async function POST(req) {
 
   try {
     const requestData = await req.json();
-    const { category_event_id, phonenumber, fallbackValues, variableSettings, selectedTemplate } = requestData;
+    const { category_event_id, phonenumber, fallbackValues, variableSettings, selectedTemplate, storeToken } = requestData;
+
+    let store_id;
+        try {
+        store_id = decrypt(storeToken);
+        } catch (error) {
+        return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
+        }
 
     console.log(`📦 Test request received:`, {
       category_event_id,
@@ -224,15 +251,15 @@ export async function POST(req) {
 
    // ✅ Step 1: Fetch template_id and store_id by template_name
     const [templateMetaRows] = await connection.execute(
-    'SELECT template_id, store_id FROM template WHERE template_name = ? LIMIT 1',
-    [selectedTemplate]
+    'SELECT template_id FROM template WHERE template_name = ? AND store_id = ? LIMIT 1',
+    [selectedTemplate, store_id]
     );
 
     if (templateMetaRows.length === 0) {
     throw new Error(`No template found with name: ${selectedTemplate}`);
     }
 
-    const { template_id, store_id } = templateMetaRows[0];
+    const { template_id } = templateMetaRows[0];
     console.log(`📛 Template selected: ${selectedTemplate}, template_id: ${template_id}, store_id: ${store_id}`);
 
     // ✅ Step 2: Fetch template_data_id from template_data
