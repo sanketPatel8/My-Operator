@@ -57,7 +57,7 @@ export async function POST(req) {
               template_name: templateName,
               language: "en",
               body: templateContent.body.example || {},
-              buttons: templateContent.buttons || [], // Use dynamic buttons array
+              buttons: templateContent.buttons || [], 
             },
           },
           // reply_to: null,
@@ -167,7 +167,6 @@ export async function POST(req) {
         body: null,
         footer: null,
         buttons: [],
-        dynamicButtons: [], // New array for dynamic buttons
       };
 
       const bodyExample = {};
@@ -277,10 +276,6 @@ export async function POST(req) {
         templateContent.body.example = bodyExample;
       }
 
-      console.log(
-        "🔘 Dynamic buttons created:",
-        JSON.stringify(templateContent.dynamicButtons, null, 2)
-      );
 
       return templateContent;
     }
