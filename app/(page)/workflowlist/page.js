@@ -8,6 +8,7 @@ import { FiEye, FiMoreVertical } from 'react-icons/fi';
 import { useWorkflow } from "@/component/WorkflowContext";
 import { useToastContext } from "@/component/Toast";
 import ChatPreviewPopup from "@/component/ChatPreviewPopup";
+import CustomWorkflowDeleteModal from "@/component/CustomWorkflowDeleteModal ";
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
