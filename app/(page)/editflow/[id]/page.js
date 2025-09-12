@@ -701,7 +701,6 @@ function Editflow() {
       if (response.ok && result.success) {
         success("Workflow updated successfully!");
         setLoading1(false);
-        router.push("/workflowlist");
       } else {
         throw new Error(result.message || "Failed to update workflow");
       }

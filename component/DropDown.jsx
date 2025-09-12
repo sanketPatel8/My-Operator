@@ -254,13 +254,6 @@ export default function DropDown({
                               >
                                 <CiEdit size={17} /> <span>Edit flow</span>
                               </button>
-                              <button
-                                type="button"
-                                className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:text-red-600 hover:bg-[#F5F5F5] space-x-[8px]"
-                                onClick={() => handleDeleteFlow(reminder)}
-                              >
-                                <MdDeleteOutline size={17} /> <span>Delete flow</span>
-                              </button>
                             </div>
                           )}
                       </div>
