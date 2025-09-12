@@ -14,48 +14,21 @@ function CreateFlow() {
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [customEventTitle, setCustomEventTitle] = useState("");
   const [customEventSubtitle, setCustomEventSubtitle] = useState("");
-  const [delay, setDelay] = useState("1 hour");
   const [isCreating, setIsCreating] = useState(false);
 
   const { success, error } = useToastContext();
 
-  const eventOptions = [
+ const eventOptions = [
     "Order Created",
-    "Order Fulfilled", 
+    "Order Fulfilled",
     "Fulfillment update",
-    "Payment Received",
-    "Customer Registration",
-    "Product Inquiry",
-    "Cart Updated",
-    "Review Submitted",
-    "Support Ticket Created"
   ];
-
   const templateOptions = [
     "Order placed confirmation",
     "Shipping update",
     "COD confirmation request",
     "Order delivery",
     "Abandoned cart reminder",
-    "Welcome message",
-    "Payment confirmation",
-    "Support acknowledgment",
-    "Custom notification"
-  ];
-
-  const delayOptions = [
-    "Immediate",
-    "5 minutes",
-    "15 minutes", 
-    "30 minutes",
-    "1 hour",
-    "2 hours",
-    "4 hours",
-    "6 hours",
-    "12 hours",
-    "1 day",
-    "2 days",
-    "1 week"
   ];
 
   const router = useRouter();
@@ -67,7 +40,7 @@ function CreateFlow() {
     console.log('Selected Template:', selectedTemplate);
     console.log('Custom Event Title:', customEventTitle);
     console.log('Custom Event Subtitle:', customEventSubtitle);
-    console.log('Delay:', delay);
+   
 
     // Validation
     if (!selectedEvent.trim()) {
@@ -107,8 +80,6 @@ function CreateFlow() {
           isCustomWorkflowCreation: true, // Special flag to indicate custom workflow creation
           customEventTitle: eventTitle,
           customEventSubtitle: eventSubtitle,
-          delay: delay === "Immediate" ? null : delay,
-          // We can set template data later through edit flow
           template_id: null,
           template_data_id: null, 
           template_variable_id: null
@@ -141,7 +112,7 @@ function CreateFlow() {
     setSelectedTemplate("");
     setCustomEventTitle("");
     setCustomEventSubtitle("");
-    setDelay("1 hour");
+    
   };
 
   return (
@@ -276,42 +247,6 @@ function CreateFlow() {
                   </div>
                 </div>
 
-                {/* Row 3: Delay Selection */}
-                <div className="flex flex-col md:flex-row gap-[24px] mt-[24px]">
-                  <div className="flex-1">
-                    <label className="block text-[12px] text-[#555555] mb-[4px]">
-                      Send Delay
-                    </label>
-                    <Listbox value={delay} onChange={setDelay}>
-                      <div className="relative">
-                        <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                          {delay}
-                          <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
-                          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                            <FiChevronDown className="h-5 w-5 text-gray-400" />
-                          </span>
-                        </Listbox.Button>
-                        <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                          {delayOptions.map((delayOption, idx) => (
-                            <Listbox.Option
-                              key={idx}
-                              className={({ active }) =>
-                                `cursor-default select-none py-2 pl-4 pr-4 ${
-                                  active ? "bg-gray-100" : ""
-                                }`
-                              }
-                              value={delayOption}
-                            >
-                              {delayOption}
-                            </Listbox.Option>
-                          ))}
-                        </Listbox.Options>
-                      </div>
-                    </Listbox>
-                  </div>
-                  <div className="flex-1"></div> {/* Empty div for alignment */}
-                </div>
-
                 {/* Preview Section */}
                 <div className="mt-[24px] p-[16px] bg-[#F8F9FA] border border-[#E9E9E9] rounded-[4px]">
                   <h3 className="text-[14px] font-semibold text-[#333333] mb-[8px]">
@@ -322,7 +257,6 @@ function CreateFlow() {
                     <p><strong>Description:</strong> {customEventSubtitle || (selectedTemplate ? `Automated ${selectedTemplate.toLowerCase()} message` : 'Not configured')}</p>
                     <p><strong>Template:</strong> {selectedTemplate || 'Not selected'}</p>
                     <p><strong>Trigger:</strong> When {selectedEvent || 'event'} occurs</p>
-                    <p><strong>Send after:</strong> {delay}</p>
                   </div>
                 </div>
 
