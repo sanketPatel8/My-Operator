@@ -496,13 +496,19 @@ export async function POST(req) {
                     const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
 
+                    console.log("id:::", id);
+                    
+
                     const url = {
                       "approval":`${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=yes&order_id=${id}`,
                       "cancel":`${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${id}`
                     };
 
-                    // Use corresponding data[key + '_url'] value
-                    const replacementValue = url[`${key}_url`] || '#';
+                    const exampleValue = button.example[key];
+                    const exampleKeyMatch = exampleValue.match(/{{(.*?)}}/);
+                    const exampleKey = exampleKeyMatch ? exampleKeyMatch[1] : null;
+                    const replacementValue = url[exampleKey] || '#';
+
 
                     // Replace {{key}} in URL with the specific value
                     const replacedUrl = button.url.replace(placeholderRegex, replacementValue);
