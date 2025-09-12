@@ -68,7 +68,7 @@ async function sendWhatsAppMessage(
           template_name: templateName,
           language: "en",
           body: templateContent.body.example || {},
-          buttons: templateContent.dynamicButtons || [], // Use dynamic buttons array
+          buttons: templateContent.buttons || [], // Use dynamic buttons array
         },
       },
       // reply_to: null,
@@ -447,7 +447,6 @@ export async function POST(req) {
         body: null,
         footer: null,
         buttons: [],
-        dynamicButtons: [], // New array for dynamic buttons
       };
 
       const bodyExample = {};
@@ -492,7 +491,7 @@ export async function POST(req) {
             if (value.buttons && Array.isArray(value.buttons)) {
               if (templateContent.buttons.length === 0) {
                 const output = value.buttons.map((button, index) => {
-                  if (button && button.format === "DYNAMIC" && typeof button.example === 'object') {
+                  if (button && button.example && typeof button.example === 'object') {
                     const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
 
@@ -548,10 +547,7 @@ export async function POST(req) {
         templateContent.body.example = bodyExample;
       }
 
-      console.log(
-        "🔘 Dynamic buttons created:",
-        JSON.stringify(templateContent.dynamicButtons, null, 2)
-      );
+      
 
       return templateContent;
     }
