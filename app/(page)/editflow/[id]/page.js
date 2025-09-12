@@ -868,7 +868,6 @@ function Editflow() {
         fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
         variableSettings: variableSettings,
         selectedTemplate: selectedTemplate,
-        selectedTemplateId: selectedTemplateId,
         storeToken: storeToken// ✅ Send complete variable settings
       };
 
