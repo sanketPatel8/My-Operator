@@ -494,8 +494,8 @@ export async function POST(req) {
                   const template = button.example[key];       // e.g., "redirect?url={{approval}}"
 
                   const urlMap = {
-                    approval: `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=yes&order_id=${id}`,
-                    cancel: `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${id}`
+                    approve: `confirmed=yes&order_id=${id}`,
+                    cancel: `confirmed=no&order_id=${id}`
                   };
 
                   // Check if the template contains {{...}}
