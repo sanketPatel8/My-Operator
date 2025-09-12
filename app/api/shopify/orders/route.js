@@ -104,6 +104,8 @@ async function sendWhatsAppMessage(
   }
 }
 
+let place_cod_order_id;
+
 export async function storePlacedOrder(data, shopurl) {
   try {
     console.log("📦 Storing placed order...");
@@ -162,8 +164,10 @@ export async function storePlacedOrder(data, shopurl) {
             rowId,
           ]
         );
+
         await connection.commit();
         console.log("✅ Order updated (first row only):", updateResult);
+        place_cod_order_id = updateResult.insertId;
         return { success: true, action: "updated", result: updateResult };
       } else {
         const [insertResult] = await connection.execute(
@@ -186,6 +190,7 @@ export async function storePlacedOrder(data, shopurl) {
         );
         await connection.commit();
         console.log("✅ Order inserted:", insertResult);
+        place_cod_order_id = insertResult.insertId;
         return { success: true, action: "inserted", result: insertResult };
       }
     } catch (txError) {
@@ -446,7 +451,7 @@ export async function POST(req) {
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data, id) {
+    function buildTemplateContent(templateRows, data) {
       const templateContent = {
         header: null,
         body: null,
@@ -499,8 +504,8 @@ export async function POST(req) {
                   const template = button.example[key];       // e.g., "redirect?url={{approval}}"
 
                   const urlMap = {
-                    approve: `?confirmed=yes&order_id=${id}`,
-                    cancel: `?confirmed=no&order_id=${id}`
+                    approve: `?confirmed=yes&order_id=${place_cod_order_id}`,
+                    cancel: `?confirmed=no&order_id=${place_cod_order_id}`
                   };
 
                   // Check if the template contains {{...}}
@@ -631,24 +636,13 @@ export async function POST(req) {
           continue;
         }
 
-        const [idrow] = await pool.query(
-          "SELECT id FROM placed_code_order WHERE order_id = ? LIMIT 1",
-          [data.id]
-        );
-
-        const { id } = idrow[0];
-
-        console.log("idrow[0]", idrow[0]);
-        console.log("id for place code order", id);
-        
-        
 
         console.log(
           `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
         );
 
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data, id);
+        const templateContent = buildTemplateContent(templateRows, data);
 
         if (!templateContent) {
           console.log(
