@@ -667,23 +667,45 @@ export async function POST(req) {
 
         // ✅ Send WhatsApp message
         try {
-          const messageResult = await sendWhatsAppMessage(
-            phoneDetails.phone,
-            templateName,
-            templateContent,
-            storeData
-          );
+          if (eventTitle == "COD Order Confirmation or Cancel") {
+            if (place_cod_order_id != 0) {
+              const messageResult = await sendWhatsAppMessage(
+                phoneDetails.phone,
+                templateName,
+                templateContent,
+                storeData
+              );
 
-          console.log(
-            `✅ WhatsApp message sent successfully for "${templateName}"`
-          );
-          messageResults.push({
-            eventTitle,
-            templateName,
-            status: "success",
-            result: messageResult,
-          });
-          sentMessages.push(templateName);
+              console.log(
+                `✅ WhatsApp message sent successfully for "${templateName}"`
+              );
+              messageResults.push({
+                eventTitle,
+                templateName,
+                status: "success",
+                result: messageResult,
+              });
+              sentMessages.push(templateName);
+            }
+          } else {
+            const messageResult = await sendWhatsAppMessage(
+              phoneDetails.phone,
+              templateName,
+              templateContent,
+              storeData
+            );
+
+            console.log(
+              `✅ WhatsApp message sent successfully for "${templateName}"`
+            );
+            messageResults.push({
+              eventTitle,
+              templateName,
+              status: "success",
+              result: messageResult,
+            });
+            sentMessages.push(templateName);
+          }
         } catch (messageError) {
           console.error(
             `❌ Failed to send WhatsApp message for "${templateName}":`,
