@@ -457,7 +457,7 @@ export async function POST(req) {
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data) {
+    function buildTemplateContent(templateRows, data, id) {
       const templateContent = {
         header: null,
         body: null,
@@ -516,8 +516,8 @@ export async function POST(req) {
                     console.log("place_cod_order_id", place_cod_order_id);
 
                     const urlMap = {
-                      approve: `?confirmed=yes&order_id=${place_cod_order_id}`,
-                      cancel: `?confirmed=no&order_id=${place_cod_order_id}`,
+                      approve: `?confirmed=yes&order_id=${id}`,
+                      cancel: `?confirmed=no&order_id=${id}`,
                     };
 
                     // Check if the template contains {{...}}
@@ -651,8 +651,15 @@ export async function POST(req) {
           `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
         );
 
+        const [idrow] = await connection.execute(
+          "SELECT id FROM placed_code_order WHERE order_id = ?",
+          [data.id]
+        );
+
+        const id = idrow.length > 0 ? idrow[0].id : null;
+
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data);
+        const templateContent = buildTemplateContent(templateRows, data, id);
 
         if (!templateContent) {
           console.log(
@@ -668,27 +675,7 @@ export async function POST(req) {
 
         // ✅ Send WhatsApp message
         try {
-          if (eventTitle == "COD Order Confirmation or Cancel") {
-            if (place_cod_order_id != 0) {
-              const messageResult = await sendWhatsAppMessage(
-                phoneDetails.phone,
-                templateName,
-                templateContent,
-                storeData
-              );
-
-              console.log(
-                `✅ WhatsApp message sent successfully for "${templateName}"`
-              );
-              messageResults.push({
-                eventTitle,
-                templateName,
-                status: "success",
-                result: messageResult,
-              });
-              sentMessages.push(templateName);
-            }
-          } else {
+          
             const messageResult = await sendWhatsAppMessage(
               phoneDetails.phone,
               templateName,
@@ -706,7 +693,7 @@ export async function POST(req) {
               result: messageResult,
             });
             sentMessages.push(templateName);
-          }
+          
         } catch (messageError) {
           console.error(
             `❌ Failed to send WhatsApp message for "${templateName}":`,
