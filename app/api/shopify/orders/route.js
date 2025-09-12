@@ -428,13 +428,18 @@ export async function POST(req) {
         case "Quantity":
           if (Array.isArray(data.line_items)) {
             const totalQuantity = data.line_items.reduce((sum, item) => {
-              return sum + (item.current_quantity || 0);
+              const qty =
+                item.current_quantity === 0
+                  ? item.quantity
+                  : item.current_quantity;
+              return sum + qty;
             }, 0);
             return String(totalQuantity);
           }
           return "0";
+
         case "Total price":
-          return data?.current_total_price || "00";
+          return data?.total_price || "00";
         default:
           return "";
       }
