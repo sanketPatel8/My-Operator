@@ -168,6 +168,7 @@ export async function storePlacedOrder(data, shopurl) {
         await connection.commit();
         console.log("✅ Order updated (first row only):", updateResult);
         place_cod_order_id = updateResult.insertId;
+        
         return { success: true, action: "updated", result: updateResult };
       } else {
         const [insertResult] = await connection.execute(
@@ -204,6 +205,8 @@ export async function storePlacedOrder(data, shopurl) {
     return { success: false, error: error.message };
   }
 }
+
+console.log(place_cod_order_id , "place_cod_order_id");
 
 // ✅ Handle POST (receive new order and send message)
 export async function POST(req) {
@@ -501,7 +504,10 @@ export async function POST(req) {
               const output = value.buttons.map((button, index) => {
                 if (button && button.example && typeof button.example === 'object') {
                   const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
-                  const template = button.example[key];       // e.g., "redirect?url={{approval}}"
+                  const template = button.example[key]; // e.g., "redirect?url={{approval}}"
+                  
+                  console.log("place_cod_order_id", place_cod_order_id);
+                  
 
                   const urlMap = {
                     approve: `?confirmed=yes&order_id=${place_cod_order_id}`,
