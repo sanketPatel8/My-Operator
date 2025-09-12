@@ -7,30 +7,142 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
+import { useToastContext } from "@/component/Toast";
 
 function CreateFlow() {
   const [selectedEvent, setSelectedEvent] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
+  const [customEventTitle, setCustomEventTitle] = useState("");
+  const [customEventSubtitle, setCustomEventSubtitle] = useState("");
+  const [delay, setDelay] = useState("1 hour");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const { success, error } = useToastContext();
 
   const eventOptions = [
     "Order Created",
-    "Order Fulfilled",
+    "Order Fulfilled", 
     "Fulfillment update",
+    "Payment Received",
+    "Customer Registration",
+    "Product Inquiry",
+    "Cart Updated",
+    "Review Submitted",
+    "Support Ticket Created"
   ];
+
   const templateOptions = [
     "Order placed confirmation",
     "Shipping update",
     "COD confirmation request",
     "Order delivery",
     "Abandoned cart reminder",
+    "Welcome message",
+    "Payment confirmation",
+    "Support acknowledgment",
+    "Custom notification"
   ];
 
-  const handleSubmit = () => {
-    alert(`Event: ${selectedEvent} \nTemplate: ${selectedTemplate}`);
-  };
+  const delayOptions = [
+    "Immediate",
+    "5 minutes",
+    "15 minutes", 
+    "30 minutes",
+    "1 hour",
+    "2 hours",
+    "4 hours",
+    "6 hours",
+    "12 hours",
+    "1 day",
+    "2 days",
+    "1 week"
+  ];
 
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("/workflowlist");
+
+  const handleSubmit = async () => {
+    console.log('=== CREATE CUSTOM WORKFLOW ===');
+    console.log('Selected Event:', selectedEvent);
+    console.log('Selected Template:', selectedTemplate);
+    console.log('Custom Event Title:', customEventTitle);
+    console.log('Custom Event Subtitle:', customEventSubtitle);
+    console.log('Delay:', delay);
+
+    // Validation
+    if (!selectedEvent.trim()) {
+      error('Please select a custom event');
+      return;
+    }
+
+    if (!selectedTemplate.trim()) {
+      error('Please select a WhatsApp template');
+      return;
+    }
+
+    // Use selectedEvent as title if customEventTitle is empty
+    const eventTitle = customEventTitle.trim() || selectedEvent;
+    const eventSubtitle = customEventSubtitle.trim() || `Automated ${selectedTemplate.toLowerCase()} message`;
+
+    console.log('Final Event Title:', eventTitle);
+    console.log('Final Event Subtitle:', eventSubtitle);
+
+    const storeToken = localStorage.getItem("storeToken");
+    if (!storeToken) {
+      error('Store token not found. Please login again.');
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      // Create custom workflow using PUT endpoint with special flag
+      const response = await fetch('/api/category', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          storeToken: storeToken,
+          isCustomWorkflowCreation: true, // Special flag to indicate custom workflow creation
+          customEventTitle: eventTitle,
+          customEventSubtitle: eventSubtitle,
+          delay: delay === "Immediate" ? null : delay,
+          // We can set template data later through edit flow
+          template_id: null,
+          template_data_id: null, 
+          template_variable_id: null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        console.log('✅ Custom workflow created successfully:', result.data);
+        success(`Custom workflow "${eventTitle}" created successfully!`);
+        
+        // Navigate back to workflow list
+        router.push('/workflowlist');
+      } else {
+        console.error('❌ Failed to create custom workflow:', result.message);
+        error(`Failed to create custom workflow: ${result.message}`);
+      }
+
+    } catch (err) {
+      console.error('❌ Error creating custom workflow:', err);
+      error('An error occurred while creating the custom workflow. Please try again.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const resetForm = () => {
+    setSelectedEvent("");
+    setSelectedTemplate("");
+    setCustomEventTitle("");
+    setCustomEventSubtitle("");
+    setDelay("1 hour");
+  };
 
   return (
     <>
@@ -56,7 +168,7 @@ function CreateFlow() {
                 onClick={() => router.push("/workflowlist")}
               />
               <h2 className="text-[16px] font-semibold text-[#353535]">
-                Custom-Create WorkFlow
+                Create Custom WorkFlow
               </h2>
             </div>
 
@@ -64,11 +176,12 @@ function CreateFlow() {
             <div className="flex flex-col lg:flex-row">
               {/* Form Section */}
               <div className="md:w-full lg:w-2/3 mx-[10px] md:mx-[32px] mt-[24px]">
+                {/* Row 1: Event and Template Selection */}
                 <div className="flex flex-col md:flex-row gap-[24px]">
                   {/* Custom Event */}
                   <div className="flex-1">
                     <label className="block text-[12px] text-[#555555] mb-[4px]">
-                      Custom Event
+                      Custom Event <span className="text-red-500">*</span>
                     </label>
                     <Listbox value={selectedEvent} onChange={setSelectedEvent}>
                       <div className="relative">
@@ -101,12 +214,9 @@ function CreateFlow() {
                   {/* WhatsApp Template */}
                   <div className="flex-1">
                     <label className="block text-[12px] text-[#555555] mb-[4px]">
-                      Select WhatsApp template
+                      Select WhatsApp template <span className="text-red-500">*</span>
                     </label>
-                    <Listbox
-                      value={selectedTemplate}
-                      onChange={setSelectedTemplate}
-                    >
+                    <Listbox value={selectedTemplate} onChange={setSelectedTemplate}>
                       <div className="relative">
                         <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
                           {selectedTemplate || "Select a template"}
@@ -135,19 +245,120 @@ function CreateFlow() {
                   </div>
                 </div>
 
+                {/* Row 2: Custom Title and Subtitle */}
+                <div className="flex flex-col md:flex-row gap-[24px] mt-[24px]">
+                  {/* Custom Event Title */}
+                  <div className="flex-1">
+                    <label className="block text-[12px] text-[#555555] mb-[4px]">
+                      Custom Event Title (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Leave empty to use selected event name"
+                      value={customEventTitle}
+                      onChange={(e) => setCustomEventTitle(e.target.value)}
+                      className="w-full rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-[14px] text-[#333333] focus:outline-none focus:border-[#343E55]"
+                    />
+                  </div>
+
+                  {/* Custom Event Subtitle */}
+                  <div className="flex-1">
+                    <label className="block text-[12px] text-[#555555] mb-[4px]">
+                      Custom Event Description (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Brief description of this workflow"
+                      value={customEventSubtitle}
+                      onChange={(e) => setCustomEventSubtitle(e.target.value)}
+                      className="w-full rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-[14px] text-[#333333] focus:outline-none focus:border-[#343E55]"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Delay Selection */}
+                <div className="flex flex-col md:flex-row gap-[24px] mt-[24px]">
+                  <div className="flex-1">
+                    <label className="block text-[12px] text-[#555555] mb-[4px]">
+                      Send Delay
+                    </label>
+                    <Listbox value={delay} onChange={setDelay}>
+                      <div className="relative">
+                        <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
+                          {delay}
+                          <div className="pointer-events-none absolute right-[42px] top-1/2 -translate-y-1/2 h-[16px] border-r border-[#999999]" />
+                          <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                            <FiChevronDown className="h-5 w-5 text-gray-400" />
+                          </span>
+                        </Listbox.Button>
+                        <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
+                          {delayOptions.map((delayOption, idx) => (
+                            <Listbox.Option
+                              key={idx}
+                              className={({ active }) =>
+                                `cursor-default select-none py-2 pl-4 pr-4 ${
+                                  active ? "bg-gray-100" : ""
+                                }`
+                              }
+                              value={delayOption}
+                            >
+                              {delayOption}
+                            </Listbox.Option>
+                          ))}
+                        </Listbox.Options>
+                      </div>
+                    </Listbox>
+                  </div>
+                  <div className="flex-1"></div> {/* Empty div for alignment */}
+                </div>
+
+                {/* Preview Section */}
+                <div className="mt-[24px] p-[16px] bg-[#F8F9FA] border border-[#E9E9E9] rounded-[4px]">
+                  <h3 className="text-[14px] font-semibold text-[#333333] mb-[8px]">
+                    Workflow Preview
+                  </h3>
+                  <div className="text-[12px] text-[#666666]">
+                    <p><strong>Title:</strong> {customEventTitle || selectedEvent || 'Not selected'}</p>
+                    <p><strong>Description:</strong> {customEventSubtitle || (selectedTemplate ? `Automated ${selectedTemplate.toLowerCase()} message` : 'Not configured')}</p>
+                    <p><strong>Template:</strong> {selectedTemplate || 'Not selected'}</p>
+                    <p><strong>Trigger:</strong> When {selectedEvent || 'event'} occurs</p>
+                    <p><strong>Send after:</strong> {delay}</p>
+                  </div>
+                </div>
+
                 {/* Action Buttons */}
                 <div className="flex justify-end gap-[16px] mt-[32px] md:mb-[0px] mb-[20px]">
                   <button
+                    onClick={resetForm}
+                    disabled={isCreating}
+                    className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Reset
+                  </button>
+                  <button
                     onClick={() => router.push("/workflowlist")}
-                    className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100"
+                    disabled={isCreating}
+                    className="border border-[#E4E4E4] text-[#343E55] px-[24px] py-[10px] rounded-[4px] text-[14px] font-semibold hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Cancel
                   </button>
-                  <button className="bg-[#343E55] px-[24px] py-[10px] text-[#FFFFFF] font-semibold rounded-[4px] text-[14px] hover:bg-[#1f2a44]">
-                    Create workflow
+                  <button 
+                    onClick={handleSubmit}
+                    disabled={isCreating || !selectedEvent || !selectedTemplate}
+                    className="bg-[#343E55] px-[24px] py-[10px] text-[#FFFFFF] font-semibold rounded-[4px] text-[14px] hover:bg-[#1f2a44] disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isCreating ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        Creating...
+                      </>
+                    ) : (
+                      'Create workflow'
+                    )}
                   </button>
                 </div>
               </div>
+
               {/* Chat Preview */}
               <div className="flex justify-center items-center flex-grow bg-[#E8F1FC] min-h-[83.65vh]">
                 <div className="h-[571px] w-[317px] my-[20px] mx-[32px] flex-shrink-0 rounded-[20px] overflow-hidden flex flex-col border border-[#E4E4E4] bg-white">
@@ -182,8 +393,32 @@ function CreateFlow() {
                   </div>
 
                   {/* Chat Body */}
-                  <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat p-4 overflow-y-hidden">
-                    {/* Chat messages go here */}
+                  <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat p-4 overflow-y-hidden flex flex-col justify-center items-center">
+                    <div className="text-center text-[#666666] text-[14px]">
+                      <div className="mb-4">
+                        <div className="w-16 h-16 bg-[#E9E9E9] rounded-full mx-auto mb-2 flex items-center justify-center">
+                          <Image
+                            src="/assets/wp_icon.svg"
+                            alt="whatsapp"
+                            width={24}
+                            height={24}
+                          />
+                        </div>
+                        <p className="font-semibold">Template Preview</p>
+                      </div>
+                      {selectedTemplate ? (
+                        <div className="bg-white rounded-lg p-3 shadow-sm border border-[#E9E9E9] max-w-[200px]">
+                          <p className="text-[12px] text-[#333333] text-left">
+                            This will show your {selectedTemplate.toLowerCase()} message template once configured.
+                          </p>
+                          <div className="mt-2 text-[10px] text-[#999999]">
+                            Template: {selectedTemplate}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-[12px]">Select a template to see preview</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Chat Input */}
@@ -199,32 +434,33 @@ function CreateFlow() {
                       type="text"
                       placeholder="Message"
                       className="flex-1 py-[10px] bg-white text-[#8798A0] pr-[60px] pl-[38px] rounded-[20px] border border-[#E4E4E4] outline-none text-[14px]"
+                      disabled
                     />
                     <Image
                       src="/assets/wp_upload.svg"
-                      alt="wp emoji"
+                      alt="wp upload"
                       height={100}
                       width={100}
-                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[195px] md:ml-[180px] cursor-pointer"
+                      className="max-h-[21px] max-w-[21px] z-20 absolute ml-[195px] md:ml-[180px] cursor-pointer opacity-50"
                     />
                     <Image
                       src="/assets/wp_camera.svg"
-                      alt="wp emoji"
+                      alt="wp camera"
                       height={100}
                       width={100}
-                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer"
+                      className="max-h-[16px] max-w-[16px]  z-20 absolute ml-[225px] md:ml-[210px] cursor-pointer opacity-50"
                     />
                     <Image
                       src="/assets/mic.svg"
-                      alt="wp emoji"
+                      alt="wp mic"
                       height={100}
                       width={100}
-                      className="max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full cursor-pointer"
+                      className="max-h-[40px] max-w-[40px] bg-[#343E55] ml-[11px] p-[9px] rounded-full cursor-pointer opacity-50"
                     />
                   </div>
                 </div>
               </div>
-            </div>
+              </div>
           </main>
         </div>
       </div>

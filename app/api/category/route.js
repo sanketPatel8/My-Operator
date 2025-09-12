@@ -24,7 +24,7 @@ const normalizePhone = (phone) => phone?.replace(/\D/g, '').slice(-10);
 // CORS middleware
 function setCORSHeaders(headers) {
   headers.set('Access-Control-Allow-Origin', '*');
-  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   headers.set('Access-Control-Max-Age', '86400');
 }
@@ -80,6 +80,12 @@ const WelcomeData = {
   ]
 };
 
+const CustomData = {
+  category_name: 'Custom workflow',
+  category_desc: 'Create your own custom automation workflow.',
+  events: [ ]
+};
+
 // Enhanced PUT endpoint for storing comma-separated template_variable_ids and updating template variables
 export async function PUT(request) {
   let connection;
@@ -93,9 +99,13 @@ export async function PUT(request) {
       delay, 
       template, 
       variableSettings,
-      template_id,           // Single template ID
-      template_data_id,      // Single template data ID
-      template_variable_id   // Comma-separated string of variable IDs
+      template_id,           
+      template_data_id,      
+      template_variable_id,
+      // NEW: Custom workflow creation parameters
+      customEventTitle,
+      customEventSubtitle,
+      isCustomWorkflowCreation
     } = body;
 
     if (!storeToken) {
@@ -108,14 +118,6 @@ export async function PUT(request) {
       STORE_ID = decrypt(storeToken);
     } catch (error) {
       return NextResponse.json({ message: 'Invalid store token' }, { status: 401 });
-    }
-
-    // Validate required fields
-    if (!category_id || !category_event_id) {
-      return new Response(JSON.stringify({
-        success: false,
-        message: 'Category ID and Event ID are required'
-      }), { status: 400 });
     }
 
     connection = await pool.getConnection();
@@ -132,6 +134,120 @@ export async function PUT(request) {
     }
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
+
+    // Handle custom workflow creation
+    if (isCustomWorkflowCreation) {
+      if (!customEventTitle || !customEventSubtitle) {
+        throw new Error('Custom event title and subtitle are required');
+      }
+
+      // Get the Custom workflow category ID
+      const [customCategory] = await connection.execute(
+        `SELECT category_id FROM category WHERE category_name = 'Custom workflow' LIMIT 1`
+      );
+
+      if (customCategory.length === 0) {
+        throw new Error('Custom workflow category not found');
+      }
+
+      const customCategoryId = customCategory[0].category_id;
+
+      // Check if this title already exists for this store
+      const [existingCustomEvent] = await connection.execute(
+        `SELECT category_event_id FROM category_event 
+         WHERE store_id = ? AND LOWER(TRIM(title)) = ? AND category_id = ?
+         LIMIT 1`,
+        [STORE_ID, customEventTitle.toLowerCase().trim(), customCategoryId]
+      );
+
+      if (existingCustomEvent.length > 0) {
+        throw new Error('Custom workflow with this title already exists for your store');
+      }
+
+      // Create new custom workflow event
+      const [insertResult] = await connection.execute(
+        `INSERT INTO category_event 
+          (category_id, title, subtitle, delay, store_id, phonenumber, template_id, template_data_id, template_variable_id, status, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NOW(), NOW())`,
+        [
+          customCategoryId,
+          customEventTitle.trim(),
+          customEventSubtitle.trim(),
+          delay || null,
+          STORE_ID,
+          currentPhoneNumber,
+          template_id || null,
+          template_data_id || null,
+          template_variable_id || null
+        ]
+      );
+
+      const newCategoryEventId = insertResult.insertId;
+
+      // Update template variables if provided
+      if (template_variable_id && variableSettings) {
+        const variableIds = template_variable_id.split(',').map(id => parseInt(id.trim()));
+        
+        for (const variableId of variableIds) {
+          const variableSetting = Object.entries(variableSettings).find(([key, value]) => {
+            return key === variableId.toString() || 
+                   (typeof value === 'object' && value.variableId === variableId);
+          });
+
+          if (variableSetting) {
+            const [, settingValue] = variableSetting;
+            let mappingField = null;
+            let fallbackValue = null;
+
+            if (typeof settingValue === 'object' && settingValue !== null) {
+              mappingField = settingValue.dropdown || settingValue.mappingField || settingValue.mapping_field || null;
+              fallbackValue = settingValue.fallback || settingValue.fallbackValue || settingValue.fallback_value || null;
+            } else if (typeof settingValue === 'string') {
+              fallbackValue = settingValue;
+            }
+
+            await connection.execute(`
+              UPDATE template_variable 
+              SET 
+                mapping_field = ?,
+                fallback_value = ?,
+                updated_at = NOW()
+              WHERE template_variable_id = ?
+            `, [mappingField, fallbackValue, variableId]);
+          }
+        }
+      }
+
+      // Fetch the created event
+      const [createdEvent] = await connection.execute(`
+        SELECT ce.*, c.category_name
+        FROM category_event ce
+        JOIN category c ON ce.category_id = c.category_id
+        WHERE ce.category_event_id = ? AND ce.store_id = ? AND ce.phonenumber = ?
+      `, [newCategoryEventId, STORE_ID, currentPhoneNumber]);
+
+      await connection.commit();
+
+      const headers = new Headers();
+      setCORSHeaders(headers);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Custom workflow created successfully',
+        data: createdEvent[0]
+      }), {
+        status: 201,
+        headers
+      });
+    }
+
+    // Existing logic for updating workflows
+    if (!category_id || !category_event_id) {
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Category ID and Event ID are required'
+      }), { status: 400 });
+    }
 
     // Verify the event exists using store_id and phonenumber
     const [existingEvent] = await connection.execute(`
@@ -164,7 +280,7 @@ export async function PUT(request) {
       delay || null,
       template_id || null,
       template_data_id || null,
-      template_variable_id || null, // This will be a comma-separated string like "1109,1110,1111"
+      template_variable_id || null,
       category_event_id,
       category_id,
       STORE_ID,
@@ -355,7 +471,6 @@ export async function PUT(request) {
   }
 }
 
-
 // POST endpoint to initialize/sync workflow categories and events
 export async function POST(request) {
   const body = await request.json();
@@ -508,6 +623,7 @@ export async function POST(request) {
     results.push(await upsertCategory(orderLifecycleData));
     results.push(await upsertCategory(CODData));
     results.push(await upsertCategory(WelcomeData));
+    results.push(await upsertCategory(CustomData));
 
     await connection.commit();
 
@@ -550,7 +666,6 @@ export async function POST(request) {
     }
   }
 }
-
 
 export async function PATCH(request) {
   let connection;
@@ -761,13 +876,13 @@ export async function GET(request) {
   }
 }
 
-// DELETE method to clean template data
+// Enhanced DELETE method to handle both template data cleanup and custom workflow deletion
 export async function DELETE(request) {
   let connection;
 
   try {
     const body = await request.json();
-    const { storeToken, category_event_id } = body;
+    const { storeToken, category_event_id, deleteType = 'template' } = body;
 
     if (!storeToken) {
       return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
@@ -804,11 +919,12 @@ export async function DELETE(request) {
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
 
-    // Get the category_event with current template_variable_id
+    // Get the category_event with current template_variable_id and category info
     const [eventRows] = await connection.execute(`
-      SELECT category_event_id, category_id, template_variable_id
-      FROM category_event 
-      WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?
+      SELECT ce.category_event_id, ce.category_id, ce.template_variable_id, ce.title, c.category_name
+      FROM category_event ce
+      JOIN category c ON ce.category_id = c.category_id
+      WHERE ce.category_event_id = ? AND ce.store_id = ? AND ce.phonenumber = ?
     `, [category_event_id, STORE_ID, currentPhoneNumber]);
 
     if (eventRows.length === 0) {
@@ -817,58 +933,106 @@ export async function DELETE(request) {
 
     const eventData = eventRows[0];
     const templateVariableId = eventData.template_variable_id;
+    const isCustomWorkflow = eventData.category_name === 'Custom workflow';
 
-    console.log('=== DELETE TEMPLATE DATA ===');
+    console.log('=== DELETE OPERATION ===');
     console.log('Category Event ID:', category_event_id);
+    console.log('Delete Type:', deleteType);
+    console.log('Is Custom Workflow:', isCustomWorkflow);
     console.log('Template Variable ID to clean:', templateVariableId);
 
-    
+    if (deleteType === 'workflow' && isCustomWorkflow) {
+      // DELETE ENTIRE CUSTOM WORKFLOW EVENT
+      console.log('Deleting entire custom workflow event');
 
-    // Step 2: Set template fields to NULL in category_event
-    // FIX: Include STORE_ID in the parameters array
-    const updateEventQuery = `
-      UPDATE category_event 
-      SET 
-        template_id = NULL,
-        template_data_id = NULL,
-        template_variable_id = NULL,
-        updated_at = NOW()
-      WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?
-    `;
+      // Delete the category_event record entirely
+      const deleteEventQuery = `
+        DELETE FROM category_event 
+        WHERE category_event_id = ? AND store_id = ? AND phonenumber = ? AND category_id = (
+          SELECT category_id FROM category WHERE category_name = 'Custom workflow'
+        )
+      `;
 
-    const [updateResult] = await connection.execute(updateEventQuery, [
-      category_event_id,
-      STORE_ID,           // Added missing STORE_ID parameter
-      currentPhoneNumber
-    ]);
+      const [deleteResult] = await connection.execute(deleteEventQuery, [
+        category_event_id,
+        STORE_ID,
+        currentPhoneNumber
+      ]);
 
-    if (updateResult.affectedRows === 0) {
-      throw new Error('No workflow event found to update');
+      if (deleteResult.affectedRows === 0) {
+        throw new Error('No custom workflow event found to delete');
+      }
+
+      console.log('Successfully deleted custom workflow event from database');
+
+      await connection.commit();
+
+      const headers = new Headers();
+      setCORSHeaders(headers);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Custom workflow deleted successfully',
+        deletedEventId: category_event_id,
+        deletedTitle: eventData.title
+      }), {
+        status: 200,
+        headers
+      });
+
+    } else if (deleteType === 'workflow' && !isCustomWorkflow) {
+      // PREVENT DELETION OF NON-CUSTOM WORKFLOWS
+      throw new Error('Cannot delete predefined workflow events. Only template data can be cleaned.');
+      
+    } else {
+      // DEFAULT: CLEAN TEMPLATE DATA (for both custom and predefined workflows)
+      console.log('Cleaning template data from workflow event');
+
+      // Set template fields to NULL in category_event
+      const updateEventQuery = `
+        UPDATE category_event 
+        SET 
+          template_id = NULL,
+          template_data_id = NULL,
+          template_variable_id = NULL,
+          updated_at = NOW()
+        WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?
+      `;
+
+      const [updateResult] = await connection.execute(updateEventQuery, [
+        category_event_id,
+        STORE_ID,
+        currentPhoneNumber
+      ]);
+
+      if (updateResult.affectedRows === 0) {
+        throw new Error('No workflow event found to update');
+      }
+
+      console.log('Successfully cleaned template data from category_event');
+
+      // Fetch the updated event to return
+      const [updatedEvent] = await connection.execute(`
+        SELECT ce.*, c.category_name
+        FROM category_event ce
+        JOIN category c ON ce.category_id = c.category_id
+        WHERE ce.category_event_id = ? AND ce.store_id = ? AND ce.phonenumber = ?
+      `, [category_event_id, STORE_ID, currentPhoneNumber]);
+
+      await connection.commit();
+
+      const headers = new Headers();
+      setCORSHeaders(headers);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Template data cleaned successfully',
+        data: updatedEvent[0]
+      }), {
+        status: 200,
+        headers
+      });
     }
-
-    console.log('Successfully cleaned template data from category_event');
-
-    // Fetch the updated event to return
-    const [updatedEvent] = await connection.execute(`
-      SELECT ce.*, c.category_name
-      FROM category_event ce
-      JOIN category c ON ce.category_id = c.category_id
-      WHERE ce.category_event_id = ? AND ce.phonenumber = ?
-    `, [category_event_id, currentPhoneNumber]);
-
-    await connection.commit();
-
-    const headers = new Headers();
-    setCORSHeaders(headers);
-
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Template data deleted successfully',
-      data: updatedEvent[0]
-    }), {
-      status: 200,
-      headers
-    });
 
   } catch (error) {
     if (connection) {
@@ -885,7 +1049,7 @@ export async function DELETE(request) {
 
     return new Response(JSON.stringify({
       success: false,
-      message: 'Failed to delete template data',
+      message: 'Failed to process delete request',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     }), { 
       status: 500,

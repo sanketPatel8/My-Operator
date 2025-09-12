@@ -19,6 +19,8 @@ export default function WorkflowList() {
   categoryEventId: null,
   reminderTitle: ''
   });
+
+  
   
 
   const [workflows, setWorkflows] = useState([]);
@@ -303,6 +305,163 @@ export default function WorkflowList() {
   });
 };
 
+const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+const [selectedReminderForDelete, setSelectedReminderForDelete] = useState(null);
+
+// Replace your existing handleDeleteFlow function with this enhanced version:
+const handleDeleteFlow = (reminder) => {
+  console.log("Opening delete modal for reminder:", reminder);
+  setSelectedReminderForDelete(reminder);
+  setDeleteModalOpen(true);
+};
+
+// Add these new functions for handling different delete types:
+const handleDeleteWorkflow = async (reminder) => {
+  const storeToken = localStorage.getItem("storeToken");
+  
+  if (!reminder.category_event_id) {
+    console.error('No category_event_id found for deletion');
+    return;
+  }
+
+  // Final confirmation for workflow deletion
+  const confirmed = window.confirm(
+    `Are you sure you want to permanently delete the custom workflow "${reminder.title}"?\n\nThis action cannot be undone.`
+  );
+  
+  if (!confirmed) {
+    setDeleteModalOpen(false);
+    return;
+  }
+
+  try {
+    setDeleteLoading(reminder.category_event_id);
+    
+    const response = await fetch('/api/category', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        storeToken: storeToken,
+        category_event_id: reminder.category_event_id,
+        deleteType: 'workflow' // Delete entire workflow
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log('✅ Workflow deleted successfully');
+      
+      // Remove the entire workflow from state
+      setWorkflows((prev) =>
+        prev.map((workflow) => {
+          if (workflow.category_id === reminder.category_id) {
+            return {
+              ...workflow,
+              events: workflow.events.filter(
+                event => event.category_event_id !== reminder.category_event_id
+              )
+            };
+          }
+          return workflow;
+        })
+      );
+      
+      success(`Custom workflow "${reminder.title}" deleted successfully!`);
+      setDeleteModalOpen(false);
+      
+    } else {
+      console.error('❌ Failed to delete workflow:', result.message);
+      error(`Failed to delete workflow: ${result.message}`);
+    }
+  } catch (error) {
+    console.error('❌ Error deleting workflow:', error);
+    error('An error occurred while deleting the workflow. Please try again.');
+  } finally {
+    setDeleteLoading(null);
+  }
+};
+
+const handleDeleteTemplate = async (reminder) => {
+  const storeToken = localStorage.getItem("storeToken");
+  
+  if (!reminder.category_event_id) {
+    console.error('No category_event_id found for template cleanup');
+    return;
+  }
+
+  // Confirmation for template cleanup
+  const confirmed = window.confirm(
+    `Are you sure you want to clean template data for "${reminder.title}"?\n\nThis will remove template configurations but keep the workflow event.`
+  );
+  
+  if (!confirmed) {
+    setDeleteModalOpen(false);
+    return;
+  }
+
+  try {
+    setDeleteLoading(reminder.category_event_id);
+    
+    const response = await fetch('/api/category', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        storeToken: storeToken,
+        category_event_id: reminder.category_event_id,
+        deleteType: 'template' // Clean template data only
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      console.log('✅ Template data cleaned successfully');
+      
+      // Update the local state to reflect template data cleanup
+      setWorkflows((prev) =>
+        prev.map((workflow) => {
+          if (workflow.category_id === reminder.category_id) {
+            return {
+              ...workflow,
+              events: workflow.events.map((event) =>
+                event.category_event_id === reminder.category_event_id
+                  ? {
+                      ...event,
+                      template_id: null,
+                      template_data_id: null,
+                      template_variable_id: null
+                    }
+                  : event
+              )
+            };
+          }
+          return workflow;
+        })
+      );
+      
+      success('Template data cleaned successfully!');
+      setDeleteModalOpen(false);
+      
+    } else {
+      console.error('❌ Failed to clean template data:', result.message);
+      error(`Failed to clean template data: ${result.message}`);
+    }
+  } catch (error) {
+    console.error('❌ Error cleaning template data:', error);
+    error('An error occurred while cleaning template data. Please try again.');
+  } finally {
+    setDeleteLoading(null);
+  }
+};
+
+// Add this before the closing </div> of your main component:
+
+
 // 4. ADD THIS NEW FUNCTION (place it after handleEyeClick)
 const closePreviewPopup = () => {
   setPreviewPopup({
@@ -316,78 +475,78 @@ const closePreviewPopup = () => {
     console.log('More clicked:', reminder);
   };
 
-  // Handle delete flow - NEW FUNCTION
-  const handleDeleteFlow = async (reminder) => {
-    const storeToken = localStorage.getItem("storeToken");
-    console.log("Delete flow for reminder:", reminder);
+  // // Handle delete flow - NEW FUNCTION
+  // const handleDeleteFlow = async (reminder) => {
+  //   const storeToken = localStorage.getItem("storeToken");
+  //   console.log("Delete flow for reminder:", reminder);
     
-    if (!reminder.category_event_id) {
-      console.error('No category_event_id found for deletion');
-      return;
-    }
+  //   if (!reminder.category_event_id) {
+  //     console.error('No category_event_id found for deletion');
+  //     return;
+  //   }
 
-    // Confirm deletion
-    const confirmed = window.confirm(
-      `Are you sure you want to delete the template data for "${reminder.title}"?\n\nThis will remove all template configurations but keep the workflow event.`
-    );
+  //   // Confirm deletion
+  //   const confirmed = window.confirm(
+  //     `Are you sure you want to delete the template data for "${reminder.title}"?\n\nThis will remove all template configurations but keep the workflow event.`
+  //   );
     
-    if (!confirmed) return;
+  //   if (!confirmed) return;
 
-    try {
-      setDeleteLoading(reminder.category_event_id);
+  //   try {
+  //     setDeleteLoading(reminder.category_event_id);
       
-      const response = await fetch('/api/category', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          storeToken: storeToken,
-          category_event_id: reminder.category_event_id
-        })
-      });
+  //     const response = await fetch('/api/category', {
+  //       method: 'DELETE',
+  //       headers: {
+  //         'Content-Type': 'application/json',
+  //       },
+  //       body: JSON.stringify({
+  //         storeToken: storeToken,
+  //         category_event_id: reminder.category_event_id
+  //       })
+  //     });
 
-      const result = await response.json();
+  //     const result = await response.json();
 
-      if (result.success) {
-        console.log('✅ Template data deleted successfully');
+  //     if (result.success) {
+  //       console.log('✅ Template data deleted successfully');
         
-        // Update the local state to reflect the changes
-        setWorkflows((prev) =>
-          prev.map((workflow) => {
-            if (workflow.category_id === reminder.category_id) {
-              return {
-                ...workflow,
-                events: workflow.events.map((event) =>
-                  event.category_event_id === reminder.category_event_id
-                    ? {
-                        ...event,
-                        template_id: null,
-                        template_data_id: null,
-                        template_variable_id: null
-                      }
-                    : event
-                )
-              };
-            }
-            return workflow;
-          })
-        );
+  //       // Update the local state to reflect the changes
+  //       setWorkflows((prev) =>
+  //         prev.map((workflow) => {
+  //           if (workflow.category_id === reminder.category_id) {
+  //             return {
+  //               ...workflow,
+  //               events: workflow.events.map((event) =>
+  //                 event.category_event_id === reminder.category_event_id
+  //                   ? {
+  //                       ...event,
+  //                       template_id: null,
+  //                       template_data_id: null,
+  //                       template_variable_id: null
+  //                     }
+  //                   : event
+  //               )
+  //             };
+  //           }
+  //           return workflow;
+  //         })
+  //       );
         
-        // Show success message
-        success('Template data deleted successfully!');
+  //       // Show success message
+  //       success('Template data deleted successfully!');
         
-      } else {
-        console.error('❌ Failed to delete template data:', result.message);
-        error(`Failed to delete template data: ${result.message}`);
-      }
-    } catch (error) {
-      console.error('❌ Error deleting template data:', error);
-      error('An error occurred while deleting template data. Please try again.');
-    } finally {
-      setDeleteLoading(null);
-    }
-  };
+  //     } else {
+  //       console.error('❌ Failed to delete template data:', result.message);
+  //       error(`Failed to delete template data: ${result.message}`);
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Error deleting template data:', error);
+  //     error('An error occurred while deleting template data. Please try again.');
+  //   } finally {
+  //     setDeleteLoading(null);
+  //   }
+  // };
 
   // Handle edit flow navigation with specific event data
   const handleEditFlow = (reminder) => {
@@ -565,6 +724,20 @@ const closePreviewPopup = () => {
               );
             })}
           </div>
+          {/* Custom Delete Modal */}
+          {deleteModalOpen && selectedReminderForDelete && (
+            <CustomWorkflowDeleteModal
+              isOpen={deleteModalOpen}
+              onClose={() => {
+                setDeleteModalOpen(false);
+                setSelectedReminderForDelete(null);
+              }}
+              reminder={selectedReminderForDelete}
+              onDeleteWorkflow={handleDeleteWorkflow}
+              onDeleteTemplate={handleDeleteTemplate}
+              deleteLoading={deleteLoading}
+            />
+          )}
         </main>
       </div>
       <ChatPreviewPopup
