@@ -507,10 +507,16 @@ export async function POST(req) {
                     const exampleKeyMatch = exampleValue.match(/{{(.*?)}}/);
                     const exampleKey = exampleKeyMatch ? exampleKeyMatch[1] : null;
                     const replacementValue = url[exampleKey] || '#';
-
-
+                    console.log(replacementValue, "replacement value");
+                    console.log(placeholderRegex,"placeholder regex");
+                    console.log("example key", exampleKey);
+                    console.log(exampleKeyMatch,"example key match");
+                    console.log("example value", exampleValue);
+                    
                     // Replace {{key}} in URL with the specific value
                     const replacedUrl = button.url.replace(placeholderRegex, replacementValue);
+                    console.log("replaced url", replacedUrl);
+                    
 
                     return {
                       index: button.index !== undefined ? button.index : index,
