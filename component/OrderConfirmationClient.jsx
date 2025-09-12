@@ -41,10 +41,13 @@ export default function OrderConfirmationClient() {
           window.close();
         } else {
           setStatus("Order failed ❌");
+          window.close();
         }
       } catch (error) {
         console.error(error);
         setStatus("Error processing your order ❌");
+      } finally {
+        window.close();
       }
     };
 
