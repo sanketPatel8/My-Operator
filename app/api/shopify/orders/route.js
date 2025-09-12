@@ -492,7 +492,7 @@ export async function POST(req) {
             if (value.buttons && Array.isArray(value.buttons)) {
               if (templateContent.buttons.length === 0) {
                 const output = value.buttons.map((button, index) => {
-                  if (button && button.example && typeof button.example === 'object') {
+                  if (button && button.format === "DYNAMIC" && typeof button.example === 'object') {
                     const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
 
