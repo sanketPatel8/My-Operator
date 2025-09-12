@@ -125,7 +125,7 @@ export default function OrderConfirmationClient() {
         setStatus("Error processing your order ❌");
       } finally {
         setLoading(false);
-        // window.close(); // optional, remove if you want user to see status
+        window.close(); // optional, remove if you want user to see status
       }
     };
 
