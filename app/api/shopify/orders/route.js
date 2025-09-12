@@ -498,8 +498,14 @@ export async function POST(req) {
                     cancel: `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${id}`
                   };
 
-                  // Replace {{...}} in the template with actual values from urlMap
-                  const replacedUrl = template.replace(/\{\{(.*?)\}\}/g, (_, match) => urlMap[match] || '#');
+                  // Check if the template contains {{...}}
+                  const match = template.match(/\{\{(.*?)\}\}/);
+                  let replacedUrl = '#';
+
+                  if (match) {
+                    const placeholderKey = match[1]; // e.g., "approval"
+                    replacedUrl = urlMap[placeholderKey] || '#';
+                  }
 
                   return {
                     index: button.index !== undefined ? button.index : index,
@@ -514,13 +520,13 @@ export async function POST(req) {
                 }
               });
 
-              // ✅ Return processed button array here
               console.log("✅ Processed buttons:", output);
-              templateContent.buttons.push(...output); // Spread instead of nested array
+              templateContent.buttons.push(...output);
             }
           } else {
             console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
           }
+
 
 
             break;
