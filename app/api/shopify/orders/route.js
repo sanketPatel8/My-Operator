@@ -165,9 +165,10 @@ export async function storePlacedOrder(data, shopurl) {
           ]
         );
 
+        place_cod_order_id = await updateResult.insertId;
+
         await connection.commit();
         console.log("✅ Order updated (first row only):", updateResult);
-        place_cod_order_id = updateResult.insertId;
 
         console.log(updateResult.insertId, "updateResult.insertIds");
 
@@ -191,9 +192,9 @@ export async function storePlacedOrder(data, shopurl) {
             data.order_number || "",
           ]
         );
+        place_cod_order_id = await insertResult.insertId;
         await connection.commit();
         console.log("✅ Order inserted:", insertResult);
-        place_cod_order_id = insertResult.insertId;
 
         console.log(insertResult.insertId, "insertResult.insertId");
 
