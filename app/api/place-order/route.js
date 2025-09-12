@@ -406,10 +406,10 @@ export async function POST(req) {
           console.log(
             `✅ WhatsApp message sent successfully for "${templateName}"`
           );
-                // 4️⃣ Delete the order from placed_code_order only after successful cancellation
-          await pool.query(`DELETE FROM placed_code_order WHERE id = ?`, [orderId]);
+          //       // 4️⃣ Delete the order from placed_code_order only after successful cancellation
+          // await pool.query(`DELETE FROM placed_code_order WHERE id = ?`, [orderId]);
 
-          console.log(`Order ${orderId} deleted from placed_code_order`);
+          // console.log(`Order ${orderId} deleted from placed_code_order`);
           messageResults.push({
             eventTitle,
             templateName,
@@ -483,10 +483,10 @@ export async function POST(req) {
       );
     }
 
-    // 4️⃣ Delete the order from placed_code_order only after successful cancellation
-    await pool.query(`DELETE FROM placed_code_order WHERE id = ?`, [orderId]);
+    // // 4️⃣ Delete the order from placed_code_order only after successful cancellation
+    // await pool.query(`DELETE FROM placed_code_order WHERE id = ?`, [orderId]);
 
-    console.log(`Order ${orderId} deleted from placed_code_order`);
+    // console.log(`Order ${orderId} deleted from placed_code_order`);
 
     // 5️⃣ Return success response
     return NextResponse.json(
