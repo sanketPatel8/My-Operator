@@ -441,7 +441,7 @@ export async function POST(req) {
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data) {
+    function buildTemplateContent(templateRows, data, id) {
       const templateContent = {
         header: null,
         body: null,
@@ -496,8 +496,13 @@ export async function POST(req) {
                     const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
 
+                    const url = {
+                      "approval":`${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=yes&order_id=${id}`,
+                      "cancel":`${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=no&order_id=${id}`
+                    };
+
                     // Use corresponding data[key + '_url'] value
-                    const replacementValue = data[`${key}_url`] || '#';
+                    const replacementValue = url[`${key}_url`] || '#';
 
                     // Replace {{key}} in URL with the specific value
                     const replacedUrl = button.url.replace(placeholderRegex, replacementValue);
@@ -626,12 +631,19 @@ export async function POST(req) {
           continue;
         }
 
+        const [idrow] = await pool.query(
+          "SELECT id FROM placed_code_order WHERE order_id = ? LIMIT 1",
+          [shop]
+        );
+
+        const { id } = idrow[0];
+
         console.log(
           `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
         );
 
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data);
+        const templateContent = buildTemplateContent(templateRows, data, id);
 
         if (!templateContent) {
           console.log(
