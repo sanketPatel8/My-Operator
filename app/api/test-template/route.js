@@ -165,31 +165,44 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
         //     } 
         //   }
         // });
+        const fallbackValuesArray = Object.values(userFallbackValues);
+        const lastFallbackValue = fallbackValuesArray[fallbackValuesArray.length - 1];
 
-        if(value!=null){
+        if (value != null) {
+          if (templateContent.buttons.length === 0) {
 
-        if (templateContent.buttons.length === 0) {
+            const output = value.buttons.map(button => {
+              if (button.format === "DYNAMIC") {
+                const key = Object.keys(button.example)[0];
 
-        
-        const output = value.buttons.map(button => {
-          if (button.format === "DYNAMIC"){
-        const key = Object.keys(button.example)[0];
-        return {
-          index: button.index,
-          [key]: button.url
-        };
-      } else{
-        return{
-          index: button.index,
-          "url": button.url
-        };
-      }
-      });
+                // Replace all {{...}} placeholders in the URL
+                const replacedUrl = button.url.replace(/{{(.*?)}}/g, (match, p1) => {
+                  const lowerKey = p1.toLowerCase();
+                  if (lowerKey === 'approve') {
+                    return userFallbackValues.Approve;
+                  } else if (lowerKey === 'cancel') {
+                    return userFallbackValues.Cancel;
+                  } else {
+                    return lastFallbackValue; // default fallback
+                  }
+                });
 
-      console.log(output);
-      templateContent.buttons.push(...output);
+                return {
+                  index: button.index,
+                  [key]: replacedUrl
+                };
+              } else {
+                return {
+                  index: button.index,
+                  url: button.url
+                };
+              }
+            });
+
+            console.log(output);
+            templateContent.buttons.push(...output);
+          }
         }
-      }
         break;
 
       default:

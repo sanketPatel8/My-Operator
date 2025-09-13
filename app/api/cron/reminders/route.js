@@ -130,12 +130,12 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
               if (content.buttons.length === 0) {
                 const output = value.buttons.map((button, index) => {
                   if (button && button.example && typeof button.example === 'object') {
-                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
+                    const key = Object.keys(button.example)[0]; 
                     const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
                     console.log(placeholderRegex,"placeholder");
 
-
-
+                    console.log("checkout url", abandoned_checkout_url);
+                    
                     // Replace {{key}} in URL with the specific value
                     const replacedUrl = button.url.replace(placeholderRegex, abandoned_checkout_url);
                     console.log("replaced url", replacedUrl);

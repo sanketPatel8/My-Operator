@@ -97,36 +97,28 @@ function buildTemplateContent(templateRows, data, url) {
             if (value.buttons && Array.isArray(value.buttons)) {
               if (content.buttons.length === 0) {
                 const output = value.buttons.map((button, index) => {
-                  if (button && button.example && typeof button.example === 'object') {
-                    const key = Object.keys(button.example)[0]; // e.g., 'approve' or 'cancel'
-                    const placeholderRegex = new RegExp(`{{${key}}}`, 'g');
-                    console.log(placeholderRegex,"placeholder");
+                  // Use the provided index or fallback to array index
+                  const buttonIndex = button.index !== undefined ? button.index : index;
 
-                    // Replace {{key}} in URL with the specific value
-                    const replacedUrl = button.url.replace(placeholderRegex, url);
-                    console.log("replaced url", replacedUrl);
-                    
+                  // Use the provided URL or fallback to '#'
+                  const buttonUrl = button.url || '#';
 
-                    return {
-                      index: button.index !== undefined ? button.index : index,
-                      [key]: url
-                    };
-                  }
-
-                  // Fallback for malformed button data
+                  console.log("url ", buttonUrl);
+                  console.log("button index", buttonIndex);
+                  
                   return {
-                    index: index,
-                    link: '#'
+                    index: buttonIndex,
+                    url: buttonUrl
                   };
                 });
 
-                // ✅ Return processed button array here
                 console.log("✅ Processed buttons:", ...output);
-                content.buttons.push(...output); // Insert into template
+                content.buttons.push(...output); // Insert into content
               }
             } else {
               console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
             }
+
           } else {
             console.warn("⚠️ Button value is null or invalid:", value);
           }
