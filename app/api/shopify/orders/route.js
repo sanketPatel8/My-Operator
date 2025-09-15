@@ -396,14 +396,26 @@ export async function POST(req) {
         }
         break;
       case "orders/updated":
-        if (
-          Array.isArray(data.fulfillments) &&
-          data.fulfillments?.[0].shipment_status?.includes("delivered")
-        ) {
-          if (data.financial_status != "refunded") {
-            eventTitles = ["Order Delivered", "Order Shipped"];
-          } else if (data.financial_status == "refunded") {
-            eventTitles = ["Refund Create"];
+        // if (
+        //   Array.isArray(data.fulfillments) &&
+        //   data.fulfillments?.[0].shipment_status?.includes("delivered")
+        // ) {
+        //   if (data.financial_status != "refunded") {
+        //     eventTitles = ["Order Delivered", "Order Shipped"];
+        //   } else if (data.financial_status == "refunded") {
+        //     eventTitles = ["Refund Create"];
+        //   }
+        // }
+        if (Array.isArray(data.fulfillments) && data.fulfillments.length > 0) {
+          const shipmentStatus = data.fulfillments[0]?.shipment_status || "";
+
+          if (shipmentStatus.toLowerCase() === "delivered") {
+            if (data.financial_status === "refunded") {
+              eventTitles.push("Refund Create");
+            } else {
+              // delivered & not refunded
+              eventTitles.push("Order Shipped", "Order Delivered");
+            }
           }
         }
         break;
