@@ -406,12 +406,12 @@ export async function POST(req) {
         //     eventTitles = ["Refund Create"];
         // }
         if (
-          Array.isArray(data.fulfillments) &&
-          data.fulfillments?.[0].shipment_status?.includes("delivered") &&
-          data.financial_status != "refunded"
+          Array.isArray(data?.fulfillments) &&
+          data?.fulfillments?.[0].shipment_status?.includes("delivered") &&
+          data?.financial_status != "refunded"
         ) {
           eventTitles = ["Order Delivered", "Order Shipped"];
-        } else if (data.financial_status == "refunded") {
+        } else if (data?.financial_status == "refunded") {
           eventTitles = ["Refund Create"];
         }
         break;
