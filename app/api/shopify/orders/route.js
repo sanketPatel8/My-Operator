@@ -401,7 +401,7 @@ export async function POST(req) {
           eventTitles = ["Order Delivered", "Order Shipped"];
         }
         break;
-      case "orders/updated":
+      case "orders/fulfilled":
         if (data.fulfillment_status.includes("fulfilled")) {
           eventTitles = ["Order Out for Delivery"];
         }
