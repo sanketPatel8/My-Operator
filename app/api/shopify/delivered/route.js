@@ -262,7 +262,7 @@ async function processReminder(order, reminderType, storeData) {
 
     console.log(reminderColumn, "reminderColumn");
 
-    if (!phoneDetails) {
+    if (!phonenumber) {
       console.log(`📞 Phone number not found for order ${order.id}`);
 
       // Update reminder status to 1 even without phone details
@@ -316,7 +316,7 @@ async function processReminder(order, reminderType, storeData) {
     console.log(
       `🔄 Database updated: ${reminderColumn} = 1 for order ${order.id}`
     );
-    console.log(`📱 Message sent successfully to ${phoneDetails.phone}`);
+    console.log(`📱 Message sent successfully to ${phonenumber}`);
     console.log(`✅ ${title} sent successfully for order ${order.id}`);
 
     // Check if both reminders are now complete and delete if so
