@@ -402,10 +402,7 @@ export async function POST(req) {
         }
         break;
       case "orders/updated":
-        if (
-          Array.isArray(data.fulfillments) &&
-          data?.financial_status.includes("refunded")
-        ) {
+        if (data?.financial_status == "refunded") {
           eventTitles = ["Refund Create"];
         }
         break;
