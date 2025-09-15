@@ -260,7 +260,8 @@ export async function POST(req) {
         Array.isArray(data.fulfillments) &&
         data.fulfillments.length > 0 &&
         data.fulfillments[0].shipment_status &&
-        data.fulfillments[0].shipment_status.includes("delivered")
+        data.fulfillments[0].shipment_status.includes("delivered") &&
+        data.financial_status != "refunded"
       ) {
         // Extract relevant data from the order
         const orderDeliveredData = {
@@ -396,14 +397,10 @@ export async function POST(req) {
       case "orders/updated":
         if (
           Array.isArray(data.fulfillments) &&
-          data.fulfillments?.[0].shipment_status.includes("delivered")
+          data.fulfillments?.[0].shipment_status.includes("delivered") &&
+          data.financial_status != "refunded"
         ) {
           eventTitles = ["Order Delivered", "Order Shipped"];
-        }
-        break;
-      case "orders/updated":
-        if (data?.financial_status == "refunded") {
-          eventTitles = ["Refund Create"];
         }
         break;
       case "orders/fulfilled":
@@ -418,7 +415,7 @@ export async function POST(req) {
         eventTitles = ["Reminder 1"];
         break;
       case "orders/updated":
-        if (data.financial_status === "refunded") {
+        if (data.financial_status == "refunded") {
           eventTitles = ["Refund Create"];
         }
         break;
