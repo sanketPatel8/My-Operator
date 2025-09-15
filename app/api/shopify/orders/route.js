@@ -229,7 +229,7 @@ export async function POST(req) {
 
   try {
     const topic = req.headers.get("x-shopify-topic");
-    const shopDomain = req.headers.get("x-shop");
+    const shopDomain = req.headers.get("x-shopify-shop");
     const data = await req.json();
 
     console.log(
@@ -516,7 +516,6 @@ export async function POST(req) {
                     console.log("place_cod_order_id", place_cod_order_id);
 
                     console.log(id, "id for order confirm");
-                    
 
                     const urlMap = {
                       approve: `?confirmed=yes&order_id=${id}`,
@@ -678,25 +677,23 @@ export async function POST(req) {
 
         // ✅ Send WhatsApp message
         try {
-          
-            const messageResult = await sendWhatsAppMessage(
-              phoneDetails.phone,
-              templateName,
-              templateContent,
-              storeData
-            );
+          const messageResult = await sendWhatsAppMessage(
+            phoneDetails.phone,
+            templateName,
+            templateContent,
+            storeData
+          );
 
-            console.log(
-              `✅ WhatsApp message sent successfully for "${templateName}"`
-            );
-            messageResults.push({
-              eventTitle,
-              templateName,
-              status: "success",
-              result: messageResult,
-            });
-            sentMessages.push(templateName);
-          
+          console.log(
+            `✅ WhatsApp message sent successfully for "${templateName}"`
+          );
+          messageResults.push({
+            eventTitle,
+            templateName,
+            status: "success",
+            result: messageResult,
+          });
+          sentMessages.push(templateName);
         } catch (messageError) {
           console.error(
             `❌ Failed to send WhatsApp message for "${templateName}":`,
