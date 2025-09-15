@@ -366,6 +366,7 @@ export async function POST(req) {
     // 🔍 3. Get event titles based on topic
     let eventTitles = [];
 
+    console.log(data.financial_status, "refunded data");
     switch (topic) {
       case "cod/paid":
         eventTitles = ["Convert COD to Paid"];
