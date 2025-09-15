@@ -260,7 +260,7 @@ export async function POST(req) {
         Array.isArray(data.fulfillments) &&
         data.fulfillments.length > 0 &&
         data.fulfillments[0].shipment_status &&
-        data.fulfillments[0].shipment_status.includes("delivered") &&
+        data.fulfillments[0].shipment_status?.includes("delivered") &&
         data.financial_status != "refunded"
       ) {
         // Extract relevant data from the order
@@ -373,7 +373,7 @@ export async function POST(req) {
       case "orders/create":
         if (
           Array.isArray(data.payment_gateway_names) &&
-          data.payment_gateway_names.includes("Cash on Delivery (COD)")
+          data.payment_gateway_names?.includes("Cash on Delivery (COD)")
         ) {
           eventTitles = ["Order Placed", "COD Order Confirmation or Cancel"];
           storePlacedOrder(data, shopDomain);
@@ -387,7 +387,7 @@ export async function POST(req) {
       case "orders/cancelled":
         if (
           Array.isArray(data.payment_gateway_names) &&
-          data.payment_gateway_names.includes("Cash on Delivery (COD)")
+          data.payment_gateway_names?.includes("Cash on Delivery (COD)")
         ) {
           eventTitles = ["COD Order Cancellation Event Triggered"];
         } else {
@@ -397,14 +397,14 @@ export async function POST(req) {
       case "orders/updated":
         if (
           Array.isArray(data.fulfillments) &&
-          data.fulfillments?.[0].shipment_status.includes("delivered") &&
+          data.fulfillments?.[0].shipment_status?.includes("delivered") &&
           data.financial_status != "refunded"
         ) {
           eventTitles = ["Order Delivered", "Order Shipped"];
         }
         break;
       case "orders/fulfilled":
-        if (data.fulfillment_status.includes("fulfilled")) {
+        if (data.fulfillment_status?.includes("fulfilled")) {
           eventTitles = ["Order Out for Delivery"];
         }
         break;
