@@ -252,11 +252,15 @@ async function processReminder(order, reminderType, storeData) {
 
     console.log(phonenumber, "phone details");
 
+    console.log(reminderType, "reminderType");
+
     // Determine column name based on reminder type
     const reminderColumn =
       reminderType === "Reorder Reminder"
         ? "reorder_reminder"
         : "order_feedback";
+
+    console.log(reminderColumn, "reminderColumn");
 
     if (!phoneDetails) {
       console.log(`📞 Phone number not found for order ${order.id}`);
@@ -378,6 +382,8 @@ async function checkRemindersForAllDeliveredOrders() {
 
       if (storeRows.length === 0) continue;
       const storeData = storeRows[0];
+
+      console.log(order, "order");
 
       // Process each reminder type
       const reminders = [
