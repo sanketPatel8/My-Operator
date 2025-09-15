@@ -297,16 +297,35 @@ export async function POST(req) {
           }, 0),
         };
 
+        // await connect.execute(
+        //   `
+        //         INSERT INTO order_delivered (
+        //             id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
+        //             currency, subtotal_price, total_price, total_tax,  shipping_first_name,
+        //             shipping_last_name, shipping_address1, shipping_address2,
+        //             shipping_city, shipping_province, shipping_country, shipping_zip, shipping_phone,
+        //             shipment_status, updated_at, created_at, quantity
+        //         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        //     `,
+        //   Object.values(orderDeliveredData)
+        // );
+
         await connect.execute(
           `
-                INSERT INTO order_delivered (
-                    id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
-                    currency, subtotal_price, total_price, total_tax,  shipping_first_name, 
-                    shipping_last_name, shipping_address1, shipping_address2,
-                    shipping_city, shipping_province, shipping_country, shipping_zip, shipping_phone,
-                    shipment_status, updated_at, created_at, quantity
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `,
+  INSERT INTO order_delivered (
+      id, shop_url, customer_first_name, customer_last_name, customer_email, customer_phone,
+      currency, subtotal_price, total_price, total_tax, shipping_first_name, 
+      shipping_last_name, shipping_address1, shipping_address2,
+      shipping_city, shipping_province, shipping_country, shipping_zip, shipping_phone,
+      shipment_status, updated_at, created_at, quantity
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ON DUPLICATE KEY UPDATE
+      shipment_status = VALUES(shipment_status),
+      updated_at = VALUES(updated_at),
+      total_price = VALUES(total_price),
+      subtotal_price = VALUES(subtotal_price),
+      total_tax = VALUES(total_tax)
+  `,
           Object.values(orderDeliveredData)
         );
 
