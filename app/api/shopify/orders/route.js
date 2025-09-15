@@ -398,10 +398,13 @@ export async function POST(req) {
       case "orders/updated":
         if (
           Array.isArray(data.fulfillments) &&
-          data.fulfillments?.[0].shipment_status?.includes("delivered") &&
-          data.financial_status != "refunded"
+          data.fulfillments?.[0].shipment_status?.includes("delivered")
         ) {
-          eventTitles = ["Order Delivered", "Order Shipped"];
+          if (data.financial_status != "refunded") {
+            eventTitles = ["Order Delivered", "Order Shipped"];
+          } else if (data.financial_status == "refunded") {
+            eventTitles = ["Refund Create"];
+          }
         }
         break;
       case "orders/fulfilled":
@@ -414,11 +417,6 @@ export async function POST(req) {
         break;
       case "checkouts/create":
         eventTitles = ["Reminder 1"];
-        break;
-      case "orders/updated":
-        if (data.financial_status == "refunded") {
-          eventTitles = ["Refund Create"];
-        }
         break;
       default:
         eventTitles = ["unknown event"];
