@@ -398,25 +398,21 @@ export async function POST(req) {
       case "orders/updated":
         // if (
         //   Array.isArray(data.fulfillments) &&
-        //   data.fulfillments?.[0].shipment_status?.includes("delivered")
+        //   data.fulfillments?.[0].shipment_status?.includes("delivered") && data.financial_status != "refunded"
         // ) {
-        //   if (data.financial_status != "refunded") {
         //     eventTitles = ["Order Delivered", "Order Shipped"];
-        //   } else if (data.financial_status == "refunded") {
-        //     eventTitles = ["Refund Create"];
         //   }
+        // } else if (data.financial_status == "refunded") {
+        //     eventTitles = ["Refund Create"];
         // }
-        if (Array.isArray(data.fulfillments) && data.fulfillments.length > 0) {
-          const shipmentStatus = data.fulfillments[0]?.shipment_status || "";
-
-          if (shipmentStatus.toLowerCase() === "delivered") {
-            if (data.financial_status === "refunded") {
-              eventTitles.push("Refund Create");
-            } else {
-              // delivered & not refunded
-              eventTitles.push("Order Shipped", "Order Delivered");
-            }
-          }
+        if (
+          Array.isArray(data.fulfillments) &&
+          data.fulfillments?.[0].shipment_status?.includes("delivered") &&
+          data.financial_status != "refunded"
+        ) {
+          eventTitles = ["Order Delivered", "Order Shipped"];
+        } else if (data.financial_status == "refunded") {
+          eventTitles = ["Refund Create"];
         }
         break;
       case "orders/fulfilled":
