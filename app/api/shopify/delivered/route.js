@@ -108,7 +108,7 @@ function buildTemplateContent(templateRows, data, url, image_id) {
           if (value.example && typeof value.example === "object") {
             url = Object.values(value.example).find(val => val.startsWith('http'));
             console.log("url:::", url);
-          }
+          
 
           console.log("url not ::::::", url);
           
@@ -117,11 +117,11 @@ function buildTemplateContent(templateRows, data, url, image_id) {
             data,
             url
           );
-          console.log("template content example", templateContent.body.example);
+          
           
           templateContent.body = value;
-          
-        
+          console.log("template content body", templateContent.body.example);
+        }
       }
         break;
       case "FOOTER":
