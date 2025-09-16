@@ -74,24 +74,24 @@ function getMappedValue(field, data) {
   }
 }
 
-// 🔹 Build template content
+// 🔹 Build template templateContent
 function buildTemplateContent(templateRows, data, url) {
-  const content = { header: null, body: null, footer: null, buttons: [] };
+  const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value || "{}");
     switch (row.component_type) {
       case "HEADER":
-        content.header = value;
+        templateContent.header = value;
         console.log("value for header", value);
         const media = value.media_id;
         console.log("media id ", media);
 
-        content.header = { media_id: media };
+        templateContent.header = { media_id: media };
         break;
       case "BODY":
-        content.body = value;
+        templateContent.body = value;
         if (row.mapping_field && row.variable_name) {
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
@@ -100,13 +100,13 @@ function buildTemplateContent(templateRows, data, url) {
         }
         break;
       case "FOOTER":
-        content.footer = value;
+        templateContent.footer = value;
         break;
       case "BUTTONS":
         if (value && typeof value === "object") {
           // Check if value.buttons exists and is an array
           if (value.buttons && Array.isArray(value.buttons)) {
-            if (content.buttons.length === 0) {
+            if (templateContent.buttons.length === 0) {
               const output = value.buttons.map((button, index) => {
                 // Use the provided index or fallback to array index
                 const buttonIndex =
@@ -125,7 +125,7 @@ function buildTemplateContent(templateRows, data, url) {
               });
 
               console.log("✅ Processed buttons:", ...output);
-              content.buttons.push(...output); // Insert into content
+              templateContent.buttons.push(...output); // Insert into templateContent
             }
           } else {
             console.warn(
@@ -140,8 +140,8 @@ function buildTemplateContent(templateRows, data, url) {
     }
   }
 
-  if (content.body) content.body.example = bodyExample;
-  return content;
+  if (templateContent.body) templateContent.body.example = bodyExample;
+  return templateContent;
 }
 
 // 🔹 Send WhatsApp message
@@ -177,7 +177,9 @@ async function sendWhatsAppMessage(
     body: JSON.stringify(payload),
   });
 
-  return res.json();
+  const result = await res.json();
+  console.log('✅ Test message sent successfully:', result);
+    return result;
 }
 
 // 🔹 Process reminder for specific order and reminder type
@@ -294,7 +296,7 @@ async function processReminder(order, reminderType, storeData) {
       url
     );
     if (!templateContent) {
-      console.log(`❌ Failed to build template content for order ${order.id}`);
+      console.log(`❌ Failed to build template templateContent for order ${order.id}`);
       return;
     }
 
