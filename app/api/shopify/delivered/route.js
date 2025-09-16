@@ -77,12 +77,110 @@ function getMappedValue(field, data, url) {
 }
 
 // 🔹 Build template templateContent
+// function buildTemplateContent(templateRows, data, url, image_id) {
+//   const templateContent = { header: null, body: null, footer: null, buttons: [] };
+//   const bodyExample = {};
+
+//   for (const row of templateRows) {
+//     const value = JSON.parse(row.value || "{}");
+//     switch (row.component_type) {
+//       case "HEADER":
+//         templateContent.header = value;
+//         console.log("value for header", value);
+//         const media = value.media_id;
+//         console.log("media id ", media);
+//         if (image_id != null) {
+//             templateContent.header = { media_id: image_id };
+//         } else {
+//             templateContent.header = { media_id: media };
+//         }
+//         break;
+//       case "BODY":
+//         console.log("value initial", value);
+//         templateContent.body = value;
+//         console.log("template content ... body", templateContent.body);
+        
+        
+//         if (value != "{}" && typeof value === "object") {
+        
+        
+//           console.log("value", value);
+
+//           let url = null;
+          
+//           if (value.example && typeof value.example === "object") {
+//             url = Object.values(value.example).find(val => val.startsWith('http'));
+//             console.log("url:::", url);
+          
+
+//           console.log("url not ::::::", url);
+//           console.log("data:::", data);
+          
+          
+//           bodyExample[row.variable_name] = getMappedValue(
+//             row.mapping_field,
+//             data,
+//             url
+//           );
+          
+          
+          
+//           console.log("template content body", templateContent.body);
+//         }
+//       }
+//         break;
+//       case "FOOTER":
+//         templateContent.footer = value;
+//         break;
+//       case "BUTTONS":
+//         if (value && typeof value === "object") {
+//           // Check if value.buttons exists and is an array
+//           if (value.buttons && Array.isArray(value.buttons)) {
+//             if (templateContent.buttons.length === 0) {
+//               const output = value.buttons.map((button, index) => {
+//                 // Use the provided index or fallback to array index
+//                 const buttonIndex =
+//                   button.index !== undefined ? button.index : index;
+
+//                 // Use the provided URL or fallback to '#'
+//                 const buttonUrl = button.url || "#";
+
+//                 console.log("url ", buttonUrl);
+//                 console.log("button index", buttonIndex);
+
+//                 return {
+//                   index: buttonIndex,
+//                   url: buttonUrl,
+//                 };
+//               });
+
+//               console.log("✅ Processed buttons:", ...output);
+//               templateContent.buttons.push(...output); // Insert into templateContent
+//             }
+//           } else {
+//             console.warn(
+//               "⚠️ value.buttons is not an array or doesn't exist:",
+//               value
+//             );
+//           }
+//         } else {
+//           console.warn("⚠️ Button value is null or invalid:", value);
+//         }
+//         break;
+//     }
+//   }
+
+//   if (templateContent.body) templateContent.body.example = bodyExample;
+//   return templateContent;
+// }
+
 function buildTemplateContent(templateRows, data, url, image_id) {
   const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
   for (const row of templateRows) {
     const value = JSON.parse(row.value || "{}");
+    
     switch (row.component_type) {
       case "HEADER":
         templateContent.header = value;
@@ -95,55 +193,69 @@ function buildTemplateContent(templateRows, data, url, image_id) {
             templateContent.header = { media_id: media };
         }
         break;
+        
       case "BODY":
         console.log("value initial", value);
         templateContent.body = value;
         console.log("template content ... body", templateContent.body);
         
-        
-        if (value != "{}" && typeof value === "object") {
-        
-        
+        if (value && typeof value === "object" && value.text) {
           console.log("value", value);
+          console.log("row data:", {
+            variable_name: row.variable_name,
+            mapping_field: row.mapping_field,
+            component_type: row.component_type
+          });
 
-          let url = null;
+          // Use mapping_field from database to determine the value
+          if (row.mapping_field && row.variable_name) {
+            let mappedValue = "";
+            
+            switch (row.mapping_field) {
+              case "Name":
+                mappedValue = data.customer_first_name || "Customer";
+                break;
+              case "Order id":
+                mappedValue = String(data?.id || data?.order_number || "123456");
+                break;
+              case "Phone number":
+                mappedValue = data.customer_phone || "0000000000";
+                break;
+              case "Quantity":
+                mappedValue = String(data.quantity || "1");
+                break;
+              case "Total price":
+                mappedValue = String(data.total_price || "0.00");
+                break;
+              case "Custom Link":
+              case "Feedback Link":
+              case "Reorder Link":
+                mappedValue = url || "0";
+                break;
+              default:
+                console.warn(`Unknown mapping field: ${row.mapping_field}`);
+                mappedValue = "";
+            }
+            
+            bodyExample[row.variable_name] = mappedValue;
+            console.log(`Mapped: ${row.variable_name} (${row.mapping_field}) = ${mappedValue}`);
+          }
           
-          if (value.example && typeof value.example === "object") {
-            url = Object.values(value.example).find(val => val.startsWith('http'));
-            console.log("url:::", url);
-          
-
-          console.log("url not ::::::", url);
-          console.log("data:::", data);
-          
-          
-          bodyExample[row.variable_name] = getMappedValue(
-            row.mapping_field,
-            data,
-            url
-          );
-          
-          
-          
-          console.log("template content body", templateContent.body);
+          console.log("Final bodyExample:", bodyExample);
         }
-      }
         break;
+        
       case "FOOTER":
         templateContent.footer = value;
         break;
+        
       case "BUTTONS":
         if (value && typeof value === "object") {
-          // Check if value.buttons exists and is an array
           if (value.buttons && Array.isArray(value.buttons)) {
             if (templateContent.buttons.length === 0) {
               const output = value.buttons.map((button, index) => {
-                // Use the provided index or fallback to array index
-                const buttonIndex =
-                  button.index !== undefined ? button.index : index;
-
-                // Use the provided URL or fallback to '#'
-                const buttonUrl = button.url || "#";
+                const buttonIndex = button.index !== undefined ? button.index : index;
+                const buttonUrl = button.url || url || "#";
 
                 console.log("url ", buttonUrl);
                 console.log("button index", buttonIndex);
@@ -155,13 +267,10 @@ function buildTemplateContent(templateRows, data, url, image_id) {
               });
 
               console.log("✅ Processed buttons:", ...output);
-              templateContent.buttons.push(...output); // Insert into templateContent
+              templateContent.buttons.push(...output);
             }
           } else {
-            console.warn(
-              "⚠️ value.buttons is not an array or doesn't exist:",
-              value
-            );
+            console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
           }
         } else {
           console.warn("⚠️ Button value is null or invalid:", value);
@@ -170,7 +279,15 @@ function buildTemplateContent(templateRows, data, url, image_id) {
     }
   }
 
-  if (templateContent.body) templateContent.body.example = bodyExample;
+  // Only assign example if we have valid body content and examples
+  if (templateContent.body && Object.keys(bodyExample).length > 0) {
+    templateContent.body.example = bodyExample;
+  } else if (templateContent.body) {
+    // If no examples were found, create empty object or use default
+    templateContent.body.example = {};
+  }
+  
+  console.log("Final templateContent.body:", templateContent.body);
   return templateContent;
 }
 
