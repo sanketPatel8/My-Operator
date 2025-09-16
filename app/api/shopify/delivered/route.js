@@ -77,7 +77,7 @@ function getMappedValue(field, data, url) {
 }
 
 // 🔹 Build template templateContent
-function buildTemplateContent(templateRows, data, url, image_id) {
+function buildTemplateContent(templateRows, data, image_id) {
   const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
@@ -339,7 +339,6 @@ async function processReminder(order, reminderType, storeData) {
     const templateContent = buildTemplateContent(
       templateVariableRows,
       order,
-      url,
       image_id
     );
     if (!templateContent) {
