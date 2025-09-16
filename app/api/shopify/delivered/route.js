@@ -97,6 +97,9 @@ function buildTemplateContent(templateRows, data, url, image_id) {
         break;
       case "BODY":
         console.log("value initial", value);
+        templateContent.body = value;
+        console.log("template content ... body", templateContent.body);
+        
         
         if (value != "{}" && typeof value === "object") {
         
@@ -121,7 +124,7 @@ function buildTemplateContent(templateRows, data, url, image_id) {
           );
           
           
-          templateContent.body = value;
+          
           console.log("template content body", templateContent.body);
         }
       }
@@ -178,7 +181,9 @@ async function sendWhatsAppMessage(
   templateContent,
   storeData
 ) {
+  console.log("template content . body example", templateContent.body.example);
   console.log("template content . body", templateContent.body);
+  
   
   const payload = {
     phone_number_id: storeData.phone_number_id,
