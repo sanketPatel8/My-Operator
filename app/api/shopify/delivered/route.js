@@ -75,7 +75,7 @@ function getMappedValue(field, data) {
 }
 
 // 🔹 Build template templateContent
-function buildTemplateContent(templateRows, data, url) {
+function buildTemplateContent(templateRows, data, url, image_id) {
   const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
@@ -87,8 +87,11 @@ function buildTemplateContent(templateRows, data, url) {
         console.log("value for header", value);
         const media = value.media_id;
         console.log("media id ", media);
-
-        templateContent.header = { media_id: media };
+        if (image_id != null) {
+            templateContent.header = { media_id: image_id };
+        } else {
+            templateContent.header = { media_id: media };
+        }
         break;
       case "BODY":
         templateContent.body = value;
@@ -289,11 +292,24 @@ async function processReminder(order, reminderType, storeData) {
 
     console.log("fallback url", url);
 
+    const [templateimage] = await connection.execute(
+      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
+      [template_data_id]
+    );
+
+    console.log("template image row", templateimage);
+    
+
+    const image_id = templateimage[0]?.tamplate_image;
+
+    console.log("First template image:", image_id);
+
     // Build and send message
     const templateContent = buildTemplateContent(
       templateVariableRows,
       order,
-      url
+      url,
+      image_id
     );
     if (!templateContent) {
       console.log(`❌ Failed to build template templateContent for order ${order.id}`);

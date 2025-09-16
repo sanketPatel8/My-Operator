@@ -485,7 +485,7 @@ export async function POST(req) {
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data, id) {
+    function buildTemplateContent(templateRows, data, id, image_id) {
       const templateContent = {
         header: null,
         body: null,
@@ -508,8 +508,12 @@ export async function POST(req) {
             console.log("value for header", value);
             const media = value.media_id;
             console.log("media id ", media);
-
+            if (image_id != null) {
+            templateContent.header = { media_id: image_id };
+        } else {
             templateContent.header = { media_id: media };
+        }
+
             break;
 
           case "BODY":
@@ -688,8 +692,20 @@ export async function POST(req) {
 
         const id = idrow.length > 0 ? idrow[0].id : null;
 
+        const [templateimage] = await connection.execute(
+      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
+      [template_data_id]
+    );
+
+    console.log("template image row", templateimage);
+    
+
+    const image_id = templateimage[0]?.tamplate_image;
+
+    console.log("First template image:", image_id);
+
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data, id);
+        const templateContent = buildTemplateContent(templateRows, data, id, image_id);
 
         if (!templateContent) {
           console.log(

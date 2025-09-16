@@ -1620,6 +1620,9 @@ function Editflow() {
                           "Template message for display:",
                           templateMessage
                         );
+                        const contentBlocks = getTemplateContentBlocks();
+                        console.log("content block:::", contentBlocks);
+                        
                         if (templateMessage) {
                           return (
                             <div>
@@ -1640,7 +1643,9 @@ function Editflow() {
                         }
 
                         // If no templateMessage, try to get it directly from content blocks
-                        const contentBlocks = getTemplateContentBlocks();
+                        
+                        console.log("content block:::", contentBlocks);
+                        
                         const bodyBlock = contentBlocks.find(
                           (block) => block.type === "BODY"
                         );

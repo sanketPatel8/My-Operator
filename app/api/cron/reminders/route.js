@@ -87,7 +87,7 @@ function getMappedValue(field, data, customerData) {
 }
 
 // 🔹 Build template content
-function buildTemplateContent(templateRows, data, abandoned_checkout_url, customerData) {
+function buildTemplateContent(templateRows, data, abandoned_checkout_url, customerData, image_id) {
   const content = {
     header: null,
     body: null,
@@ -107,8 +107,11 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
         console.log("value for header", value);
         const media = value.media_id;
         console.log("media id ", media);
-
-        content.header = { media_id: media };
+        if (image_id != null) {
+            content.header = { media_id: image_id };
+        } else {
+            content.header = { media_id: media };
+        }
         break;
       case "BODY":
         content.body = value;
@@ -280,13 +283,20 @@ async function processReminder(checkout, reminderType, storeData) {
    const phonenumber = customerData.phone.replace('+91', '');
    console.log(phonenumber, "phonenumber");
     
+   const [templateimage] = await connection.execute(
+      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
+      [template_data_id]
+    );
 
+    console.log("template image row", templateimage);
     
 
-    
+    const image_id = templateimage[0]?.tamplate_image;
+
+    console.log("First template image:", image_id);
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
-    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url, customerData);
+    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url, customerData, image_id);
     
     await sendWhatsAppMessage(
       phonenumber,
