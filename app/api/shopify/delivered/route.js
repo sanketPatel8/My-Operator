@@ -57,7 +57,7 @@ function parseDelayToMinutes(delayValue) {
 }
 
 // 🔹 Map dynamic values (updated for order_delivered structure)
-function getMappedValue(field, data) {
+function getMappedValue(field, data, url) {
   switch (field) {
     case "Name":
       return data.customer_first_name || "Customer";
@@ -69,6 +69,8 @@ function getMappedValue(field, data) {
       return String(data.quantity || "1"); // assuming quantity is stored in order_delivered
     case "Total price":
       return String(data.total_price || "00");
+    case "Custom Link":
+      return String(url);
     default:
       return "";
   }
@@ -96,9 +98,16 @@ function buildTemplateContent(templateRows, data, url, image_id) {
       case "BODY":
         templateContent.body = value;
         if (row.mapping_field && row.variable_name) {
+          console.log("value", value);
+          
+          const url = Object.values(value.example).find(val => val.startsWith('http'));
+          console.log("url:::", url);
+
+          
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
-            data
+            data,
+            url
           );
         }
         break;
@@ -181,6 +190,8 @@ async function sendWhatsAppMessage(
   });
 
   const result = await res.json();
+  console.log("payload for send message", payload);
+  
   console.log('✅ Test message sent successfully:', result);
     return result;
 }
