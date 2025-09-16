@@ -316,6 +316,16 @@ export async function POST(req) {
       throw new Error(`No template variables found for template_data_id: ${template_data_id}`);
     }
 
+    const [templateimage] = await connection.execute(
+      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+      [template_data_id]
+    );
+
+    const { image_id } = templateimage[0];
+
+    console.log("template image row", image_id);
+    
+
     console.log(`📄 Template structure fetched: ${templateRows} variables`);
 
     // ✅ 5. Build template content using USER-ENTERED fallback values
