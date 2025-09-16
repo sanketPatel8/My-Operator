@@ -8,7 +8,7 @@ import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
 import { useToastContext } from "@/component/Toast";
-import axios from "axios";
+
 import { POST } from "@/utils/api";
 
 function Editflow() {
@@ -46,7 +46,13 @@ function Editflow() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const [currentWorkflowData, setCurrentWorkflowData] = useState(null);
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
-  const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
+  const [mappingFieldOptions, setMappingFieldOptions] = useState([]); 
+
+  const note = `Note :- If the topic is COD Order Confirmation or Cancel, use this dynamic link format: 
+  ${process.env.NEXT_PUBLIC_HOST}order-conformation?{{approve or cancel}} 
+  If the topic is anything else, use this static redirect format: 
+  ${process.env.NEXT_PUBLIC_HOST}redirect?url={{link}}`;
+
 
   // ✅ Add helper at top of file
   const normalizeTemplateData = (data) => {
@@ -1293,6 +1299,11 @@ function Editflow() {
                   Edit workflow
                 </h2>
               </div>
+              <div>
+                <h2 className="text-[16px] font-semibold text-[#353535]">
+                  {currentWorkflowData?.title}
+                </h2>
+              </div>
             </div>
 
             {/* Content Section */}
@@ -1544,30 +1555,50 @@ function Editflow() {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex justify-end space-x-[16px] mt-[32px] mb-[20px]">
-                      <button
-                        onClick={() => setShowTestPopup(true)}
-                        className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
-                      >
-                        Test
-                      </button>
-                      <button
-                        onClick={() => router.push("/workflowlist")}
-                        className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleUpdateWorkflow}
-                        className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
-                      >
-                        {loading1 ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
-                        ) : (
-                          "Update workflow"
-                        )}
-                      </button>
+                    <div className="flex justify-between items-center mt-[32px] mb-[20px]">
+                      {/* Note aligned to start */}
+                      <p className="text-red-600 text-[12px]">
+  {note.split('\n').map((line, index) => (
+  <>
+    {line}
+    <br />
+  </>
+))}
+
+</p>
+
+
+
+
+
+
+                      {/* Buttons aligned to end */}
+                      <div className="flex space-x-[16px]">
+                        <button
+                          onClick={() => setShowTestPopup(true)}
+                          className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
+                        >
+                          Test
+                        </button>
+                        <button
+                          onClick={() => router.push("/workflowlist")}
+                          className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleUpdateWorkflow}
+                          className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
+                        >
+                          {loading1 ? (
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600 mx-auto"></div>
+                          ) : (
+                            "Update workflow"
+                          )}
+                        </button>
+                      </div>
                     </div>
+
                   </div>
                 </div>
               </div>
