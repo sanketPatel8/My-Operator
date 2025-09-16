@@ -70,7 +70,7 @@ function getMappedValue(field, data) {
     case "Total price":
       return String(data.total_price || "00");
     case "Custom Link":
-      return url || "0";
+      return "0";
     default:
       return "";
   }
@@ -97,23 +97,14 @@ function buildTemplateContent(templateRows, data, url, image_id) {
         break;
       case "BODY":
         templateContent.body = value;
-        if (row.mapping_field && row.variable_name) {
-          let url = null;
-          
-          if (value.example && typeof value.example === "object") {
-            url = Object.values(value.example).find(val => val.startsWith('http'));
-            console.log("url:::", url);
-          
 
-          console.log("url not ::::::", url);
-
-          bodyExample[row.variable_name] = getMappedValue(
-            row.mapping_field,
-            data
-          );
-        }
-
-      }
+            // Inject dynamic values using mapping_field
+            if (row.mapping_field && row.variable_name) {
+              bodyExample[row.variable_name] = getMappedValue(
+                row.mapping_field,
+                data
+              );
+            }
         break;
       case "FOOTER":
         templateContent.footer = value;
@@ -156,7 +147,9 @@ function buildTemplateContent(templateRows, data, url, image_id) {
     }
   }
 
-  if (templateContent.body) templateContent.body.example = bodyExample;
+  if (templateContent.body){ 
+    templateContent.body.example = bodyExample;
+  }
   console.log("template body", templateContent.body);
   
   console.log("body example", bodyExample);
