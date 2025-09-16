@@ -70,7 +70,7 @@ function getMappedValue(field, data, url) {
     case "Total price":
       return String(data.total_price || "00");
     case "Custom Link":
-      return String(url);
+      return String(url) || "0";
     default:
       return "";
   }
@@ -100,10 +100,15 @@ function buildTemplateContent(templateRows, data, url, image_id) {
         templateContent.body = value;
         if (row.mapping_field && row.variable_name) {
           console.log("value", value);
-          
-          const url = Object.values(value.example).find(val => val.startsWith('http'));
-          console.log("url:::", url);
 
+          let url = null;
+          
+          if (value.example && typeof value.example === "object") {
+            url = Object.values(value.example).find(val => typeof val === 'string' && val.startsWith('http'));
+            console.log("url:::", url);
+          }
+
+          console.log("url not ::::::", url);
           
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
