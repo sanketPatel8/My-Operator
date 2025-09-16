@@ -96,15 +96,17 @@ function buildTemplateContent(templateRows, data, url, image_id) {
         }
         break;
       case "BODY":
+        console.log("value initial", value);
+        
         if (value && typeof value === "object") {
-        templateContent.body = value;
-        if (row.mapping_field && row.variable_name) {
+        
+        
           console.log("value", value);
 
           let url = null;
           
           if (value.example && typeof value.example === "object") {
-            url = Object.values(value.example).find(val => typeof val === 'string' && val.startsWith('http'));
+            url = Object.values(value.example).find(val => val.startsWith('http'));
             console.log("url:::", url);
           }
 
@@ -115,7 +117,8 @@ function buildTemplateContent(templateRows, data, url, image_id) {
             data,
             url
           );
-        }
+          templateContent.body = value;
+        
       }
         break;
       case "FOOTER":
@@ -382,7 +385,7 @@ async function checkAndDeleteCompletedOrder(conn, orderId) {
 
     // If both reminders are complete (status = 1), delete the row
     if (reorder_reminder === 1 && order_feedback === 1) {
-      await conn.execute("DELETE FROM order_delivered WHERE id = ?", [orderId]);
+      // await conn.execute("DELETE FROM order_delivered WHERE id = ?", [orderId]);
 
       console.log(
         `🗑️ Deleted completed order: ${orderId} (both reminders sent)`
