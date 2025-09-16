@@ -111,6 +111,8 @@ function buildTemplateContent(templateRows, data, url, image_id) {
           
 
           console.log("url not ::::::", url);
+          console.log("data:::", data);
+          
           
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
@@ -119,7 +121,7 @@ function buildTemplateContent(templateRows, data, url, image_id) {
           );
           
           
-          templateContent.body = value.example;
+          templateContent.body = value;
           console.log("template content body", templateContent.body);
         }
       }
@@ -189,7 +191,7 @@ async function sendWhatsAppMessage(
         template_name: templateName,
         language: "en",
         header: templateContent.header || {},
-        body: templateContent.body || {},
+        body: templateContent.body.example || {},
         buttons: templateContent.buttons || [],
       },
     },
