@@ -117,7 +117,10 @@ function buildTemplateContent(templateRows, data, url, image_id) {
             data,
             url
           );
+          console.log("template content body", templateContent.body.example);
+          
           templateContent.body = value;
+
         
       }
         break;
