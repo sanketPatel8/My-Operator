@@ -57,7 +57,7 @@ function parseDelayToMinutes(delayValue) {
 }
 
 // 🔹 Map dynamic values (updated for order_delivered structure)
-function getMappedValue(field, data) {
+function getMappedValue(field, data, url) {
   switch (field) {
     case "Name":
       return data.customer_first_name || "Customer";
@@ -70,7 +70,7 @@ function getMappedValue(field, data) {
     case "Total price":
       return String(data.total_price || "00");
     case "Custom Link":
-      return "0";
+      return url || "0";
     default:
       return "";
   }
@@ -98,11 +98,22 @@ function buildTemplateContent(templateRows, data, url, image_id) {
       case "BODY":
         templateContent.body = value;
 
+        let url;
+        for (const value of Object.values(value.example)) {
+          if (typeof value === "string" && value.startsWith("http")) {
+            url = value;
+          }
+        }
+
+        console.log("url value", url);
+        
+
             // Inject dynamic values using mapping_field
             if (row.mapping_field && row.variable_name) {
               bodyExample[row.variable_name] = getMappedValue(
                 row.mapping_field,
-                data
+                data,
+                url
               );
             }
         break;
