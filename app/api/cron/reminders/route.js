@@ -283,7 +283,7 @@ async function processReminder(checkout, reminderType, storeData) {
    const phonenumber = customerData.phone.replace('+91', '');
    console.log(phonenumber, "phonenumber");
     
-   const [templateimage] = await connection.execute(
+   const [templateimage] = await conn.execute(
       'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
       [template_data_id]
     );

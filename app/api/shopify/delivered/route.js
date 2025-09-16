@@ -292,7 +292,7 @@ async function processReminder(order, reminderType, storeData) {
 
     console.log("fallback url", url);
 
-    const [templateimage] = await connection.execute(
+    const [templateimage] = await conn.execute(
       'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
       [template_data_id]
     );

@@ -381,7 +381,7 @@ export async function POST(req) {
           `📄 Template data fetched (${templateName}): ${templateRows.length} rows`
         );
 
-        const [templateimage] = await connection.execute(
+        const [templateimage] = await pool.query(
       'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
       [template_data_id]
     );
