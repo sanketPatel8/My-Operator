@@ -317,13 +317,16 @@ export async function POST(req) {
     }
 
     const [templateimage] = await connection.execute(
-      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ? ORDER BY template_variable_id',
+      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
       [template_data_id]
     );
 
-    const { image_id } = templateimage[0];
+    console.log("template image row", templateimage);
+    
 
-    console.log("template image row", image_id);
+    const { image_id } = templateimage;
+
+    console.log("template image row id", image_id);
     
 
     console.log(`📄 Template structure fetched: ${templateRows} variables`);
