@@ -169,27 +169,135 @@ function getMappedValue(field, data, bestUrl) {
 // }
 
 // 🔹 Build template templateContent (FIXED VERSION)
+// function buildTemplateContent(templateRows, data, image_id) {
+//   const templateContent = { header: null, body: null, footer: null, buttons: [] };
+//   const bodyExample = {};
+
+//   let extractedUrls = [];
+
+//   for (const row of templateRows) {
+//     const value = JSON.parse(row.value || "{}");
+
+//     if (row.component_type === "BODY" && value.example) {
+//       for (const exampleValue of Object.values(value.example)) {
+//         if (typeof exampleValue === "string" && exampleValue.startsWith("http")) {
+//           extractedUrls.push(exampleValue);
+//         }
+//       }
+//     }
+
+//     const bestUrl = extractedUrls.find(url => url.startsWith("https://")) || 
+//                  extractedUrls.find(url => url.startsWith("http://")) ||
+//                  extractedUrls[0] ||
+//                  null;
+    
+//     switch (row.component_type) {
+//       case "HEADER":
+//         templateContent.header = value;
+//         console.log("value for header", value);
+//         const media = value.media_id;
+//         console.log("media id ", media);
+        
+//         if (image_id != null) {
+//             templateContent.header = { media_id: image_id };
+//         } else {
+//             templateContent.header = { media_id: media };
+//         }
+//         break;
+        
+//       case "BODY":
+//         templateContent.body = value;
+
+//         console.log("url value", bestUrl);
+
+//         // ✅ Inject dynamic values using mapping_field with the pre-extracted URL
+//         if (row.mapping_field && row.variable_name) {
+//           bodyExample[row.variable_name] = getMappedValue(
+//             row.mapping_field,
+//             data,
+//             bestUrl  // ✅ Use the pre-extracted URL
+//           );
+//         }
+//         break;
+        
+//       case "FOOTER":
+//         templateContent.footer = value;
+//         break;
+        
+//       case "BUTTONS":
+//         if (value && typeof value === "object") {
+//           // Check if value.buttons exists and is an array
+//           if (value.buttons && Array.isArray(value.buttons)) {
+//             if (templateContent.buttons.length === 0) {
+//               const buttonOutput = value.buttons.map((button, index) => {
+//                 // ✅ FIXED: Use different variable names
+//                 const buttonIndex = button.index !== undefined ? button.index : index;
+//                 const buttonUrl = button.url || "#";
+
+//                 console.log("button url:", buttonUrl);
+//                 console.log("button index:", buttonIndex);
+
+//                 return {
+//                   index: buttonIndex,
+//                   url: buttonUrl,
+//                 };
+//               });
+
+//               console.log("✅ Processed buttons:", ...buttonOutput);
+//               templateContent.buttons.push(...buttonOutput);
+//             }
+//           } else {
+//             console.warn("⚠️ value.buttons is not an array or doesn't exist:", value);
+//           }
+//         } else {
+//           console.warn("⚠️ Button value is null or invalid:", value);
+//         }
+//         break;
+//     }
+//   }
+
+//   // ✅ FIXED: Add safety check before assigning bodyExample
+//   if (templateContent.body && typeof templateContent.body === 'object') { 
+//     templateContent.body.example = bodyExample;
+//   }
+  
+//   console.log("template body", templateContent.body);
+//   console.log("body example", bodyExample);
+  
+//   return templateContent;
+// }
+
 function buildTemplateContent(templateRows, data, image_id) {
   const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
+  // First pass: Extract all URLs from all BODY components
   let extractedUrls = [];
-
   for (const row of templateRows) {
-    const value = JSON.parse(row.value || "{}");
-
-    if (row.component_type === "BODY" && value.example) {
-      for (const exampleValue of Object.values(value.example)) {
-        if (typeof exampleValue === "string" && exampleValue.startsWith("http")) {
-          extractedUrls.push(exampleValue);
+    if (row.component_type === "BODY") {
+      const value = JSON.parse(row.value || "{}");
+      if (value.example) {
+        for (const exampleValue of Object.values(value.example)) {
+          if (typeof exampleValue === "string" && exampleValue.startsWith("http")) {
+            extractedUrls.push(exampleValue);
+          }
         }
       }
     }
+  }
 
-    const bestUrl = extractedUrls.find(url => url.startsWith("https://")) || 
-                 extractedUrls.find(url => url.startsWith("http://")) ||
-                 extractedUrls[0] ||
-                 null;
+  // Find the best URL (prefer https, then http, then any)
+  const bestUrl = extractedUrls.find(url => url.startsWith("https://")) || 
+               extractedUrls.find(url => url.startsWith("http://")) ||
+               extractedUrls[0] ||
+               null;
+
+  console.log("All extracted URLs:", extractedUrls);
+  console.log("Best URL selected:", bestUrl);
+
+  // Second pass: Build template content
+  for (const row of templateRows) {
+    const value = JSON.parse(row.value || "{}");
     
     switch (row.component_type) {
       case "HEADER":
@@ -207,16 +315,34 @@ function buildTemplateContent(templateRows, data, image_id) {
         
       case "BODY":
         templateContent.body = value;
+        
+        // Only log the final bestUrl (not null values)
+        if (bestUrl) {
+          console.log("url value", bestUrl);
+        } else {
+          console.log("url value", null);
+        }
 
-        console.log("url value", bestUrl);
-
-        // ✅ Inject dynamic values using mapping_field with the pre-extracted URL
+        // ✅ Inject dynamic values using mapping_field
         if (row.mapping_field && row.variable_name) {
-          bodyExample[row.variable_name] = getMappedValue(
+          // Only pass bestUrl if it's not null
+          const mappedValue = getMappedValue(
             row.mapping_field,
             data,
-            bestUrl  // ✅ Use the pre-extracted URL
+            bestUrl // This will be null if no valid URL found, or the actual URL
           );
+          
+          // Only add to bodyExample if we have a valid mapped value
+          // For Custom Link, only add if bestUrl is not null
+          if (row.mapping_field === "Custom Link") {
+            if (bestUrl !== null) {
+              bodyExample[row.variable_name] = mappedValue;
+            }
+            // If bestUrl is null, don't add this field to bodyExample
+          } else {
+            // For other fields, always add
+            bodyExample[row.variable_name] = mappedValue;
+          }
         }
         break;
         
@@ -226,11 +352,9 @@ function buildTemplateContent(templateRows, data, image_id) {
         
       case "BUTTONS":
         if (value && typeof value === "object") {
-          // Check if value.buttons exists and is an array
           if (value.buttons && Array.isArray(value.buttons)) {
             if (templateContent.buttons.length === 0) {
               const buttonOutput = value.buttons.map((button, index) => {
-                // ✅ FIXED: Use different variable names
                 const buttonIndex = button.index !== undefined ? button.index : index;
                 const buttonUrl = button.url || "#";
 
@@ -256,7 +380,7 @@ function buildTemplateContent(templateRows, data, image_id) {
     }
   }
 
-  // ✅ FIXED: Add safety check before assigning bodyExample
+  // ✅ Add safety check before assigning bodyExample
   if (templateContent.body && typeof templateContent.body === 'object') { 
     templateContent.body.example = bodyExample;
   }
