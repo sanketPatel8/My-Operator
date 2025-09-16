@@ -96,6 +96,7 @@ function buildTemplateContent(templateRows, data, url, image_id) {
         }
         break;
       case "BODY":
+        if (value && typeof value === "object") {
         templateContent.body = value;
         if (row.mapping_field && row.variable_name) {
           console.log("value", value);
@@ -110,6 +111,7 @@ function buildTemplateContent(templateRows, data, url, image_id) {
             url
           );
         }
+      }
         break;
       case "FOOTER":
         templateContent.footer = value;
