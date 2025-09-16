@@ -70,7 +70,7 @@ function getMappedValue(field, data, url) {
     case "Total price":
       return String(data.total_price || "00");
     case "Custom Link":
-      return String(url) || "0";
+      return url || "0";
     default:
       return "";
   }
@@ -119,8 +119,8 @@ function buildTemplateContent(templateRows, data, url, image_id) {
           );
           
           
-          templateContent.body = value;
-          console.log("template content body", templateContent.body.example);
+          templateContent.body = value.example;
+          console.log("template content body", templateContent.body);
         }
       }
         break;
@@ -176,6 +176,8 @@ async function sendWhatsAppMessage(
   templateContent,
   storeData
 ) {
+  console.log("template content . body", templateContent.body);
+  
   const payload = {
     phone_number_id: storeData.phone_number_id,
     customer_country_code: "91",
@@ -186,7 +188,7 @@ async function sendWhatsAppMessage(
       context: {
         template_name: templateName,
         language: "en",
-        body: templateContent.body.example || {},
+        body: templateContent.body || {},
         buttons: templateContent.buttons || [],
       },
     },
