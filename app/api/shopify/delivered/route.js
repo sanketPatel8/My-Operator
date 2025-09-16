@@ -57,7 +57,7 @@ function parseDelayToMinutes(delayValue) {
 }
 
 // 🔹 Map dynamic values (updated for order_delivered structure)
-function getMappedValue(field, data, url) {
+function getMappedValue(field, data, bestUrl) {
   switch (field) {
     case "Name":
       return data.customer_first_name || "Customer";
@@ -70,7 +70,7 @@ function getMappedValue(field, data, url) {
     case "Total price":
       return String(data.total_price || "00");
     case "Custom Link":
-      return url || "0";
+      return bestUrl || "0";
     default:
       return "";
   }
@@ -173,8 +173,23 @@ function buildTemplateContent(templateRows, data, image_id) {
   const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
+  let extractedUrls = [];
+
   for (const row of templateRows) {
     const value = JSON.parse(row.value || "{}");
+
+    if (row.component_type === "BODY" && value.example) {
+      for (const exampleValue of Object.values(value.example)) {
+        if (typeof exampleValue === "string" && exampleValue.startsWith("http")) {
+          extractedUrls.push(exampleValue);
+        }
+      }
+    }
+
+    const bestUrl = extractedUrls.find(url => url.startsWith("https://")) || 
+                 extractedUrls.find(url => url.startsWith("http://")) ||
+                 extractedUrls[0] ||
+                 null;
     
     switch (row.component_type) {
       case "HEADER":
@@ -193,27 +208,14 @@ function buildTemplateContent(templateRows, data, image_id) {
       case "BODY":
         templateContent.body = value;
 
-        // ✅ FIXED: Use different variable name and better scoping
-        let extractedUrl = null;
-        
-        if (value.example && typeof value.example === 'object') {
-          // ✅ FIXED: Use 'exampleValue' instead of 'value' to avoid conflict
-          for (const exampleValue of Object.values(value.example)) {
-            if (typeof exampleValue === "string" && exampleValue.startsWith("http")) {
-              extractedUrl = exampleValue;
-              break; // Exit loop once URL is found
-            }
-          }
-        }
+        console.log("url value", bestUrl);
 
-        console.log("url value", extractedUrl);
-
-        // Inject dynamic values using mapping_field
+        // ✅ Inject dynamic values using mapping_field with the pre-extracted URL
         if (row.mapping_field && row.variable_name) {
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
             data,
-            extractedUrl  // ✅ Use the renamed variable
+            bestUrl  // ✅ Use the pre-extracted URL
           );
         }
         break;
