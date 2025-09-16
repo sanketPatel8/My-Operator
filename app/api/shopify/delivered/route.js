@@ -188,6 +188,7 @@ async function sendWhatsAppMessage(
       context: {
         template_name: templateName,
         language: "en",
+        header: templateContent.header || {},
         body: templateContent.body || {},
         buttons: templateContent.buttons || [],
       },

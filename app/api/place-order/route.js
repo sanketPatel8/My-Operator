@@ -56,6 +56,7 @@ export async function POST(req) {
             context: {
               template_name: templateName,
               language: "en",
+              header: templateContent.header || {},
               body: templateContent.body.example || {},
               buttons: templateContent.buttons || [], 
             },
