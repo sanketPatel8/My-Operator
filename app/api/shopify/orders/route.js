@@ -429,6 +429,7 @@ export async function POST(req) {
         //     eventTitles = ["Refund Create"];
         // }
         if (
+          data?.fulfillments?.length !== 0 ||
           Array.isArray(data?.fulfillments) &&
           data?.fulfillments?.[0].shipment_status?.includes("delivered") &&
           data?.financial_status != "refunded"
