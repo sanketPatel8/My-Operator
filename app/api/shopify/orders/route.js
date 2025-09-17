@@ -448,9 +448,6 @@ export async function POST(req) {
       case "customers/create":
         eventTitles = ["Welcome Customer"];
         break;
-      case "checkouts/create":
-        eventTitles = ["Reminder 1"];
-        break;
       default:
         eventTitles = ["unknown event"];
     }
