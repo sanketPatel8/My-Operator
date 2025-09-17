@@ -20,7 +20,7 @@ function Editflow() {
   const [testPhoneNumber, setTestPhoneNumber] = useState("");
   const [testLoading, setTestLoading] = useState(false);
 
-  const [selectedDelay, setSelectedDelay] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState("customers/update");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [selectedTemplateId, setSelectedTemplateId] = useState("");
   const [categoryTemplateData, setCategoryTemplateData] = useState(null);
@@ -106,7 +106,7 @@ function Editflow() {
       if (matchedEvent) {
         setCurrentWorkflowData(matchedEvent);
         if (matchedEvent.delay) {
-          setSelectedDelay(matchedEvent.delay);
+          setSelectedEvent(matchedEvent.delay);
         }
       }
 
@@ -628,6 +628,7 @@ function Editflow() {
         </div>
       </Listbox>
 
+      {section !== "buttons" && (
       <input
         type="text"
         placeholder="Fallback value"
@@ -637,13 +638,22 @@ function Editflow() {
         }
         className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
       />
+      )}
     </div>
   );
 
-  const delayOptions = [
-    "Order life cycle",
-    "Cod order",
-    "Welcome",
+  const eventOptions = [
+    "customers/update",
+    "customers/enable",
+    "customers/disable",
+    "customer_payment_methods/create",
+    "customer_payment_methods/revoke",
+    "customer_payment_methods/update",
+    "orders/edited",
+    "draft_orders/create",
+    "disputes/create",
+    "disputes/update",
+    "tender_transactions/create"
   ];
 
   // Helper function to get template content blocks
@@ -692,7 +702,6 @@ function Editflow() {
     const allVariables = [
       ...templateVariables.header,
       ...templateVariables.body,
-      ...templateVariables.buttons,
     ];
 
     const missingFallbacks = [];
@@ -775,11 +784,12 @@ function Editflow() {
       return;
     }
 
+  
+
     // Validate fallback values for all variables
     const allVariables = [
       ...templateVariables.header,
       ...templateVariables.body,
-      ...templateVariables.buttons,
     ];
 
     const missingFallbacks = [];
@@ -809,6 +819,7 @@ function Editflow() {
       subtitle: subtitle.trim(),
       template: selectedTemplate,
       variableSettings: variableSettings,
+      selectedEvent: selectedEvent,
     };
 
     console.log("Creating workflow with data:", createData);
@@ -865,7 +876,6 @@ function Editflow() {
     const allVariables = [
       ...templateVariables.header,
       ...templateVariables.body,
-      ...templateVariables.buttons,
     ];
 
     const missingFallbacks = [];
@@ -1220,7 +1230,7 @@ function Editflow() {
   console.log(hasImage, "hasImage");
 
   const renderTitleSubtitleFields = () => (
-  <div className="flex flex-col gap-[24px] mt-[24px]">
+  <div className="flex flex-col gap-[24px] ">
     {/* Title Field */}
     <div className="flex-1">
       <label className="block text-[12px] text-[#555555] mb-[4px]">
@@ -1242,7 +1252,7 @@ function Editflow() {
     </div>
 
     {/* Subtitle Field */}
-    <div className="flex-1">
+    <div className="flex-1 mb-[24px]">
       <label className="block text-[12px] text-[#555555] mb-[4px]">
         Subtitle (Optional)
       </label>
@@ -1301,18 +1311,18 @@ function Editflow() {
                         Select Event
                       </label>
                       <Listbox
-                        value={selectedDelay}
-                        onChange={setSelectedDelay}
+                        value={selectedEvent}
+                        onChange={setSelectedEvent}
                       >
                         <div className="relative">
                           <Listbox.Button className="relative w-full cursor-default rounded-[4px] border border-[#E9E9E9] bg-white py-[10px] px-[16px] text-left text-[14px] text-[#333333] focus:outline-none">
-                            {selectedDelay}
+                            {selectedEvent}
                             <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
                               <FiChevronDown className="h-5 w-5 text-gray-400" />
                             </span>
                           </Listbox.Button>
                           <Listbox.Options className="absolute max-h-60 w-full overflow-auto rounded-[4px] bg-white py-[4px] px-[2px] text-[14px] text-[#333] shadow-lg ring-1 ring-[#E9E9E9] ring-opacity-5 focus:outline-none z-10">
-                            {delayOptions.map((delay, idx) => (
+                            {eventOptions.map((delay, idx) => (
                               <Listbox.Option
                                 key={idx}
                                 className={({ active }) =>

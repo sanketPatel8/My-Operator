@@ -46,7 +46,8 @@ export async function POST(request) {
       title,
       subtitle,
       template,
-      variableSettings
+      variableSettings,
+      selectedEvent
     } = body;
 
     // Validate required fields
@@ -137,8 +138,8 @@ export async function POST(request) {
     // 4. Insert new category_event
     const [insertResult] = await connection.execute(
       `INSERT INTO category_event 
-       (category_id, title, subtitle, template_id, template_data_id, template_variable_id, phonenumber, store_id, created_at, updated_at) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+       (category_id, title, subtitle, template_id, template_data_id, template_variable_id, phonenumber, store_id, event_trigger, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
       [
         category_id,
         title,
@@ -147,7 +148,8 @@ export async function POST(request) {
         templateDataId,
         templateVariableIds,
         phoneNumber,
-        STORE_ID
+        STORE_ID,
+        selectedEvent
       ]
     );
 

@@ -116,6 +116,31 @@ export default function ConnectShopify() {
 
       const data = await response.json();
 
+      if (response.ok) {
+        // Store exists and validation successful
+        console.log("Store validated successfully:", data);
+        
+        // Create and save the encrypted store token
+        const encryptResponse = await fetch(`/api/encrypt-store-id?shop=${data.shop}`);
+        const encryptData = await encryptResponse.json();
+        
+        if (encryptData.encryptedId) {
+          localStorage.setItem("storeToken", encryptData.encryptedId);
+          console.log("Encrypted store id saved to localStorage ✅");
+        } else {
+          console.warn("No encrypted id returned:", encryptData);
+        }
+        
+        // Route based on phone number availability
+        if (data.phonenumber) {
+          // Phone number exists, redirect to configuration page
+          router.push("/workflowlist");
+        } else {
+          // No phone number, redirect to connect WhatsApp page
+          router.push("/ConnectWhatsApp");
+        }
+      }
+
       if (response.ok && data.shop) {
         
         // Auto-populate the store name and make it readonly
@@ -180,67 +205,7 @@ export default function ConnectShopify() {
       return; // Important: return here to avoid executing tokenParam logic
     }
 
-    // Handle tokenParam flow (JWT-based authentication)
-    if (tokenParam) {
-      if (!isTokenValid) {
-        setErrorMessage("Please verify your authentication first.");
-        return;
-      }
-
-      if (!StoreName.trim()) {
-        setErrorMessage("Please enter your Shopify store URL.");
-        return;
-      }
-
-      setIsLoading(true);
-      setErrorMessage("");
-
-      // Call the validation API with store name and company ID
-      const response = await fetch("/api/company-store", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          companyId: companyId
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        // Store exists and validation successful
-        console.log("Store validated successfully:", data);
-        
-        // Create and save the encrypted store token
-        const encryptResponse = await fetch(`/api/encrypt-store-id?shop=${data.shop}`);
-        const encryptData = await encryptResponse.json();
-        
-        if (encryptData.encryptedId) {
-          localStorage.setItem("storeToken", encryptData.encryptedId);
-          console.log("Encrypted store id saved to localStorage ✅");
-        } else {
-          console.warn("No encrypted id returned:", encryptData);
-        }
-        
-        // Route based on phone number availability
-        if (data.phonenumber) {
-          // Phone number exists, redirect to configuration page
-          router.push("/ConfigurationForm");
-        } else {
-          // No phone number, redirect to connect WhatsApp page
-          router.push("/ConnectWhatsApp");
-        }
-      } else if (response.status === 404 && data.redirectUrl) {
-        // Company not found during connect store, redirect to the provided URL
-        console.log("Company not found during store connection, redirecting to:", data.redirectUrl);
-        window.location.href = data.redirectUrl;
-        return;
-      } else {
-        // Handle other error cases
-        setErrorMessage(data.message || "An error occurred while connecting the store.");
-      }
-    }
+    
     
   } catch (error) {
     console.error("Error validating store:", error);
