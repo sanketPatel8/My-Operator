@@ -25,6 +25,7 @@ export default function WorkflowList() {
   
 
   const [workflows, setWorkflows] = useState([]);
+  const [customWorkflowCount, setCustomWorkflowCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error1, setError] = useState(null);
   const [loadingToggles, setLoadingToggles] = useState([]);
@@ -87,8 +88,15 @@ export default function WorkflowList() {
 
         console.log("✅ Updated workflow data:", updatedData);
 
+        
         if (updatedData.success) {
           setWorkflows(updatedData.categories);
+          
+          // Count custom workflows (category_id = 61)
+          const customWorkflows = updatedData.categories.find(cat => cat.category_id === 61);
+          const customCount = customWorkflows ? customWorkflows.events.length : 0;
+          setCustomWorkflowCount(customCount);
+          
           workflowsFetched.current = true;
           setFetched(true);
           hasFetched.current = true;
@@ -309,44 +317,32 @@ export default function WorkflowList() {
 const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 const [selectedReminderForDelete, setSelectedReminderForDelete] = useState(null);
 
-// Replace your existing handleDeleteFlow function with this enhanced version:
-const handleDeleteFlow = (reminder) => {
-  console.log("Opening delete modal for reminder:", reminder);
-  setSelectedReminderForDelete(reminder);
-  setDeleteModalOpen(true);
-};
-
-// Add these new functions for handling different delete types:
-const handleDeleteWorkflow = async (reminder) => {
-  const storeToken = localStorage.getItem("storeToken");
+const handleDeleteFlow = async (reminder) => {
+  console.log("Delete flow for reminder:", reminder);
   
   if (!reminder.category_event_id) {
-    console.error('No category_event_id found for deletion');
+    error('Unable to delete: Missing workflow identifier');
     return;
   }
 
-  // Final confirmation for workflow deletion
-  const confirmed = window.confirm(
-    `Are you sure you want to permanently delete the custom workflow "${reminder.title}"?\n\nThis action cannot be undone.`
-  );
+  // Enhanced confirmation dialog
+  const confirmMessage = `Are you sure you want to delete "${reminder.title}"?\n\nThis action cannot be undone and will remove:\n• The workflow configuration\n• All template mappings\n• Variable settings\n\nClick "DELETE" to confirm:`;
   
-  if (!confirmed) {
-    setDeleteModalOpen(false);
-    return;
-  }
+  
+
+  const storeToken = localStorage.getItem("storeToken");
 
   try {
     setDeleteLoading(reminder.category_event_id);
     
-    const response = await fetch('/api/category', {
+    const response = await fetch('/api/custom-workflow', {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         storeToken: storeToken,
-        category_event_id: reminder.category_event_id,
-        deleteType: 'workflow' // Delete entire workflow
+        category_event_id: reminder.category_event_id
       })
     });
 
@@ -355,7 +351,7 @@ const handleDeleteWorkflow = async (reminder) => {
     if (result.success) {
       console.log('✅ Workflow deleted successfully');
       
-      // Remove the entire workflow from state
+      // Update the local state - remove the deleted workflow
       setWorkflows((prev) =>
         prev.map((workflow) => {
           if (workflow.category_id === reminder.category_id) {
@@ -369,96 +365,27 @@ const handleDeleteWorkflow = async (reminder) => {
           return workflow;
         })
       );
+
+      if (reminder.category_id === 61) {
+        setCustomWorkflowCount(prev => prev - 1);
+      }
       
-      success(`Custom workflow "${reminder.title}" deleted successfully!`);
-      setDeleteModalOpen(false);
+      success(`Workflow "${reminder.title}" deleted successfully!`);
       
     } else {
-      console.error('❌ Failed to delete workflow:', result.message);
-      error(`Failed to delete workflow: ${result.message}`);
+      throw new Error(result.message || 'Failed to delete workflow');
     }
   } catch (error) {
     console.error('❌ Error deleting workflow:', error);
-    error('An error occurred while deleting the workflow. Please try again.');
+    error(`Failed to delete workflow: ${error.message}`);
   } finally {
     setDeleteLoading(null);
   }
 };
 
-const handleDeleteTemplate = async (reminder) => {
-  const storeToken = localStorage.getItem("storeToken");
-  
-  if (!reminder.category_event_id) {
-    console.error('No category_event_id found for template cleanup');
-    return;
-  }
 
-  // Confirmation for template cleanup
-  const confirmed = window.confirm(
-    `Are you sure you want to clean template data for "${reminder.title}"?\n\nThis will remove template configurations but keep the workflow event.`
-  );
-  
-  if (!confirmed) {
-    setDeleteModalOpen(false);
-    return;
-  }
 
-  try {
-    setDeleteLoading(reminder.category_event_id);
-    
-    const response = await fetch('/api/category', {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        storeToken: storeToken,
-        category_event_id: reminder.category_event_id,
-        deleteType: 'template' // Clean template data only
-      })
-    });
 
-    const result = await response.json();
-
-    if (result.success) {
-      console.log('✅ Template data cleaned successfully');
-      
-      // Update the local state to reflect template data cleanup
-      setWorkflows((prev) =>
-        prev.map((workflow) => {
-          if (workflow.category_id === reminder.category_id) {
-            return {
-              ...workflow,
-              events: workflow.events.map((event) =>
-                event.category_event_id === reminder.category_event_id
-                  ? {
-                      ...event,
-                      template_id: null,
-                      template_data_id: null,
-                      template_variable_id: null
-                    }
-                  : event
-              )
-            };
-          }
-          return workflow;
-        })
-      );
-      
-      success('Template data cleaned successfully!');
-      setDeleteModalOpen(false);
-      
-    } else {
-      console.error('❌ Failed to clean template data:', result.message);
-      error(`Failed to clean template data: ${result.message}`);
-    }
-  } catch (error) {
-    console.error('❌ Error cleaning template data:', error);
-    error('An error occurred while cleaning template data. Please try again.');
-  } finally {
-    setDeleteLoading(null);
-  }
-};
 
 // Add this before the closing </div> of your main component:
 
@@ -599,7 +526,9 @@ const closePreviewPopup = () => {
       icon: "/assets/settings2.svg",
       hasButton: true,
       buttonText: "Create flow",
-      onClickButton: () => router.push("/createflow")
+      onClickButton: customWorkflowCount >= 3 
+        ? () => error('Maximum 3 custom workflows allowed. Please delete an existing workflow to create a new one.')
+        : () => router.push("/createflow")
     }
   ];
 
@@ -689,6 +618,8 @@ const closePreviewPopup = () => {
               const workflowData = workflows.find(w => 
                 w.categoryName === config.name
               );
+              console.log("workflows:::", workflows);
+              
               
               // Use database data if available, otherwise fallback to empty array
               const reminders = workflowData 
@@ -725,20 +656,7 @@ const closePreviewPopup = () => {
               );
             })}
           </div>
-          {/* Custom Delete Modal */}
-          {deleteModalOpen && selectedReminderForDelete && (
-            <CustomWorkflowDeleteModal
-              isOpen={deleteModalOpen}
-              onClose={() => {
-                setDeleteModalOpen(false);
-                setSelectedReminderForDelete(null);
-              }}
-              reminder={selectedReminderForDelete}
-              onDeleteWorkflow={handleDeleteWorkflow}
-              onDeleteTemplate={handleDeleteTemplate}
-              deleteLoading={deleteLoading}
-            />
-          )}
+          
         </main>
       </div>
       <ChatPreviewPopup

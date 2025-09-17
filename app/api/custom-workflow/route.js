@@ -36,11 +36,13 @@ export async function OPTIONS() {
 export async function POST(request) {
   let connection;
 
+  
+      const category_id = 61;
+
   try {
     const body = await request.json();
     const { 
       storeToken,
-      category_id,
       title,
       subtitle,
       template,
@@ -67,11 +69,31 @@ export async function POST(request) {
     }
 
     connection = await pool.getConnection();
+    const [countResult] = await connection.execute(
+      'SELECT COUNT(*) as count FROM category_event WHERE category_id = 61 AND store_id = ?',
+      [STORE_ID]
+    );
+
+    const currentCount = countResult[0].count;
+
+    if (currentCount >= 3) {
+      connection.release(); // Don't forget to release the connection
+      const headers = new Headers();
+      setCORSHeaders(headers);
+      
+      return new Response(JSON.stringify({
+        success: false,
+        message: 'Maximum 3 custom workflows allowed per store'
+      }), {
+        status: 400,
+        headers
+      });
+    }
     await connection.beginTransaction();
 
     // 1. Get phone number from stores table
     const [storeResult] = await connection.execute(
-      'SELECT phonenumber FROM stores WHERE store_id = ?',
+      'SELECT phonenumber FROM stores WHERE id = ?',
       [STORE_ID]
     );
 
@@ -95,7 +117,7 @@ export async function POST(request) {
 
     // 3. Get template_data_id and template_variable_id
     const [templateDataResult] = await connection.execute(
-      'SELECT template_data_id, template_variable_id FROM template_data WHERE template_id = ?',
+      'SELECT template_data_id FROM template_data WHERE template_id = ?',
       [templateId]
     );
 
@@ -104,7 +126,13 @@ export async function POST(request) {
     }
 
     const templateDataId = templateDataResult[0].template_data_id;
-    const templateVariableId = templateDataResult[0].template_variable_id;
+
+    const [templateVariableResult] = await connection.execute(
+      'SELECT template_variable_id FROM template_variable WHERE template_data_id = ?',
+      [templateDataId]
+    );
+
+    const templateVariableIds = templateVariableResult.map(row => row.template_variable_id).join(',');
 
     // 4. Insert new category_event
     const [insertResult] = await connection.execute(
@@ -117,7 +145,7 @@ export async function POST(request) {
         subtitle || null,
         templateId,
         templateDataId,
-        templateVariableId,
+        templateVariableIds,
         phoneNumber,
         STORE_ID
       ]
@@ -126,8 +154,8 @@ export async function POST(request) {
     const categoryEventId = insertResult.insertId;
 
     // 5. Update template variables with mapping fields and fallback values
-    if (variableSettings && templateVariableId) {
-      const variableIds = templateVariableId.toString().split(',');
+    if (variableSettings && templateVariableIds) {
+      const variableIds = templateVariableIds.toString().split(',');
       
       for (const [variableName, settings] of Object.entries(variableSettings)) {
         // Find the corresponding template_variable_id for this variable
@@ -167,7 +195,7 @@ export async function POST(request) {
         template,
         template_id: templateId,
         template_data_id: templateDataId,
-        template_variable_id: templateVariableId,
+        template_variable_id: templateVariableIds,
         phonenumber: phoneNumber
       }
     }), {
@@ -191,6 +219,103 @@ export async function POST(request) {
     return new Response(JSON.stringify({
       success: false,
       message: 'Failed to create workflow',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    }), { 
+      status: 500,
+      headers 
+    });
+  } finally {
+    if (connection) {
+      connection.release();
+    }
+  }
+}
+
+export async function DELETE(request) {
+  let connection;
+  
+  try {
+    const body = await request.json();
+    const { storeToken, category_event_id } = body;
+
+    // Validate required fields
+    if (!storeToken || !category_event_id) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Store token and category_event_id are required' 
+      }, { status: 400 });
+    }
+
+    // Decrypt the token to get the store ID
+    let STORE_ID;
+    try {
+      STORE_ID = decrypt(storeToken);
+    } catch (error) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'Invalid store token' 
+      }, { status: 401 });
+    }
+
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Verify the workflow belongs to this store
+    const [verifyResult] = await connection.execute(
+      'SELECT category_event_id FROM category_event WHERE category_event_id = ? AND store_id = ?',
+      [category_event_id, STORE_ID]
+    );
+
+    if (verifyResult.length === 0) {
+      throw new Error('Workflow not found or unauthorized');
+    }
+
+    // Delete the workflow - CASCADE DELETE or manual cleanup
+    // Option 1: Delete only the category_event (if you want to keep template data)
+    await connection.execute(
+      'DELETE FROM category_event WHERE category_event_id = ? AND store_id = ?',
+      [category_event_id, STORE_ID]
+    );
+
+    
+    /*
+    await connection.execute(
+      'DELETE FROM template_variable WHERE template_variable_id IN (SELECT template_variable_id FROM category_event WHERE category_event_id = ?)',
+      [category_event_id]
+    );
+    */
+
+    await connection.commit();
+
+    const headers = new Headers();
+    setCORSHeaders(headers);
+
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Workflow deleted successfully',
+      category_event_id: category_event_id
+    }), {
+      status: 200,
+      headers
+    });
+
+  } catch (error) {
+    if (connection) {
+      try {
+        await connection.rollback();
+      } catch (rollbackError) {
+        console.error('Rollback error:', rollbackError);
+      }
+    }
+    
+    console.error('DELETE /api/category error:', error);
+    
+    const headers = new Headers();
+    setCORSHeaders(headers);
+
+    return new Response(JSON.stringify({
+      success: false,
+      message: 'Failed to delete workflow',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     }), { 
       status: 500,

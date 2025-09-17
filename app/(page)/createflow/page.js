@@ -804,8 +804,7 @@ function Editflow() {
     const storeToken = localStorage.getItem("storeToken");
 
     const createData = {
-      storeToken: storeToken,
-      category_id: currentWorkflowData?.category_id || 1, // Use existing or default category
+      storeToken: storeToken, // Use existing or default category
       title: title.trim(),
       subtitle: subtitle.trim(),
       template: selectedTemplate,

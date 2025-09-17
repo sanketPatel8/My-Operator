@@ -23,7 +23,8 @@ export default function DropDown({
   MoreIcon,
   buttonText,
   onClickButton,
-  workflowId = '', // Needed for generating toggleKey
+  workflowId = '',
+   
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRefs = useRef({});
@@ -45,6 +46,9 @@ export default function DropDown({
     onDeleteFlow(reminder);
     setOpenMenuId(null);
   };
+
+  // Check if this is a custom workflow to show delete instead of edit
+  const isCustomWorkflow = title === "Custom workflow";
 
   return (
     <div className="font-source-sans border border-[#E9E9E9] rounded-[4px] mx-[10px] md:mx-[32px] bg-[#FFFFFF]">
@@ -247,13 +251,23 @@ export default function DropDown({
                         {openMenuId === reminder.id &&
                           deleteLoading !== reminder.category_event_id && (
                             <div className="absolute right-0 mt-[8px] w-[140px] bg-white border border-[#E9E9E9] shadow-md rounded-[6px] z-10 py-[6px]">
-                              <button
-                                type="button"
-                                className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:bg-[#F5F5F5] space-x-[8px]"
-                                onClick={() => handleEditFlow(reminder)}
-                              >
-                                <CiEdit size={17} /> <span>Edit flow</span>
-                              </button>
+                              {isCustomWorkflow ? (
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:bg-[#F5F5F5] space-x-[8px]"
+                                  onClick={() => handleDeleteFlow(reminder)}
+                                >
+                                  <MdDeleteOutline size={17} /> <span>Delete flow</span>
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:bg-[#F5F5F5] space-x-[8px]"
+                                  onClick={() => handleEditFlow(reminder)}
+                                >
+                                  <CiEdit size={17} /> <span>Edit flow</span>
+                                </button>
+                              )}
                             </div>
                           )}
                       </div>
