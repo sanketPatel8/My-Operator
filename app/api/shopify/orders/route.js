@@ -434,7 +434,7 @@ export async function POST(req) {
           data?.financial_status != "refunded"
         ) {
           eventTitles = ["Order Delivered", "Order Shipped"];
-        } else if (data?.financial_status == "refunded" && data.fulfillment_status?.includes("fulfilled")) {
+        } else if (data?.financial_status == "refunded") {
           eventTitles = ["Refund Create"];
         }
         break;
