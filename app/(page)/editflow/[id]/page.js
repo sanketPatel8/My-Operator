@@ -706,6 +706,7 @@ function Editflow() {
 
       if (response.ok && result.success) {
         success("Workflow updated successfully!");
+        router.push("/workflowlist")
         setLoading1(false);
       } else {
         throw new Error(result.message || "Failed to update workflow");
@@ -1558,14 +1559,14 @@ function Editflow() {
                     <div className="flex justify-between items-center mt-[32px] mb-[20px]">
                       {/* Note aligned to start */}
                       <p className="text-red-600 text-[12px]">
-  {note.split('\n').map((line, index) => (
-  <>
-    {line}
-    <br />
-  </>
-))}
+                        {note.split('\n').map((line, index) => (
+                        <>
+                          {line}
+                          <br />
+                        </>
+                      ))}
 
-</p>
+                      </p>
 
 
 
