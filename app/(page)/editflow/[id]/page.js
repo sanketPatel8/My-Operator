@@ -591,7 +591,6 @@ function Editflow() {
       const allVariables = [
         ...templateVariables.header,
         ...templateVariables.body,
-        ...templateVariables.buttons,
       ];
 
       const missingFallbacks = [];
@@ -771,6 +770,7 @@ function Editflow() {
         </div>
       </Listbox>
 
+      {section !== "buttons" && (
       <input
         type="text"
         placeholder="Fallback value"
@@ -780,6 +780,7 @@ function Editflow() {
         }
         className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
       />
+      )}
     </div>
   );
 
@@ -838,7 +839,6 @@ function Editflow() {
     const allVariables = [
       ...templateVariables.header,
       ...templateVariables.body,
-      ...templateVariables.buttons,
     ];
 
     const missingFallbacks = [];
@@ -924,7 +924,6 @@ function Editflow() {
     const allVariables = [
       ...templateVariables.header,
       ...templateVariables.body,
-      ...templateVariables.buttons,
     ];
 
     const missingFallbacks = [];

@@ -178,26 +178,26 @@ function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues,
               if (button.format === "DYNAMIC") {
                 const key = Object.keys(button.example)[0];
 
-                // Replace all {{...}} placeholders in the URL
-                const replacedUrl = button.url.replace(/{{(.*?)}}/g, (match, p1) => {
-                  const lowerKey = p1.toLowerCase();
-                  if (lowerKey === 'approve') {
-                    return userFallbackValues.Approve;
-                  } else if (lowerKey === 'cancel') {
-                    return userFallbackValues.Cancel;
-                  } else {
-                    return lastFallbackValue; // default fallback
-                  }
-                });
+                // // Replace all {{...}} placeholders in the URL
+                // const replacedUrl = button.url.replace(/{{(.*?)}}/g, (match, p1) => {
+                //   const lowerKey = p1.toLowerCase();
+                //   if (lowerKey === 'approve') {
+                //     return userFallbackValues.Approve;
+                //   } else if (lowerKey === 'cancel') {
+                //     return userFallbackValues.Cancel;
+                //   } else {
+                //     return lastFallbackValue; // default fallback
+                //   }
+                // });
 
                 return {
                   index: button.index,
-                  [key]: replacedUrl
+                  [key]: "https://www.myoperator.com"
                 };
               } else {
                 return {
                   index: button.index,
-                  url: button.url
+                  url: "https://www.myoperator.com"
                 };
               }
             });
