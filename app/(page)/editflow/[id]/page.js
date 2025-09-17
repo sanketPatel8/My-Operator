@@ -1374,12 +1374,12 @@ function Editflow() {
                   </p>
                 </div>
               </div>
-              <button
+              {/* <button
                 onClick={openModal}
                 className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
               >
                 Add New Template
-              </button>
+              </button> */}
             </div>
 
             {/* Content Section */}
