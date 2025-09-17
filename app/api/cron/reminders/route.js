@@ -118,8 +118,8 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
         if (row.mapping_field && row.variable_name) {
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
-            customerData,
-            data
+            data,
+            customerData
           );
         }
         break;

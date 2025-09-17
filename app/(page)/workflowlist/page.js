@@ -166,8 +166,87 @@ export default function WorkflowList() {
   const currentStatus = currentReminder?.status ?? 0;
   const newStatus = currentStatus === 1 ? 0 : 1;
 
-  // Check if we're turning the toggle ON (0 to 1) - this is when we want to redirect
-  const shouldRedirect = currentStatus === 0 && newStatus === 1;
+  // 🚀 IMMEDIATE REDIRECT: If current status is 0, update to 1 and redirect
+  if (currentStatus === 0) {
+    // First, optimistically update UI to show toggle as ON
+    setWorkflows((prev) =>
+      prev.map((workflow) => {
+        if (workflow.category_id === workflowId) {
+          return {
+            ...workflow,
+            events: workflow.events.map((event) => {
+              if (event.category_event_id === reminderId) {
+                return { ...event, status: 1 };
+              }
+              return event;
+            })
+          };
+        }
+        return workflow;
+      })
+    );
+
+    // Make API call to update status to 1
+    const updateStatusPromise = fetch('/api/category', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storeToken: storeToken,
+        category_event_id: reminderId,
+        status: 1,
+      }),
+    }).catch(error => {
+      console.error('❌ Error updating toggle status:', error.message);
+      // Revert UI on error
+      setWorkflows((prev) =>
+        prev.map((workflow) => {
+          if (workflow.category_id === workflowId) {
+            return {
+              ...workflow,
+              events: workflow.events.map((event) => {
+                if (event.category_event_id === reminderId) {
+                  return { ...event, status: 0 };
+                }
+                return event;
+              })
+            };
+          }
+          return workflow;
+        })
+      );
+    });
+
+    // Create reminder object for navigation
+    const reminderForNavigation = {
+      category_id: workflowId,
+      categoryName: currentWorkflow.categoryName || 'Unknown Category',
+      category_event_id: reminderId,
+      title: currentReminder.title || 'Untitled Event',
+      text: currentReminder.subtitle || '',
+      footerText: currentReminder.delay ? `Send after ${currentReminder.delay}` : 'Send after 1 hour'
+    };
+
+    // Navigate to edit flow immediately
+    const delayText = reminderForNavigation.footerText || '';
+    const cleanDelay = delayText.replace('Send after ', '').trim() || '1 hour';
+    
+    const queryParams = new URLSearchParams({
+      category_id: reminderForNavigation.category_id,
+      categoryName: reminderForNavigation.categoryName,
+      category_event_id: String(reminderForNavigation.category_event_id),
+      eventTitle: reminderForNavigation.title,
+      eventSubtitle: reminderForNavigation.text,
+      eventDelay: cleanDelay
+    });
+    
+    console.log("🔄 Redirecting immediately to edit flow:", queryParams.get("category_event_id"));
+    
+    // Redirect immediately - no delay
+    router.push(`/editflow/${queryParams.get("category_event_id")}`);
+    
+    // API call continues in background
+    return;
+  }
 
   // Check if this is "COD Order Confirmation or Cancel" being turned off
   const isCodConfirmBeingTurnedOff = 
@@ -187,7 +266,7 @@ export default function WorkflowList() {
     }
   }
 
-  // 🚀 OPTIMISTIC UPDATE: Update UI immediately
+  // 🚀 OPTIMISTIC UPDATE: Update UI immediately (for turning OFF only)
   setWorkflows((prev) =>
     prev.map((workflow) => {
       if (workflow.category_id === workflowId) {
@@ -255,44 +334,11 @@ export default function WorkflowList() {
     if (isCodConfirmBeingTurnedOff && additionalUpdates.length > 0) {
       success('COD Order Confirmation disabled. Convert COD to Paid has been automatically disabled as well.');
     }
-
-    // 🔄 REDIRECT TO EDIT FLOW if toggle was turned ON (0 to 1)
-    if (shouldRedirect) {
-      // Create reminder object for navigation (similar to handleEditFlow)
-      const reminderForNavigation = {
-        category_id: workflowId,
-        categoryName: currentWorkflow.categoryName || 'Unknown Category',
-        category_event_id: reminderId,
-        title: currentReminder.title || 'Untitled Event',
-        text: currentReminder.subtitle || '',
-        footerText: currentReminder.delay ? `Send after ${currentReminder.delay}` : 'Send after 1 hour'
-      };
-
-      // Navigate to edit flow
-      const delayText = reminderForNavigation.footerText || '';
-      const cleanDelay = delayText.replace('Send after ', '').trim() || '1 hour';
-      
-      const queryParams = new URLSearchParams({
-        category_id: reminderForNavigation.category_id,
-        categoryName: reminderForNavigation.categoryName,
-        category_event_id: String(reminderForNavigation.category_event_id),
-        eventTitle: reminderForNavigation.title,
-        eventSubtitle: reminderForNavigation.text,
-        eventDelay: cleanDelay
-      });
-      
-      console.log("🔄 Redirecting to edit flow after toggle ON:", queryParams.get("category_event_id"));
-      
-      // Add a small delay to ensure the UI update is visible before redirect
-      setTimeout(() => {
-        router.push(`/editflow/${queryParams.get("category_event_id")}`);
-      }, 500);
-    }
     
   } catch (error) {
     console.error('❌ Error updating toggle status:', error.message);
     
-    // 🔄 ROLLBACK: Revert the optimistic update on error
+    // 🔄 ROLLBACK: Revert the optimistic update on error (only for turning OFF)
     setWorkflows((prev) =>
       prev.map((workflow) => {
         if (workflow.category_id === workflowId) {
