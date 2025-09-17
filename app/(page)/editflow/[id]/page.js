@@ -10,11 +10,15 @@ import { Listbox } from "@headlessui/react";
 import { useToastContext } from "@/component/Toast";
 
 import { POST } from "@/utils/api";
+import { useModal } from "@/hook/useModel";
+import CustomModal from "@/component/CustomModal";
+import React from "react";
 
 function Editflow() {
   const router = useRouter();
   const params = useParams();
   const { success, error } = useToastContext();
+  const { isOpen, openModal, closeModal } = useModal();
 
   const [showTestPopup, setShowTestPopup] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState("");
@@ -46,13 +50,51 @@ function Editflow() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const [currentWorkflowData, setCurrentWorkflowData] = useState(null);
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
-  const [mappingFieldOptions, setMappingFieldOptions] = useState([]); 
+  const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
+  const [customTemplateData, setCustomTemplateData] = useState({
+    templateName: "",
+    body: "",
+    buttonText: "",
+    buttonText2: "", // if second button is conditionally shown
+  });
+
+  const [variables, setVariables] = useState([]);
+  const [fallbacks, setFallbacks] = useState({});
+
+  useEffect(() => {
+    const regex = /{{(.*?)}}/g;
+    const matches = [...customTemplateData.body.matchAll(regex)].map((m) =>
+      m[1].trim()
+    );
+
+    setVariables(matches);
+
+    // Ensure fallbacks exist for all variables
+    const newFallbacks = { ...fallbacks };
+    matches.forEach((v) => {
+      if (!(v in newFallbacks)) {
+        newFallbacks[v] = "";
+      }
+    });
+    setFallbacks(newFallbacks);
+  }, [customTemplateData.body]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setCustomTemplateData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleFallbackChange = (variable, value) => {
+    setFallbacks({ ...fallbacks, [variable]: value });
+  };
 
   const note = `Note :- If the topic is COD Order Confirmation or Cancel, use this dynamic link format: 
   ${process.env.NEXT_PUBLIC_HOST}order-conformation?{{approve or cancel}} 
   If the topic is anything else, use this static redirect format: 
   ${process.env.NEXT_PUBLIC_HOST}redirect?url={{link}}`;
-
 
   // ✅ Add helper at top of file
   const normalizeTemplateData = (data) => {
@@ -238,7 +280,11 @@ function Editflow() {
       "Phone number",
       "Service number",
       "Order id",
-      "Quantity","Total price", "Payment Url", "Abandoned Cart Url", "Custom Link"
+      "Quantity",
+      "Total price",
+      "Payment Url",
+      "Abandoned Cart Url",
+      "Custom Link",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -292,11 +338,23 @@ function Editflow() {
 
     // Extract dropdown options from mappingVariables
     const mappingOptions = mappingVariables
-      .map(variable => variable.mapping_field)
-      .filter(field => field && field.trim() !== '');
-    
-    const defaultOptions = ["Name", "Phone number", "Service number", "Order id", "Quantity","Total price", "Payment Url", "Abandoned Cart Url", "Custom Link"];
-    const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
+      .map((variable) => variable.mapping_field)
+      .filter((field) => field && field.trim() !== "");
+
+    const defaultOptions = [
+      "Name",
+      "Phone number",
+      "Service number",
+      "Order id",
+      "Quantity",
+      "Total price",
+      "Payment Url",
+      "Abandoned Cart Url",
+      "Custom Link",
+    ];
+    const combinedOptions = [
+      ...new Set([...defaultOptions, ...mappingOptions]),
+    ];
     setMappingFieldOptions(combinedOptions);
 
     // Process template content
@@ -705,7 +763,7 @@ function Editflow() {
 
       if (response.ok && result.success) {
         success("Workflow updated successfully!");
-        router.push("/workflowlist")
+        router.push("/workflowlist");
         setLoading1(false);
       } else {
         throw new Error(result.message || "Failed to update workflow");
@@ -771,15 +829,15 @@ function Editflow() {
       </Listbox>
 
       {section !== "buttons" && (
-      <input
-        type="text"
-        placeholder="Fallback value"
-        value={variableSettings[variable]?.fallback || ""}
-        onChange={(e) =>
-          updateVariableSetting(variable, "fallback", e.target.value)
-        }
-        className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-      />
+        <input
+          type="text"
+          placeholder="Fallback value"
+          value={variableSettings[variable]?.fallback || ""}
+          onChange={(e) =>
+            updateVariableSetting(variable, "fallback", e.target.value)
+          }
+          className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
+        />
       )}
     </div>
   );
@@ -828,8 +886,6 @@ function Editflow() {
       return;
     }
 
-
-
     if (!currentWorkflowData?.category_event_id) {
       error("Category event ID not found");
       return;
@@ -874,7 +930,7 @@ function Editflow() {
         fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
         variableSettings: variableSettings,
         selectedTemplate: selectedTemplate,
-        storeToken: storeToken// ✅ Send complete variable settings
+        storeToken: storeToken, // ✅ Send complete variable settings
       };
 
       console.log("Sending test message with payload:", testPayload);
@@ -1265,17 +1321,29 @@ function Editflow() {
     }
   };
 
- 
-
   const variable = categoryTemplateData?.data[0]?.variables[0];
 
   const hasImage =
     variable?.tamplate_image && variable?.tamplate_image.trim() !== "";
 
-  
-
   console.log(categoryTemplateData, "categoryTemplateData");
   console.log(hasImage, "hasImage");
+
+  const SaveTemplate = () => {
+    alert("Template saved successfully!");
+    closeModal();
+  };
+  const CancelTemplate = () => {
+    setFallbacks({});
+    setVariables([]);
+    setCustomTemplateData({
+      templateName: "",
+      body: "",
+      buttonText: "",
+      buttonText2: "", // if second button is conditionally shown
+    });
+    closeModal();
+  };
 
   return (
     <>
@@ -1285,25 +1353,33 @@ function Editflow() {
           <Sidebar active={activeTab} onChange={setActiveTab} />
           <main className="flex-1 bg-white border-l border-[#E9E9E9]">
             {/* Top Bar */}
-            <div className="py-[24px] pl-[32px] border-b border-[#E9E9E9] flex items-center gap-[12px]">
-              <Image
-                src="/assets/back.svg"
-                alt="back"
-                height={24}
-                width={24}
-                className="max-h-[24px] max-w-[24px] cursor-pointer"
-                onClick={() => router.push("/workflowlist")}
-              />
-              <div>
-                <h2 className="text-[16px] font-semibold text-[#353535]">
-                  Edit workflow
-                </h2>
+            <div className="flex items-center justify-between border-b border-[#E9E9E9] px-[32px] py-[24px]">
+              <div className="flex items-center gap-[12px]">
+                <Image
+                  src="/assets/back.svg"
+                  alt="back"
+                  height={24}
+                  width={24}
+                  className="max-h-[24px] max-w-[24px] cursor-pointer"
+                  onClick={() => router.push("/workflowlist")}
+                />
+                <div>
+                  <h2 className="text-[16px] font-semibold text-[#353535]">
+                    Edit workflow
+                  </h2>
+                </div>
+                <div>
+                  <p className="text-[16px] font-semibold text-[#353535]">
+                    ({currentWorkflowData?.title})
+                  </p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-[16px] font-semibold text-[#353535]">
-                  {currentWorkflowData?.title}
-                </h2>
-              </div>
+              <button
+                onClick={openModal}
+                className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
+              >
+                Add New Template
+              </button>
             </div>
 
             {/* Content Section */}
@@ -1558,19 +1634,13 @@ function Editflow() {
                     <div className="flex justify-between items-center mt-[32px] mb-[20px]">
                       {/* Note aligned to start */}
                       <p className="text-red-600 text-[12px]">
-                        {note.split('\n').map((line, index) => (
-                        <>
-                          {line}
-                          <br />
-                        </>
-                      ))}
-
+                        {note.split("\n").map((line, index) => (
+                          <React.Fragment key={index}>
+                            {line}
+                            <br />
+                          </React.Fragment>
+                        ))}
                       </p>
-
-
-
-
-
 
                       {/* Buttons aligned to end */}
                       <div className="flex space-x-[16px]">
@@ -1598,7 +1668,6 @@ function Editflow() {
                         </button>
                       </div>
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -1653,7 +1722,7 @@ function Editflow() {
                         );
                         const contentBlocks = getTemplateContentBlocks();
                         console.log("content block:::", contentBlocks);
-                        
+
                         if (templateMessage) {
                           return (
                             <div>
@@ -1674,9 +1743,9 @@ function Editflow() {
                         }
 
                         // If no templateMessage, try to get it directly from content blocks
-                        
+
                         console.log("content block:::", contentBlocks);
-                        
+
                         const bodyBlock = contentBlocks.find(
                           (block) => block.type === "BODY"
                         );
@@ -1779,6 +1848,135 @@ function Editflow() {
           </main>
         </div>
       </div>
+      <CustomModal
+        isOpen={isOpen}
+        closeModal={closeModal}
+        title="Add New Template"
+      >
+        <div>
+          {/* Header Section */}
+          <div className="my-3">
+            <h3 className="font-medium mb-2">Template Name </h3>
+            <div className="flex gap-4">
+              <input
+                type="text"
+                name="templateName" // ✅ important
+                value={customTemplateData.templateName}
+                onChange={handleChange}
+                placeholder="e.g. Order Confirmation Template"
+                className="w-full border rounded-md p-2 text-sm focus:outline-blue-500"
+              />
+            </div>
+          </div>
+          {/* Body */}
+          <div>
+            <div className="my-3">
+              <h3 className="font-medium mb-2">
+                Body <span className="text-red-500">*</span>
+              </h3>
+              <textarea
+                name="body"
+                value={customTemplateData.body}
+                onChange={handleChange}
+                placeholder="Hello {{name}}, Enjoy an exclusive 20% discount on your next purchase with us!"
+                className="w-full border rounded-md p-3 text-sm focus:outline-blue-500"
+                rows={5}
+                maxLength={1024}
+              />
+              <div className="text-right text-xs text-gray-500">
+                {customTemplateData.body.length}/1024
+              </div>
+            </div>
+
+            {/* Dynamic Variable Inputs */}
+            {variables.length > 0 && (
+              <div className="mt-4">
+                <h4 className="font-medium mb-2">
+                  Fallback Values for Variables
+                </h4>
+                {variables.map((variable) => (
+                  <div key={variable} className="mb-2">
+                    <label className="block text-sm font-medium mb-1">
+                      {variable} Fallback
+                    </label>
+                    <input
+                      type="text"
+                      value={fallbacks[variable] || ""}
+                      onChange={(e) =>
+                        handleFallbackChange(variable, e.target.value)
+                      }
+                      placeholder={`Enter fallback for ${variable}`}
+                      className="w-full border rounded-md p-2 text-sm focus:outline-blue-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Buttons Section */}
+          <div className="my-3">
+            <h3 className="font-medium mb-2">Enter Redirection button</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {/* First button */}
+              <div className="relative w-full">
+                <label className="text-xs text-gray-500 mb-2">
+                  Button Text
+                </label>
+                <input
+                  type="text"
+                  name="buttonText"
+                  value={customTemplateData.buttonText}
+                  onChange={handleChange}
+                  placeholder="e.g. Visit our website"
+                  maxLength={25}
+                  className="w-full border rounded-md p-2 pr-12 text-sm focus:outline-blue-500"
+                />
+                <div className="text-right text-xs text-gray-500">
+                  {customTemplateData.buttonText.length}/25
+                </div>
+              </div>
+
+              {/* Conditionally render second button */}
+              {currentWorkflowData?.title ===
+                "COD Order Confirmation or Cancel" && (
+                <div className="relative w-full">
+                  <label className="text-xs text-gray-500 mb-2">
+                    Button Text
+                  </label>
+                  <input
+                    type="text"
+                    name="buttonText2"
+                    value={customTemplateData.buttonText2}
+                    onChange={handleChange}
+                    placeholder="e.g. Visit our website"
+                    maxLength={25}
+                    className="w-full border rounded-md p-2 pr-12 text-sm focus:outline-blue-500"
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                    {customTemplateData.buttonText2.length}/25
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+          {/* Footer buttons */}
+          <div className="flex justify-end gap-4 mt-6">
+            <button
+              onClick={CancelTemplate}
+              className="px-[24px] py-[10px] bg-[#E9E9E9] rounded-[4px] text-black text-[14px] font-semibold hover:bg-[#E9E9E9]"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={SaveTemplate}
+              className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
+            >
+              Save Template
+            </button>
+          </div>
+        </div>
+      </CustomModal>
       {/* Test Message Popup */}
       <TestMessagePopup
         showTestPopup={showTestPopup}
