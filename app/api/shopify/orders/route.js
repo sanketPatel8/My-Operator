@@ -374,11 +374,14 @@ export async function POST(req) {
     const phoneDetails = extractPhoneDetails(data);
     if (!phoneDetails) {
       console.warn("⚠️ Skipping message send - no phone number found");
-      return NextResponse.json({
-        status: "success",
-        order: data,
-        message: "Order received but no phone number found",
-      });
+      return NextResponse.json(
+        {
+          status: "success",
+          order: data,
+          message: "Order received but no phone number found",
+        },
+        { status: 200 }
+      );
     }
 
     console.log("📞 Extracted phone details:", phoneDetails);
@@ -510,10 +513,10 @@ export async function POST(req) {
             const media = value.media_id;
             console.log("media id ", media);
             if (image_id != null) {
-            templateContent.header = { media_id: image_id };
-        } else {
-            templateContent.header = { media_id: media };
-        }
+              templateContent.header = { media_id: image_id };
+            } else {
+              templateContent.header = { media_id: media };
+            }
 
             break;
 
@@ -694,19 +697,23 @@ export async function POST(req) {
         const id = idrow.length > 0 ? idrow[0].id : null;
 
         const [templateimage] = await connection.execute(
-      'SELECT tamplate_image FROM template_variable WHERE template_data_id = ?',
-      [template_data_id]
-    );
+          "SELECT tamplate_image FROM template_variable WHERE template_data_id = ?",
+          [template_data_id]
+        );
 
-    console.log("template image row", templateimage);
-    
+        console.log("template image row", templateimage);
 
-    const image_id = templateimage[0]?.tamplate_image;
+        const image_id = templateimage[0]?.tamplate_image;
 
-    console.log("First template image:", image_id);
+        console.log("First template image:", image_id);
 
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data, id, image_id);
+        const templateContent = buildTemplateContent(
+          templateRows,
+          data,
+          id,
+          image_id
+        );
 
         if (!templateContent) {
           console.log(
@@ -780,28 +787,37 @@ export async function POST(req) {
     const totalAttempts = messageResults.length;
 
     if (successCount === 0) {
-      return NextResponse.json({
-        status: "partial_success",
-        order: data,
-        message: "Order received but failed to send any WhatsApp messages",
-        messageResults: messageResults,
-      });
+      return NextResponse.json(
+        {
+          status: "partial_success",
+          order: data,
+          message: "Order received but failed to send any WhatsApp messages",
+          messageResults: messageResults,
+        },
+        { status: 200 }
+      );
     } else if (successCount === totalAttempts) {
-      return NextResponse.json({
-        status: "success",
-        order: data,
-        message: `Order received and ${successCount} WhatsApp message(s) sent successfully`,
-        sentTemplates: sentMessages,
-        messageResults: messageResults,
-      });
+      return NextResponse.json(
+        {
+          status: "success",
+          order: data,
+          message: `Order received and ${successCount} WhatsApp message(s) sent successfully`,
+          sentTemplates: sentMessages,
+          messageResults: messageResults,
+        },
+        { status: 200 }
+      );
     } else {
-      return NextResponse.json({
-        status: "partial_success",
-        order: data,
-        message: `Order received. ${successCount} of ${totalAttempts} messages sent successfully`,
-        sentTemplates: sentMessages,
-        messageResults: messageResults,
-      });
+      return NextResponse.json(
+        {
+          status: "partial_success",
+          order: data,
+          message: `Order received. ${successCount} of ${totalAttempts} messages sent successfully`,
+          sentTemplates: sentMessages,
+          messageResults: messageResults,
+        },
+        { status: 200 }
+      );
     }
   } catch (err) {
     console.error("❌ Error processing order:", err);
@@ -823,11 +839,14 @@ export async function POST(req) {
 // ✅ Handle GET (return stored orders)
 export async function GET() {
   try {
-    return NextResponse.json({
-      status: "success",
-      orders: orders,
-      total: orders.length,
-    });
+    return NextResponse.json(
+      {
+        status: "success",
+        orders: orders,
+        total: orders.length,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("❌ Error fetching orders:", error);
     return NextResponse.json(
