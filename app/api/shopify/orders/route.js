@@ -432,7 +432,6 @@ export async function POST(req) {
         if (data?.financial_status == "refunded") {
           eventTitles = ["Refund Create"];
         } else if (
-          data?.fulfillments?.length !== 0 ||
           (Array.isArray(data?.fulfillments) &&
             data?.fulfillments?.[0].shipment_status?.includes("delivered") &&
             data?.financial_status != "refunded")
