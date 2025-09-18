@@ -132,7 +132,7 @@ function ConfigureWhatsApp() {
               type="text"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder="Enter your access token"
+              placeholder="Enter your Myoperator WhatsApp API Key"
               className="mt-1 block w-full text-black border border-gray-300 rounded-md shadow-sm px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -150,7 +150,7 @@ function ConfigureWhatsApp() {
               Need help finding your Company ID?&nbsp;
               <Link
                 target="blank"
-                href="https://in.app.myoperator.com/integration/whatsapp_api"
+                href={`${process.env.NEXT_PUBLIC_BASEURL}/integration/whatsapp_api`}
                 className="text-[#4275D6] text-[14px] font-semibold underline"
               >
                 Click here

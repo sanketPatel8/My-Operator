@@ -553,8 +553,8 @@ export async function POST(req) {
                     console.log(id, "id for order confirm");
 
                     const urlMap = {
-                      approve: `confirmed=yes&order_id=${id}`,
-                      cancel: `confirmed=no&order_id=${id}`,
+                      approve: `?confirmed=yes&order_id=${id}`,
+                      cancel: `?confirmed=no&order_id=${id}`,
                     };
 
                     // Check if the template contains {{...}}
