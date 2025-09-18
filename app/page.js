@@ -138,12 +138,13 @@ export default function ConnectShopify() {
 
         // Route based on phone number availability
         if (data.phonenumber) {
-          setSecondLogin(false);
           // Phone number exists, redirect to configuration page
           router.push("/workflowlist");
+          setSecondLogin(false);
         } else {
           // No phone number, redirect to connect WhatsApp page
           router.push("/ConnectWhatsApp");
+          setSecondLogin(false);
         }
       }
 
