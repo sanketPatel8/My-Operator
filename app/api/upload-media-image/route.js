@@ -28,7 +28,7 @@ export async function POST(req) {
       formData.append("application", "template"); // Adjust key if API expects different name
 
       const uploadRes = await fetch(
-        `${process.env.NEXT_PUBLIC_STAGE_LINK}/chat/media/upload`,
+        `${process.env.NEXT_PUBLIC_BASEURL}/chat/media/upload`,
         {
           method: "POST",
           headers: {
