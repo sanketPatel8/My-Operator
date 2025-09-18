@@ -23,9 +23,9 @@ function ConfigurationForm({ searchParams }) {
   const { success, error } = useToastContext();
 
   const [formData, setFormData] = useState({
-    brandName: "Brand name here",
-    publicUrl: "https://www.arcmold3d.com/",
-    shopUrl: "https://c1jaip-y0.myshopify.com",
+    brandName: "",
+    publicUrl: "",
+    shopUrl: "",
     whatsapp: "", // Will be filled from database
   });
 

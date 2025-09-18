@@ -407,33 +407,7 @@ async function checkRemindersForAllCheckouts() {
   }
 }
 
-// 🔹 Verify cron request security
-function verifyCronRequest(request) {
-  // Check for authorization header
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
 
-  // If CRON_SECRET is set, verify it
-  if (cronSecret) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      console.error("❌ Invalid cron secret");
-      return false;
-    }
-  }
-
-  // Log request details for monitoring
-  const userAgent = request.headers.get("user-agent");
-  const cronJobHeader = request.headers.get("x-cron-job");
-
-  console.log("🔍 Cron request details:", {
-    userAgent,
-    cronJobHeader,
-    hasAuth: !!authHeader,
-    timestamp: getISTDateTimeString()
-  });
-
-  return true;
-}
 
 // 🔹 GET endpoint for cron jobs
 export async function GET(request) {
