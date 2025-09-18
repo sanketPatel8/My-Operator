@@ -140,11 +140,10 @@ export default function ConnectShopify() {
         if (data.phonenumber) {
           // Phone number exists, redirect to configuration page
           router.push("/workflowlist");
-          setSecondLogin(false);
         } else {
           // No phone number, redirect to connect WhatsApp page
           router.push("/ConnectWhatsApp");
-          setSecondLogin(false);
+          // setSecondLogin(false);
         }
       }
 
@@ -171,6 +170,8 @@ export default function ConnectShopify() {
       console.error("Error fetching company store:", error);
       // Keep field editable on error
       setIsStoreReadonly(false);
+    } finally {
+      setSecondLogin(false);
     }
   };
 
