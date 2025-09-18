@@ -706,7 +706,7 @@ function ConfigurationForm({ searchParams }) {
                 height="200px"
               >
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <h3 className="font-medium text-black text-lg mb-4">
+                  <h3 className="font-medium text-black text-md mb-4">
                     Are you sure you want to delete this app ?
                   </h3>
 
