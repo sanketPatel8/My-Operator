@@ -10,7 +10,7 @@ import { Listbox } from "@headlessui/react";
 import { useToastContext } from "@/component/Toast";
 
 import { POST } from "@/utils/api";
-import { useModal } from "@/hook/useModel";
+import { useModal } from "@/Hook/useModel";
 import CustomModal from "@/component/CustomModal";
 import React from "react";
 
@@ -1708,11 +1708,29 @@ function Editflow() {
                   {/* Chat Body */}
                   <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat px-[15px] pt-[15px] overflow-y-auto no-scrollbar">
                     <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px] text-[#1A1A1A] space-y-3">
-                      {hasImage && (
-                        <div className="border-2 border-dashed bg-[#F3F5F699] border-[#E4E4E4] rounded-[8px] py-[14px] px-[14px] text-center text-gray-500 flex justify-between items-center">
-                          <h2>Image is already uploaded</h2>
-                        </div>
-                      )}
+                      
+                      {(() => {
+                          const contentBlocks = getTemplateContentBlocks();
+                          const headerBlock = contentBlocks.find(
+                            (block) => block.type === "HEADER"
+                          );
+
+                          if (headerBlock && headerBlock.format === "MEDIA" || hasImage) {
+                            return (
+                              <div className="text-center">
+                                <Image
+                                  src="/assets/placeholder.webp"
+                                  alt="preview"
+                                  height={100}
+                                  width={100}
+                                  className="h-[150px] w-[275px] cursor-pointer"
+                                />
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })()}
 
                       {/* Body Text */}
                       {(() => {

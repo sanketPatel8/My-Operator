@@ -396,7 +396,8 @@ async function sendWhatsAppMessage(
   phonenumber,
   templateName,
   templateContent,
-  storeData
+  storeData,
+  trail
 ) {
   console.log("template content . body example", templateContent.body.example);
   console.log("template content . body", templateContent.body);
@@ -417,6 +418,10 @@ async function sendWhatsAppMessage(
         buttons: templateContent.buttons || [],
       },
     },
+    "reply_to": null,
+    "trail": {
+          "name": trail
+    }
   };
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`, {
@@ -558,6 +563,16 @@ async function processReminder(order, reminderType, storeData) {
 
     console.log("First template image:", image_id);
 
+    let trail;
+
+    if(reminderType === "Reorder Reminder"){
+      trail = "Shopify_reorder_reminder";
+      
+    } else if(reminderType === "Order Feedback"){
+      trail = "Shopify_order_feedback";
+      
+    }
+
     // Build and send message
     const templateContent = buildTemplateContent(
       templateVariableRows,
@@ -574,7 +589,8 @@ async function processReminder(order, reminderType, storeData) {
       phonenumber,
       templateName,
       templateContent,
-      storeData
+      storeData,
+      trail
     );
     console.log(`📤 WhatsApp API Response:`, sendResult);
 

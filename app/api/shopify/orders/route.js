@@ -54,7 +54,8 @@ async function sendWhatsAppMessage(
   phoneNumber,
   templateName,
   templateContent,
-  storeData
+  storeData,
+  trail
 ) {
   try {
     const messagePayload = {
@@ -72,8 +73,10 @@ async function sendWhatsAppMessage(
           buttons: templateContent.buttons || [], // Use dynamic buttons array
         },
       },
-      // reply_to: null,
-      // myop_ref_id: "csat_123"
+      "reply_to": null,
+      "trail": {
+            "name": trail
+        }
     };
 
     console.log(
@@ -391,15 +394,12 @@ export async function POST(req) {
 
     console.log(data.financial_status, "refunded data");
     switch (topic) {
-      case "cod/paid":
-        eventTitles = ["Convert COD to Paid"];
-        break;
       case "orders/create":
         if (
           Array.isArray(data.payment_gateway_names) &&
           data.payment_gateway_names?.includes("Cash on Delivery (COD)")
         ) {
-          eventTitles = ["Order Placed", "COD Order Confirmation or Cancel"];
+          eventTitles = ["COD Order Confirmation or Cancel"];
           storePlacedOrder(data, shopDomain);
         } else {
           eventTitles = ["Order Placed"];
@@ -483,7 +483,7 @@ export async function POST(req) {
         case "Total price":
           return data?.total_price || "00";
         default:
-          return "";
+          return "Here";
       }
     }
 
@@ -574,7 +574,7 @@ export async function POST(req) {
                     // Fallback for malformed button data
                     return {
                       index: index,
-                      link: "#",
+                      url: button.url || "#",
                     };
                   }
                 });
@@ -721,6 +721,30 @@ export async function POST(req) {
           continue;
         }
 
+        let trail;
+
+        if(eventTitle == "Order Placed"){
+          trail = "Shopify_order_placed";
+        }else if(eventTitle == "Order Cancelled"){
+          trail = "Shopify_order_cancelled";
+        }else if(eventTitle == "Payment Received"){
+          trail = "Shopify_order_payment";
+        }else if(eventTitle == "Order Shipped"){
+          trail = "Shopify_order_shipped";
+        }else if(eventTitle == "Order Delivered"){
+          trail = "Shopify_order_delivered";
+        }else if(eventTitle == "Order Out for Delivery"){
+          trail = "Shopify_order_out_for_delivery";
+        }else if(eventTitle == "Refund Create"){
+          trail = "Shopify_refund_created";
+        }else if(eventTitle == "COD Order Confirmation or Cancel"){
+          trail = "Shopify_order_cod_confirmation";
+        }else if(eventTitle == "COD Order Cancellation Event Triggered"){
+          trail = "Shopify_order_cod_cancelled";
+        }else if(eventTitle == "Welcome Customer"){
+          trail = "Shopify_welcome_customer";
+        }
+
         console.log(
           `📝 Template content built for "${templateName}":`,
           JSON.stringify(templateContent, null, 2)
@@ -732,7 +756,8 @@ export async function POST(req) {
             phoneDetails.phone,
             templateName,
             templateContent,
-            storeData
+            storeData,
+            trail
           );
 
           console.log(

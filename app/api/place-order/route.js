@@ -61,8 +61,10 @@ export async function POST(req) {
               buttons: templateContent.buttons || [],
             },
           },
-          // reply_to: null,
-          // myop_ref_id: "csat_123"
+          "reply_to": null,
+          "trail": {
+                "name": "Shopify_cod_paid"
+            }
         };
 
         console.log(
@@ -350,7 +352,14 @@ export async function POST(req) {
             console.log(
               `⚠️ No template found for event: ${eventTitle} with store_id: ${storeId}`
             );
-            continue;
+            return NextResponse.json(
+              {
+                success: true,
+                message: "message done",
+                data: "helo",
+              },
+              { status: 200 }
+            );
           }
 
           const { template_id, template_data_id, status } = categoryRows[0];

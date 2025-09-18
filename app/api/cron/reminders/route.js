@@ -63,7 +63,7 @@ function parseDelayToMinutes(delayValue) {
 
 
 // 🔹 Map dynamic values
-function getMappedValue(field, data, customerData) {
+function getMappedValue(field, data, customerData, abandoned_checkout_url) {
 
 
   switch (field) {
@@ -81,8 +81,10 @@ function getMappedValue(field, data, customerData) {
         : "0";
     case "Total price":
       return data?.total_price || "00";
+    case "Abandoned Cart Url":
+      return abandoned_checkout_url || "00";
     default:
-      return "";
+      return "Here";
   }
 }
 
@@ -119,7 +121,8 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
           bodyExample[row.variable_name] = getMappedValue(
             row.mapping_field,
             data,
-            customerData
+            customerData,
+            abandoned_checkout_url
           );
         }
         break;
@@ -192,6 +195,10 @@ async function sendWhatsAppMessage(phonenumber, templateName, content, store) {
         buttons: content.buttons || [],
       },
     },
+    "reply_to": null,
+    "trail": {
+          "name": "Shopify_abandon_cart"
+      }
   };
 
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/chat/messages`, {
