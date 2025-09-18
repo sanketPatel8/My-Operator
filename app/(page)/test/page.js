@@ -22,11 +22,11 @@ const TestPage = () => {
 
     // Open new tab with query parameters
     const url = `${process.env.NEXT_PUBLIC_URL}/order-conformation?confirmed=${status}&order_id=${orderId}`;
-    window.open(url, "_blank");
+    window.open(url, "_blank"); 
   };
 
   return (
-    <div className="flex justify-center items-center h-screen">
+    <div className="flex justify-center items-center h-screen gap-3">
       <input
         type="text"
         name=""
@@ -35,6 +35,7 @@ const TestPage = () => {
         onChange={(e) => {
           setstatus(e.target.value);
         }}
+        className="border border-black p-3"
       />
       <button
         onClick={handleClick}
