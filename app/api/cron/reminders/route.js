@@ -278,9 +278,13 @@ async function processReminder(checkout, reminderType, storeData) {
 
     
     const [getphone] = await conn.execute(
-      "SELECT customer FROM checkouts WHERE reminder_1 = 0 OR reminder_2 = 0 OR reminder_3 = 0 AND token = ?",
+      "SELECT customer FROM checkouts WHERE token = ?",
       [checkout.token]
     );
+    
+    console.log("token", checkout.token);
+    
+
 
     
     
