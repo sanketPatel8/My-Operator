@@ -196,7 +196,7 @@ export default function OrderConfirmationClient() {
       {isModalOpen && !loading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-80 text-center">
-            <h3 className="text-lg font-bold mb-4">{modalMessage}</h3>
+            <h3 className="text-lg text-black font-bold mb-4">{modalMessage}</h3>
             <div className="flex justify-center gap-4">
               {/* Yes → call API */}
               <button
@@ -204,7 +204,7 @@ export default function OrderConfirmationClient() {
                   setIsModalOpen(false);
                   sendConfirmation("yes");
                 }}
-                className="bg-green-500 text-white px-4 py-2 rounded"
+                className="bg-[#343E55] hover:bg-[#1f2a44] text-white px-4 py-2 rounded"
               >
                 Yes
               </button>
@@ -214,7 +214,7 @@ export default function OrderConfirmationClient() {
                 onClick={() => {
                   window.close();
                 }}
-                className="bg-red-500 text-white px-4 py-2 rounded"
+                className=" text-[#343E55] hover:bg-gray-100 border border-[#E4E4E4]  px-4 py-2 rounded"
               >
                 No
               </button>

@@ -332,6 +332,29 @@ async function processReminder(checkout, reminderType, storeData) {
 
     console.log("status updated");
     
+    const [reminder] = await conn.execute(
+      "SELECT reminder_1, reminder_2, reminder_3 FROM checkouts WHERE token = ?",
+      [checkout.token]
+    );
+
+    // Check if row exists and all reminder values are 1
+    if (
+      reminder[0].reminder_1 === 1 &&
+      reminder[0].reminder_2 === 1 &&
+      reminder[0].reminder_3 === 1
+    ) {
+      // Proceed to delete the row
+      await conn.execute(
+        "DELETE FROM checkouts WHERE token = ?",
+        [checkout.token]
+      );
+      console.log(`Checkout with token ${checkout.token} deleted.`);
+    } else {
+      console.log(`No deletion needed for token ${checkout.token}.`);
+    }
+
+
+    
   } catch (error) {
     console.error(`❌ Error processing ${reminderType}:`, error);
   } finally {

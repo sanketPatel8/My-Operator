@@ -11,7 +11,7 @@ import { useToastContext } from "@/component/Toast";
 import { POST } from "@/utils/api";
 import CustomModal from "@/component/CustomModal";
 import React from "react";
-import { useModal } from "@/hook/useModel";
+import { useModal } from "@/Hook/useModel";
 
 function Editflow() {
   const router = useRouter();
@@ -1104,7 +1104,7 @@ function Editflow() {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowTestPopup(false)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                className="px-4 py-2 bg-[#343E55] text-white rounded-md hover:bg-[#1f2a44]"
               >
                 Go Back and Add Fallback Values
               </button>
@@ -1273,7 +1273,7 @@ function Editflow() {
               className={`px-4 py-2 rounded-md flex items-center space-x-2 transition-colors ${
                 testLoading || !isPhoneNumberComplete
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-[#343E55] text-white hover:bg-[#1f2a44]"
               }`}
               title={
                 !isPhoneNumberComplete
@@ -1282,7 +1282,7 @@ function Editflow() {
               }
             >
               {testLoading && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-4 w-4  border-b-2 border-white"></div>
               )}
               <span>{testLoading ? "Sending..." : "Send Message"}</span>
             </button>
@@ -1543,7 +1543,7 @@ function Editflow() {
                         )}
 
                         {/* Button Variables */}
-                        {templateVariables.buttons.length > 0 && (
+                        {/* {templateVariables.buttons.length > 0 && (
                           <div className="mb-[24px]">
                             <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
                               Button
@@ -1552,7 +1552,7 @@ function Editflow() {
                               renderVariableRow(variable, "buttons")
                             )}
                           </div>
-                        )}
+                        )} */}
 
                         {/* No Variables Message */}
                         {templateVariables.header.length === 0 &&
