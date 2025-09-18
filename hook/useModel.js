@@ -1,12 +1,12 @@
 import { useState, useCallback } from "react";
 
 export const useModal = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [ModelIsOpen, setModelIsOpen] = useState(false);
 
-  console.log(isOpen, "isOpen in hook");
+  console.log(ModelIsOpen, "isOpen in hook");
 
-  const openModal = useCallback(() => setIsOpen(true), []);
-  const closeModal = useCallback(() => setIsOpen(false), []);
+  const openModal = useCallback(() => setModelIsOpen(true), []);
+  const closeModal = useCallback(() => setModelIsOpen(false), []);
 
-  return { isOpen, openModal, closeModal };
+  return { ModelIsOpen, openModal, closeModal };
 };

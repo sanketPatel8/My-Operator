@@ -9,7 +9,15 @@ if (typeof window !== "undefined") {
   Modal.setAppElement("body"); // or "#app-root" if you added that div in RootLayout
 }
 
-const CustomModal = ({ isOpen, closeModal, title, children }) => {
+const CustomModal = ({
+  isOpen,
+  closeModal,
+  title,
+  children,
+  width,
+  height,
+}) => {
+  console.log(width, height, "isOpen in custom modal");
   return (
     <Modal
       isOpen={isOpen}
@@ -18,8 +26,8 @@ const CustomModal = ({ isOpen, closeModal, title, children }) => {
       style={{
         overlay: { backgroundColor: "rgba(0,0,0,0.5)", zIndex: 9999 },
         content: {
-          maxWidth: "70vw",
-          maxHeight: "70vh",
+          maxWidth: width || "600px",
+          maxHeight: height || "600px",
           margin: "auto",
           borderRadius: "12px",
           padding: "20px",

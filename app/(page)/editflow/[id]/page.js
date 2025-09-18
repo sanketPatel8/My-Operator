@@ -8,17 +8,16 @@ import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
 import { useToastContext } from "@/component/Toast";
-
 import { POST } from "@/utils/api";
-import { useModal } from "@/Hook/useModel";
 import CustomModal from "@/component/CustomModal";
 import React from "react";
+import { useModal } from "@/hook/useModel";
 
 function Editflow() {
   const router = useRouter();
   const params = useParams();
   const { success, error } = useToastContext();
-  const { isOpen, openModal, closeModal } = useModal();
+  const { ModelIsOpen, openModal, closeModal } = useModal();
 
   const [showTestPopup, setShowTestPopup] = useState(false);
   const [testPhoneNumber, setTestPhoneNumber] = useState("");
@@ -57,6 +56,7 @@ function Editflow() {
     buttonText: "",
     buttonText2: "", // if second button is conditionally shown
   });
+  const [Note, setNote] = useState(null);
 
   const [variables, setVariables] = useState([]);
   const [fallbacks, setFallbacks] = useState({});
@@ -78,6 +78,32 @@ function Editflow() {
     });
     setFallbacks(newFallbacks);
   }, [customTemplateData.body]);
+
+  const getNote = async () => {
+    try {
+      const data = {
+        name: currentWorkflowData?.title,
+      };
+
+      const uploadResponse = await POST("/get-note", data);
+      if (uploadResponse.data.work_flow_note) {
+        setNote(uploadResponse.data.work_flow_note || "No note found");
+      }
+
+      console.log(uploadResponse, "uploadResponse");
+
+      return uploadResponse; // if you want to use it outside
+    } catch (error) {
+      console.error("Error while fetching note:", error);
+      return null; // optional: return fallback value
+    }
+  };
+
+  useEffect(() => {
+    if (currentWorkflowData != null) {
+      getNote();
+    }
+  }, [currentWorkflowData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1329,22 +1355,6 @@ function Editflow() {
   console.log(categoryTemplateData, "categoryTemplateData");
   console.log(hasImage, "hasImage");
 
-  const SaveTemplate = () => {
-    alert("Template saved successfully!");
-    closeModal();
-  };
-  const CancelTemplate = () => {
-    setFallbacks({});
-    setVariables([]);
-    setCustomTemplateData({
-      templateName: "",
-      body: "",
-      buttonText: "",
-      buttonText2: "", // if second button is conditionally shown
-    });
-    closeModal();
-  };
-
   return (
     <>
       <div className="font-source-sans flex flex-col min-h-screen">
@@ -1633,14 +1643,12 @@ function Editflow() {
                     {/* Action Buttons */}
                     <div className="flex justify-between items-center mt-[32px] mb-[20px]">
                       {/* Note aligned to start */}
-                      <p className="text-red-600 text-[12px]">
-                        {note.split("\n").map((line, index) => (
-                          <React.Fragment key={index}>
-                            {line}
-                            <br />
-                          </React.Fragment>
-                        ))}
-                      </p>
+                      <p
+                        className="text-red-600 text-[12px]"
+                        dangerouslySetInnerHTML={{
+                          __html: Note,
+                        }}
+                      />
 
                       {/* Buttons aligned to end */}
                       <div className="flex space-x-[16px]">
@@ -1708,29 +1716,31 @@ function Editflow() {
                   {/* Chat Body */}
                   <div className="flex-1 bg-[url('/assets/wp_bg.svg')] bg-repeat px-[15px] pt-[15px] overflow-y-auto no-scrollbar">
                     <div className="bg-white rounded-[4px] px-[16px] pt-[16px] text-[14px] text-[#1A1A1A] space-y-3">
-                      
                       {(() => {
-                          const contentBlocks = getTemplateContentBlocks();
-                          const headerBlock = contentBlocks.find(
-                            (block) => block.type === "HEADER"
+                        const contentBlocks = getTemplateContentBlocks();
+                        const headerBlock = contentBlocks.find(
+                          (block) => block.type === "HEADER"
+                        );
+
+                        if (
+                          (headerBlock && headerBlock.format === "MEDIA") ||
+                          hasImage
+                        ) {
+                          return (
+                            <div className="text-center">
+                              <Image
+                                src="/assets/placeholder.webp"
+                                alt="preview"
+                                height={100}
+                                width={100}
+                                className="h-[150px] w-[275px] cursor-pointer"
+                              />
+                            </div>
                           );
+                        }
 
-                          if (headerBlock && headerBlock.format === "MEDIA" || hasImage) {
-                            return (
-                              <div className="text-center">
-                                <Image
-                                  src="/assets/placeholder.webp"
-                                  alt="preview"
-                                  height={100}
-                                  width={100}
-                                  className="h-[150px] w-[275px] cursor-pointer"
-                                />
-                              </div>
-                            );
-                          }
-
-                          return null;
-                        })()}
+                        return null;
+                      })()}
 
                       {/* Body Text */}
                       {(() => {
@@ -1866,19 +1876,19 @@ function Editflow() {
           </main>
         </div>
       </div>
-      <CustomModal
+      {/* <CustomModal
         isOpen={isOpen}
         closeModal={closeModal}
         title="Add New Template"
       >
         <div>
-          {/* Header Section */}
+       
           <div className="my-3">
             <h3 className="font-medium mb-2">Template Name </h3>
             <div className="flex gap-4">
               <input
                 type="text"
-                name="templateName" // ✅ important
+                name="templateName" 
                 value={customTemplateData.templateName}
                 onChange={handleChange}
                 placeholder="e.g. Order Confirmation Template"
@@ -1886,7 +1896,7 @@ function Editflow() {
               />
             </div>
           </div>
-          {/* Body */}
+         
           <div>
             <div className="my-3">
               <h3 className="font-medium mb-2">
@@ -1906,7 +1916,7 @@ function Editflow() {
               </div>
             </div>
 
-            {/* Dynamic Variable Inputs */}
+            
             {variables.length > 0 && (
               <div className="mt-4">
                 <h4 className="font-medium mb-2">
@@ -1932,11 +1942,11 @@ function Editflow() {
             )}
           </div>
 
-          {/* Buttons Section */}
+       
           <div className="my-3">
             <h3 className="font-medium mb-2">Enter Redirection button</h3>
             <div className="grid grid-cols-2 gap-4">
-              {/* First button */}
+             
               <div className="relative w-full">
                 <label className="text-xs text-gray-500 mb-2">
                   Button Text
@@ -1955,7 +1965,7 @@ function Editflow() {
                 </div>
               </div>
 
-              {/* Conditionally render second button */}
+             
               {currentWorkflowData?.title ===
                 "COD Order Confirmation or Cancel" && (
                 <div className="relative w-full">
@@ -1978,7 +1988,7 @@ function Editflow() {
               )}
             </div>
           </div>
-          {/* Footer buttons */}
+       
           <div className="flex justify-end gap-4 mt-6">
             <button
               onClick={CancelTemplate}
@@ -1994,8 +2004,8 @@ function Editflow() {
             </button>
           </div>
         </div>
-      </CustomModal>
-      {/* Test Message Popup */}
+      </CustomModal> */}
+
       <TestMessagePopup
         showTestPopup={showTestPopup}
         setShowTestPopup={setShowTestPopup}
