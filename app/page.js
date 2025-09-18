@@ -18,6 +18,19 @@ export default function ConnectShopify() {
   const [isStoreReadonly, setIsStoreReadonly] = useState(false);
   const [SecondLogin, setSecondLogin] = useState(false);
 
+  const [redirectPath, setRedirectPath] = useState(null);
+  const [isExternalRedirect, setIsExternalRedirect] = useState(false);
+
+  useEffect(() => {
+    if (!loading && redirectPath) {
+      if (isExternalRedirect) {
+        window.location.href = redirectPath; // external URL
+      } else {
+        router.push(redirectPath); // internal route
+      }
+    }
+  }, [loading, redirectPath, isExternalRedirect]);
+
   // Get token from URL and verify it
   useEffect(() => {
     const init = async () => {
@@ -107,8 +120,78 @@ export default function ConnectShopify() {
   };
 
   // Function to get company's shop URL
+  // const getCompanyStore = async (companyId) => {
+  //   try {
+  //     const response = await fetch("/api/company-store", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({ companyId }),
+  //     });
+
+  //     const data = await response.json();
+
+  //     if (response.ok) {
+  //       // Store exists and validation successful
+  //       console.log("Store validated successfully:", data);
+
+  //       // Create and save the encrypted store token
+  //       const encryptResponse = await fetch(
+  //         `/api/encrypt-store-id?shop=${data.shop}`
+  //       );
+  //       const encryptData = await encryptResponse.json();
+
+  //       if (encryptData.encryptedId) {
+  //         localStorage.setItem("storeToken", encryptData.encryptedId);
+  //         console.log("Encrypted store id saved to localStorage ✅");
+  //       } else {
+  //         console.warn("No encrypted id returned:", encryptData);
+  //       }
+
+  //       // Route based on phone number availability
+  //       if (data.phonenumber) {
+  //         // Phone number exists, redirect to configuration page
+  //         router.push("/workflowlist");
+  //       } else {
+  //         // No phone number, redirect to connect WhatsApp page
+  //         router.push("/ConnectWhatsApp");
+  //         // setSecondLogin(false);
+  //       }
+  //     }
+
+  //     if (response.ok && data.shop) {
+  //       // Auto-populate the store name and make it readonly
+  //       setStoreName(data.shop);
+
+  //       setIsStoreReadonly(true);
+  //       setLoading(false);
+  //       console.log("Company store found:", data.shop);
+  //     } else if (response.status === 404 && data.redirectUrl) {
+  //       // Company not found, redirect to the provided URL
+  //       console.log("Company not found, redirecting to:", data.redirectUrl);
+  //       setIsRedirecting(true);
+  //       window.location.href = data.redirectUrl;
+  //       return;
+  //     } else {
+  //       // Company exists but no store found, keep field editable
+  //       setIsStoreReadonly(false);
+  //       console.log("No store found for company, field remains editable");
+  //       setLoading(false);
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching company store:", error);
+  //     // Keep field editable on error
+  //     setIsStoreReadonly(false);
+  //   } finally {
+  //     setSecondLogin(false);
+  //   }
+  // };
+
   const getCompanyStore = async (companyId) => {
     try {
+      setLoading(true); // ✅ start loader
+
       const response = await fetch("/api/company-store", {
         method: "POST",
         headers: {
@@ -120,10 +203,9 @@ export default function ConnectShopify() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store exists and validation successful
         console.log("Store validated successfully:", data);
 
-        // Create and save the encrypted store token
+        // Encrypt store
         const encryptResponse = await fetch(
           `/api/encrypt-store-id?shop=${data.shop}`
         );
@@ -136,41 +218,31 @@ export default function ConnectShopify() {
           console.warn("No encrypted id returned:", encryptData);
         }
 
-        // Route based on phone number availability
+        // ✅ Don't redirect immediately, just set state
         if (data.phonenumber) {
-          // Phone number exists, redirect to configuration page
-          router.push("/workflowlist");
+          setRedirectPath("/workflowlist");
         } else {
-          // No phone number, redirect to connect WhatsApp page
-          router.push("/ConnectWhatsApp");
-          // setSecondLogin(false);
+          setRedirectPath("/ConnectWhatsApp");
         }
       }
 
       if (response.ok && data.shop) {
-        // Auto-populate the store name and make it readonly
         setStoreName(data.shop);
-
         setIsStoreReadonly(true);
-        setLoading(false);
         console.log("Company store found:", data.shop);
       } else if (response.status === 404 && data.redirectUrl) {
-        // Company not found, redirect to the provided URL
         console.log("Company not found, redirecting to:", data.redirectUrl);
         setIsRedirecting(true);
-        window.location.href = data.redirectUrl;
-        return;
+        setRedirectPath(data.redirectUrl, true); // true = full page reload
       } else {
-        // Company exists but no store found, keep field editable
         setIsStoreReadonly(false);
         console.log("No store found for company, field remains editable");
-        setLoading(false);
       }
     } catch (error) {
       console.error("Error fetching company store:", error);
-      // Keep field editable on error
       setIsStoreReadonly(false);
     } finally {
+      setLoading(false); // ✅ stop loader
       setSecondLogin(false);
     }
   };
