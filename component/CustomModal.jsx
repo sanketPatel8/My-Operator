@@ -36,9 +36,9 @@ const CustomModal = ({
       }}
     >
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-lg font-bold ">{title}</h2>
-        <button onClick={closeModal} className="">
-          <IoCloseSharp size={25} />
+        <h2 className="text-lg text-black font-bold ">{title}</h2>
+        <button onClick={closeModal} className="text-black">
+          <IoCloseSharp size={25}  />
         </button>
       </div>
 

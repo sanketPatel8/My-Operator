@@ -662,7 +662,7 @@ function ConfigurationForm({ searchParams }) {
               <div className="mt-[28px] flex justify-center lg:justify-end gap-2">
                 <button
                   onClick={handleDeleteAccount}
-                  className="px-[24px] py-[10px] text-[14px]  font-semibold bg-[#EE0000] text-[#FFFFFF] rounded-[4px] cursor-pointer"
+                  className="px-[24px] py-[10px] text-[14px] mr-[16px]  font-semibold bg-red-700 hover:bg-red-800 text-[#FFFFFF] rounded-[4px] cursor-pointer"
                 >
                   Delete Account
                 </button>
@@ -702,11 +702,11 @@ function ConfigurationForm({ searchParams }) {
                 isOpen={ModelIsOpen}
                 closeModal={closeModal}
                 title="Delete Confirmation"
-                width="500px"
-                height="250px"
+                width="400px"
+                height="200px"
               >
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <h3 className="font-medium text-lg mb-4">
+                  <h3 className="font-medium text-black text-lg mb-4">
                     Are you sure you want to delete this app ?
                   </h3>
 
@@ -720,9 +720,9 @@ function ConfigurationForm({ searchParams }) {
 
                     <button
                       onClick={handleDelete} // Confirm delete
-                      className="px-6 py-2 bg-red-600 rounded text-white text-sm font-semibold hover:bg-red-700"
+                      className="px-6 py-2 bg-[#343E55] rounded text-white text-sm font-semibold "
                     >
-                      Yes, Delete
+                      Yes
                     </button>
                   </div>
                 </div>
