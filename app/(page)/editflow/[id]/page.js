@@ -304,7 +304,6 @@ function Editflow() {
     const defaultOptions = [
       "Name",
       "Phone number",
-      "Service number",
       "Order id",
       "Quantity",
       "Total price",
@@ -370,7 +369,6 @@ function Editflow() {
     const defaultOptions = [
       "Name",
       "Phone number",
-      "Service number",
       "Order id",
       "Quantity",
       "Total price",
