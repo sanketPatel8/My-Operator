@@ -14,6 +14,7 @@ function ConnectShopify() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [companyId, setCompanyId] = useState(null);
+  const [StatusMessage, setStatusMessage] = useState("");
 
   const [isStoreReadonly, setIsStoreReadonly] = useState(false);
   const [SecondLogin, setSecondLogin] = useState(false);
@@ -24,6 +25,14 @@ function ConnectShopify() {
 
   const tokenParam = searchParams.get("token");
   const shopParam = searchParams.get("shop");
+
+  useEffect(() => {
+    if (!shopParam && !tokenParam) {
+      setStatusMessage(
+        "❌ Missing authorization details. Please re-install or re-authorize the app."
+      );
+    }
+  }, [tokenParam, shopParam]);
 
   useEffect(() => {
     if (!loading && redirectPath) {
@@ -40,8 +49,6 @@ function ConnectShopify() {
     const init = async () => {
       if (typeof window !== "undefined") {
         try {
-          const params = new URLSearchParams(window.location.search);
-
           console.log(tokenParam, shopParam, "prms");
 
           if (tokenParam) {
@@ -107,11 +114,17 @@ function ConnectShopify() {
         console.log("Token verified successfully:", data);
         setIsTokenValid(true);
         setCompanyId(data.companyId);
+        setStatusMessage(
+          "✅ Authorization successful. Redirecting you to your dashboard..."
+        );
 
         return true;
       } else {
         console.error("Token verification failed:", data);
         setIsTokenValid(false);
+        setStatusMessage(
+          "❌ Authorization failed. Please re-install or re-authorize the app."
+        );
         return false;
       }
     } catch (error) {
@@ -334,11 +347,7 @@ function ConnectShopify() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
               )}
 
-              <p className="text-gray-600">
-                {!tokenParam && !shopParam
-                  ? "❌ Missing authorization details. Please re-install or re-authorize the app."
-                  : "✅ Authorization successful. Redirecting you to your dashboard..."}
-              </p>
+              <p className="text-gray-600">{StatusMessage}</p>
             </div>
           </main>
         </div>
