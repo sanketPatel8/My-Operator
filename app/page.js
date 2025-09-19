@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
 
-export default function ConnectShopify() {
+function ConnectShopify() {
   const [loading, setLoading] = useState(true);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const router = useRouter();
@@ -20,6 +20,10 @@ export default function ConnectShopify() {
 
   const [redirectPath, setRedirectPath] = useState(null);
   const [isExternalRedirect, setIsExternalRedirect] = useState(false);
+  const searchParams = useSearchParams();
+
+  const tokenParam = searchParams.get("token");
+  const shopParam = searchParams.get("shop");
 
   useEffect(() => {
     if (!loading && redirectPath) {
@@ -37,8 +41,6 @@ export default function ConnectShopify() {
       if (typeof window !== "undefined") {
         try {
           const params = new URLSearchParams(window.location.search);
-          const tokenParam = params.get("token");
-          const shopParam = params.get("shop");
 
           console.log(tokenParam, shopParam, "prms");
 
@@ -328,8 +330,15 @@ export default function ConnectShopify() {
         <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
           <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Redirection on Dashboard...</p>
+              {tokenParam && shopParam && (
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              )}
+
+              <p className="text-gray-600">
+                {!tokenParam && !shopParam
+                  ? "❌ Missing authorization details. Please re-install or re-authorize the app."
+                  : "✅ Authorization successful. Redirecting you to your dashboard..."}
+              </p>
             </div>
           </main>
         </div>
@@ -547,5 +556,13 @@ export default function ConnectShopify() {
         </div>
       </div>
     </>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div></div>}>
+      <ConnectShopify />
+    </Suspense>
   );
 }
