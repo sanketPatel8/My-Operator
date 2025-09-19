@@ -1,11 +1,11 @@
-'use client';
-import { FiChevronDown, FiChevronRight } from 'react-icons/fi';
-import { useState, useRef } from 'react';
+"use client";
+import { FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { useState, useRef } from "react";
 import { CiEdit } from "react-icons/ci";
 import { MdDeleteOutline } from "react-icons/md";
-import Image from 'next/image';
-import { useClickOutside } from '@/Hook/useClickOutside';
-import { useRouter } from 'next/navigation';
+import Image from "next/image";
+import { useClickOutside } from "@/hook/useClickOutside";
+import { useRouter } from "next/navigation";
 
 export default function DropDown({
   title,
@@ -23,8 +23,7 @@ export default function DropDown({
   MoreIcon,
   buttonText,
   onClickButton,
-  workflowId = '',
-   
+  workflowId = "",
 }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const menuRefs = useRef({});
@@ -119,9 +118,15 @@ export default function DropDown({
 
               <div className="cursor-pointer">
                 {isOpen ? (
-                  <FiChevronDown size={20} className="my-[10px] text-[#999999]" />
+                  <FiChevronDown
+                    size={20}
+                    className="my-[10px] text-[#999999]"
+                  />
                 ) : (
-                  <FiChevronRight size={20} className="my-[10px] text-[#999999]" />
+                  <FiChevronRight
+                    size={20}
+                    className="my-[10px] text-[#999999]"
+                  />
                 )}
               </div>
             </div>
@@ -189,8 +194,12 @@ export default function DropDown({
 
                     {/* Reminder content */}
                     <div className="space-y-[6px]">
-                      <p className="text-[14px] font-semibold text-[#1A1A1A]">{reminder.title}</p>
-                      <p className="text-[14px] text-[#A0A1A1]">{reminder.text}</p>
+                      <p className="text-[14px] font-semibold text-[#1A1A1A]">
+                        {reminder.title}
+                      </p>
+                      <p className="text-[14px] text-[#A0A1A1]">
+                        {reminder.text}
+                      </p>
                       {reminder.footerText && (
                         <p className="text-[14px] text-[#A0A1A1] flex items-center gap-[6px]">
                           <svg
@@ -233,7 +242,9 @@ export default function DropDown({
                         <button
                           type="button"
                           className="cursor-pointer hover:text-[#666666] w-[16px] h-[16px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                          disabled={deleteLoading === reminder.category_event_id}
+                          disabled={
+                            deleteLoading === reminder.category_event_id
+                          }
                           onClick={() => {
                             onMoreClick(reminder);
                             setOpenMenuId((prev) =>
@@ -257,7 +268,8 @@ export default function DropDown({
                                   className="flex items-center w-full px-[12px] py-[8px] text-[14px] text-[#1A1A1A] hover:bg-[#F5F5F5] space-x-[8px]"
                                   onClick={() => handleDeleteFlow(reminder)}
                                 >
-                                  <MdDeleteOutline size={17} /> <span>Delete flow</span>
+                                  <MdDeleteOutline size={17} />{" "}
+                                  <span>Delete flow</span>
                                 </button>
                               ) : (
                                 <button
