@@ -1639,17 +1639,11 @@ function Editflow() {
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex justify-between items-center mt-[32px] mb-[20px]">
+                    <div className="grid grid-cols-1 justify-end items-center gap-4 mt-[32px] mb-[20px]">
                       {/* Note aligned to start */}
-                      <p
-                        className="text-red-600 text-[12px]"
-                        dangerouslySetInnerHTML={{
-                          __html: Note,
-                        }}
-                      />
 
                       {/* Buttons aligned to end */}
-                      <div className="flex space-x-[16px]">
+                      <div className="flex space-x-[16px] justify-end">
                         <button
                           onClick={() => setShowTestPopup(true)}
                           className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
@@ -1672,6 +1666,23 @@ function Editflow() {
                             "Update workflow"
                           )}
                         </button>
+                      </div>
+                      <div className="bg-orange-50 p-3 rounded-md text-[14px] text-[#4275D6] flex items-start md:items-center">
+                        <Image
+                          src="/assets/question-circle.svg"
+                          alt="question mark"
+                          height={100}
+                          width={100}
+                          className="h-[14px] w-[14px] mr-1"
+                        />
+                        <span className="text-[14px]">
+                          <p
+                            className="text-black text-[12px]"
+                            dangerouslySetInnerHTML={{
+                              __html: Note,
+                            }}
+                          />
+                        </span>
                       </div>
                     </div>
                   </div>
