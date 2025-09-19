@@ -3,7 +3,7 @@
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import DashboardHeaader from "@/component/DashboardHeaader";
-import Sidebar from "../../sidebar/page";
+import Sidebar from "@/component/Sidebar";
 import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";

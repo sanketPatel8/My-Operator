@@ -19,8 +19,6 @@ function ConfigureWhatsApp() {
   const [CreatedCompanyID, setCreatedCompanyID] = useState("");
   const router = useRouter();
 
-  
-
   // Get query params on page load
   useEffect(() => {
     const shopParam = searchParams.get("shop");
@@ -28,27 +26,26 @@ function ConfigureWhatsApp() {
 
     const storeToken = localStorage.getItem("storeToken");
     if (!storeToken) {
-        console.warn("⚠️ No store token found in localStorage");
-        setIsRedirecting(true);
-        window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
-        return;
-      }
+      console.warn("⚠️ No store token found in localStorage");
+      setIsRedirecting(true);
+      window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
+      return;
+    }
 
     if (shopParam) setShop(shopParam);
     if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
 
   const handleVerify = async () => {
-
     setLoading1(true);
 
     const storeToken = localStorage.getItem("storeToken");
     if (!storeToken) {
-        console.warn("⚠️ No store token found in localStorage");
-        setIsRedirecting(true);
-        window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
-        return;
-      }
+      console.warn("⚠️ No store token found in localStorage");
+      setIsRedirecting(true);
+      window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
+      return;
+    }
 
     if (!CreatedCompanyID || !token) {
       error("Please enter both Company ID and Access Token");
@@ -56,16 +53,15 @@ function ConfigureWhatsApp() {
     }
 
     try {
-      const response = await fetch('/api/company-id', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/company-id", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           company_id: CreatedCompanyID,
           whatsapp_api_key: token,
           storeToken: storeToken,
         }),
       });
-
 
       console.log("✅ API response:", response.data);
       setLoading1(false);
@@ -76,16 +72,13 @@ function ConfigureWhatsApp() {
     }
   };
 
-
   // For debugging (can remove later)
   console.log("Shop:", shop, "Token:", token);
 
   if (isRedirecting) {
-  return (
+    return (
       <div className="font-source-sans flex flex-col min-h-screen">
-        
-        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">  
-          
+        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
           <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -95,7 +88,7 @@ function ConfigureWhatsApp() {
         </div>
       </div>
     );
- }
+  }
 
   return (
     <div className="font-source-sans min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
@@ -126,7 +119,7 @@ function ConfigureWhatsApp() {
           {/* Access Token Field */}
           <div>
             <label className="block mt-8 text-[12px] font-medium text-[#333333]">
-              Access Token / API Key
+              Whatsapp Api Key
             </label>
             <input
               type="text"
@@ -150,7 +143,7 @@ function ConfigureWhatsApp() {
               Need help finding your Company ID?&nbsp;
               <Link
                 target="blank"
-                href={`${process.env.NEXT_PUBLIC_BASEURL}/integration/whatsapp_api`}
+                href={`${process.env.NEXT_PUBLIC_STAGE_URL}/integration/whatsapp_api`}
                 className="text-[#4275D6] text-[14px] font-semibold underline"
               >
                 Click here
@@ -170,11 +163,11 @@ function ConfigureWhatsApp() {
             <button
               className="w-full sm:w-auto px-6 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-700"
               onClick={handleVerify}
-            >{loading1 ? (
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-               
+            >
+              {loading1 ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
               ) : (
-                'Verify & Continue'
+                "Verify & Continue"
               )}
             </button>
           </div>

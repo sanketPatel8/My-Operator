@@ -1,7 +1,7 @@
 "use client";
 
 import DashboardHeaader from "@/component/DashboardHeaader";
-import Sidebar from "../sidebar/page";
+import Sidebar from "@/component/Sidebar";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { FiChevronDown } from "react-icons/fi";

@@ -3,7 +3,7 @@
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import DashboardHeaader from "@/component/DashboardHeaader";
-import Sidebar from "../sidebar/page";
+import Sidebar from "@/component/Sidebar";
 import Image from "next/image";
 import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
@@ -48,13 +48,12 @@ function Editflow() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const [currentWorkflowData, setCurrentWorkflowData] = useState(null);
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
-  const [mappingFieldOptions, setMappingFieldOptions] = useState([]); 
+  const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
 
   const note = `Note :- If the topic is COD Order Confirmation or Cancel, use this dynamic link format: 
   ${process.env.NEXT_PUBLIC_HOST}order-conformation?{{approve or cancel}} 
   If the topic is anything else, use this static redirect format: 
   ${process.env.NEXT_PUBLIC_HOST}redirect?url={{link}}`;
-
 
   // ✅ Add helper at top of file
   const normalizeTemplateData = (data) => {
@@ -240,7 +239,11 @@ function Editflow() {
       "Phone number",
       "Service number",
       "Order id",
-      "Quantity","Total price", "Payment Url", "Abandoned Cart Url", "Custom Link"
+      "Quantity",
+      "Total price",
+      "Payment Url",
+      "Abandoned Cart Url",
+      "Custom Link",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -294,11 +297,23 @@ function Editflow() {
 
     // Extract dropdown options from mappingVariables
     const mappingOptions = mappingVariables
-      .map(variable => variable.mapping_field)
-      .filter(field => field && field.trim() !== '');
-    
-    const defaultOptions = ["Name", "Phone number", "Service number", "Order id", "Quantity","Total price", "Payment Url", "Abandoned Cart Url", "Custom Link"];
-    const combinedOptions = [...new Set([...defaultOptions, ...mappingOptions])];
+      .map((variable) => variable.mapping_field)
+      .filter((field) => field && field.trim() !== "");
+
+    const defaultOptions = [
+      "Name",
+      "Phone number",
+      "Service number",
+      "Order id",
+      "Quantity",
+      "Total price",
+      "Payment Url",
+      "Abandoned Cart Url",
+      "Custom Link",
+    ];
+    const combinedOptions = [
+      ...new Set([...defaultOptions, ...mappingOptions]),
+    ];
     setMappingFieldOptions(combinedOptions);
 
     // Process template content
@@ -574,8 +589,6 @@ function Editflow() {
     }));
   };
 
-  
-
   const buttonRef = useRef(null);
 
   // Rest of your component code remains the same...
@@ -629,15 +642,15 @@ function Editflow() {
       </Listbox>
 
       {section !== "buttons" && (
-      <input
-        type="text"
-        placeholder="Fallback value"
-        value={variableSettings[variable]?.fallback || ""}
-        onChange={(e) =>
-          updateVariableSetting(variable, "fallback", e.target.value)
-        }
-        className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
-      />
+        <input
+          type="text"
+          placeholder="Fallback value"
+          value={variableSettings[variable]?.fallback || ""}
+          onChange={(e) =>
+            updateVariableSetting(variable, "fallback", e.target.value)
+          }
+          className="border border-[#E4E4E4] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#999999] w-full sm:flex-1"
+        />
       )}
     </div>
   );
@@ -653,7 +666,7 @@ function Editflow() {
     "draft_orders/create",
     "disputes/create",
     "disputes/update",
-    "tender_transactions/create"
+    "tender_transactions/create",
   ];
 
   // Helper function to get template content blocks
@@ -690,8 +703,6 @@ function Editflow() {
       error("Please enter a phone number");
       return;
     }
-
-
 
     if (!currentWorkflowData?.category_event_id) {
       error("Category event ID not found");
@@ -737,7 +748,7 @@ function Editflow() {
         fallbackValues: fallbackValues, // ✅ Send user-entered fallback values
         variableSettings: variableSettings,
         selectedTemplate: selectedTemplate,
-        storeToken: storeToken// ✅ Send complete variable settings
+        storeToken: storeToken, // ✅ Send complete variable settings
       };
 
       console.log("Sending test message with payload:", testPayload);
@@ -768,93 +779,91 @@ function Editflow() {
   };
 
   const handleCreateWorkflow = async () => {
-  try {
-    setLoading1(true);
+    try {
+      setLoading1(true);
 
-    // Validate required fields
-    if (!title.trim()) {
-      error("Title is required");
-      setLoading1(false);
-      return;
-    }
-
-    if (!selectedTemplate) {
-      error("Please select a template");
-      setLoading1(false);
-      return;
-    }
-
-  
-
-    // Validate fallback values for all variables
-    const allVariables = [
-      ...templateVariables.header,
-      ...templateVariables.body,
-    ];
-
-    const missingFallbacks = [];
-
-    for (const variable of allVariables) {
-      const fallbackValue = variableSettings[variable]?.fallback;
-      if (!fallbackValue || fallbackValue.trim() === "") {
-        missingFallbacks.push(variable);
+      // Validate required fields
+      if (!title.trim()) {
+        error("Title is required");
+        setLoading1(false);
+        return;
       }
-    }
 
-    if (missingFallbacks.length > 0) {
+      if (!selectedTemplate) {
+        error("Please select a template");
+        setLoading1(false);
+        return;
+      }
+
+      // Validate fallback values for all variables
+      const allVariables = [
+        ...templateVariables.header,
+        ...templateVariables.body,
+      ];
+
+      const missingFallbacks = [];
+
+      for (const variable of allVariables) {
+        const fallbackValue = variableSettings[variable]?.fallback;
+        if (!fallbackValue || fallbackValue.trim() === "") {
+          missingFallbacks.push(variable);
+        }
+      }
+
+      if (missingFallbacks.length > 0) {
+        setLoading1(false);
+        error(
+          `Please provide fallback values for the following variables: ${missingFallbacks
+            .map((v) => `{{${v}}}`)
+            .join(", ")}`
+        );
+        return;
+      }
+
+      const storeToken = localStorage.getItem("storeToken");
+
+      const createData = {
+        storeToken: storeToken, // Use existing or default category
+        title: title.trim(),
+        subtitle: subtitle.trim(),
+        template: selectedTemplate,
+        variableSettings: variableSettings,
+        selectedEvent: selectedEvent,
+      };
+
+      console.log("Creating workflow with data:", createData);
+
+      // Handle file upload if exists
+      if (file) {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        // You may need to upload the file first and get the file path
+        // const uploadResponse = await POST("/upload-media-image", formData, true);
+      }
+
+      const response = await fetch("/api/custom-workflow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createData),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        success("Workflow created successfully!");
+        // Redirect to workflow list or clear form
+        router.push("/workflowlist");
+      } else {
+        throw new Error(result.message || "Failed to create workflow");
+      }
+    } catch (error) {
+      console.error("Error creating workflow:", error);
+      error(`Failed to create workflow: ${error.message}`);
+    } finally {
       setLoading1(false);
-      error(
-        `Please provide fallback values for the following variables: ${missingFallbacks
-          .map((v) => `{{${v}}}`)
-          .join(", ")}`
-      );
-      return;
     }
-
-    const storeToken = localStorage.getItem("storeToken");
-
-    const createData = {
-      storeToken: storeToken, // Use existing or default category
-      title: title.trim(),
-      subtitle: subtitle.trim(),
-      template: selectedTemplate,
-      variableSettings: variableSettings,
-      selectedEvent: selectedEvent,
-    };
-
-    console.log("Creating workflow with data:", createData);
-
-    // Handle file upload if exists
-    if (file) {
-      const formData = new FormData();
-      formData.append("file", file);
-      
-      // You may need to upload the file first and get the file path
-      // const uploadResponse = await POST("/upload-media-image", formData, true);
-    }
-
-    const response = await fetch("/api/custom-workflow", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(createData),
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.success) {
-      success("Workflow created successfully!");
-      // Redirect to workflow list or clear form
-      router.push("/workflowlist");
-    } else {
-      throw new Error(result.message || "Failed to create workflow");
-    }
-  } catch (error) {
-    console.error("Error creating workflow:", error);
-    error(`Failed to create workflow: ${error.message}`);
-  } finally {
-    setLoading1(false);
-  }
-};
+  };
 
   // ✅ ALSO UPDATE THE TestMessagePopup COMPONENT VALIDATION
   const TestMessagePopup = ({
@@ -1217,55 +1226,51 @@ function Editflow() {
     }
   };
 
- 
-
   const variable = categoryTemplateData?.data[0]?.variables[0];
 
   const hasImage =
     variable?.tamplate_image && variable?.tamplate_image.trim() !== "";
 
-  
-
   console.log(categoryTemplateData, "categoryTemplateData");
   console.log(hasImage, "hasImage");
 
   const renderTitleSubtitleFields = () => (
-  <div className="flex flex-col gap-[24px] ">
-    {/* Title Field */}
-    <div className="flex-1">
-      <label className="block text-[12px] text-[#555555] mb-[4px]">
-        Title <span className="text-red-500">*</span>
-      </label>
-      <input
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Enter workflow title"
-        className="w-full px-[16px] py-[10px] border border-[#E9E9E9] rounded-[4px] text-[14px] text-[#333333] focus:outline-none focus:border-[#4275D6] focus:ring-1 focus:ring-[#4275D6]"
-        required
-      />
-      {title.length === 0 && (
-        <p className="text-[12px] text-[#999999] mt-[4px]">
-          This field is required
-        </p>
-      )}
-    </div>
+    <div className="flex flex-col gap-[24px] ">
+      {/* Title Field */}
+      <div className="flex-1">
+        <label className="block text-[12px] text-[#555555] mb-[4px]">
+          Title <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Enter workflow title"
+          className="w-full px-[16px] py-[10px] border border-[#E9E9E9] rounded-[4px] text-[14px] text-[#333333] focus:outline-none focus:border-[#4275D6] focus:ring-1 focus:ring-[#4275D6]"
+          required
+        />
+        {title.length === 0 && (
+          <p className="text-[12px] text-[#999999] mt-[4px]">
+            This field is required
+          </p>
+        )}
+      </div>
 
-    {/* Subtitle Field */}
-    <div className="flex-1 mb-[24px]">
-      <label className="block text-[12px] text-[#555555] mb-[4px]">
-        Subtitle (Optional)
-      </label>
-      <input
-        type="text"
-        value={subtitle}
-        onChange={(e) => setSubtitle(e.target.value)}
-        placeholder="Enter workflow subtitle"
-        className="w-full px-[16px] py-[10px] border border-[#E9E9E9] rounded-[4px] text-[14px] text-[#333333] focus:outline-none focus:border-[#4275D6] focus:ring-1 focus:ring-[#4275D6]"
-      />
+      {/* Subtitle Field */}
+      <div className="flex-1 mb-[24px]">
+        <label className="block text-[12px] text-[#555555] mb-[4px]">
+          Subtitle (Optional)
+        </label>
+        <input
+          type="text"
+          value={subtitle}
+          onChange={(e) => setSubtitle(e.target.value)}
+          placeholder="Enter workflow subtitle"
+          className="w-full px-[16px] py-[10px] border border-[#E9E9E9] rounded-[4px] text-[14px] text-[#333333] focus:outline-none focus:border-[#4275D6] focus:ring-1 focus:ring-[#4275D6]"
+        />
+      </div>
     </div>
-  </div>
-);
+  );
 
   return (
     <>
@@ -1299,13 +1304,13 @@ function Editflow() {
             {/* Content Section */}
             <div className="flex flex-col lg:flex-row">
               {/* Form Section */}
-              
+
               <div className="md:w-full lg:w-2/3 mx-[10px] md:mx-[32px] mt-[24px]">
-              {renderTitleSubtitleFields()}
+                {renderTitleSubtitleFields()}
                 <div className="flex flex-col md:flex-row gap-[24px]">
                   {/* Delay Dropdown */}
                   {/* Delay Dropdown - Only show for Abandoned Cart Recovery */}
-                  { (
+                  {
                     <div className="flex-1">
                       <label className="block text-[12px] text-[#555555] mb-[4px]">
                         Select Event
@@ -1339,7 +1344,7 @@ function Editflow() {
                         </div>
                       </Listbox>
                     </div>
-                  )}
+                  }
 
                   {/* Template Dropdown */}
                   {/* Template Dropdown with Sync Button */}
@@ -1546,19 +1551,13 @@ function Editflow() {
                     <div className="flex justify-between items-center mt-[32px] mb-[20px]">
                       {/* Note aligned to start */}
                       <p className="text-red-600 text-[12px]">
-                        {note.split('\n').map((line, index) => (
-                        <>
-                          {line}
-                          <br />
-                        </>
-                      ))}
-
+                        {note.split("\n").map((line, index) => (
+                          <>
+                            {line}
+                            <br />
+                          </>
+                        ))}
                       </p>
-
-
-
-
-
 
                       {/* Buttons aligned to end */}
                       <div className="flex space-x-[16px]">
@@ -1586,7 +1585,6 @@ function Editflow() {
                         </button>
                       </div>
                     </div>
-
                   </div>
                 </div>
               </div>
@@ -1641,7 +1639,7 @@ function Editflow() {
                         );
                         const contentBlocks = getTemplateContentBlocks();
                         console.log("content block:::", contentBlocks);
-                        
+
                         if (templateMessage) {
                           return (
                             <div>
@@ -1662,9 +1660,9 @@ function Editflow() {
                         }
 
                         // If no templateMessage, try to get it directly from content blocks
-                        
+
                         console.log("content block:::", contentBlocks);
-                        
+
                         const bodyBlock = contentBlocks.find(
                           (block) => block.type === "BODY"
                         );
