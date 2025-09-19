@@ -47,7 +47,7 @@ const abandonedCartData = {
 };
 
 const orderLifecycleData = {
-  category_name: 'Order life cycle Notification',
+  category_name: 'Order life cycle Notifications',
   category_desc: 'Automate essential communications and enable direct customer interaction for key order events.',
   events: [
     { title: 'Order Placed', subtitle: 'Send when an order is created.' },
@@ -704,6 +704,27 @@ export async function PATCH(request) {
 
     const currentPhoneNumber = normalizePhone(storeRows[0].phonenumber);
 
+    // 🔍 CHECK TEMPLATE_ID BEFORE UPDATE (for redirect decision)
+    const [eventRows] = await connection.execute(
+      `SELECT template_id, status as current_status 
+       FROM category_event 
+       WHERE category_event_id = ? AND store_id = ? AND phonenumber = ?
+       LIMIT 1`,
+      [category_event_id, STORE_ID, currentPhoneNumber]
+    );
+
+    if (eventRows.length === 0) {
+      throw new Error('Category event not found');
+    }
+
+    const currentEvent = eventRows[0];
+    const shouldRedirect = (
+      currentEvent.current_status === 0 && 
+      status === 1 && 
+      currentEvent.template_id === null
+    );
+
+    // Update the status
     const [result] = await connection.execute(
       `UPDATE category_event 
        SET status = ?, updated_at = NOW() 
@@ -717,7 +738,11 @@ export async function PATCH(request) {
     return new Response(JSON.stringify({
       success: true,
       message: `Status updated successfully for category_event_id ${category_event_id}`,
-      affectedRows: result.affectedRows
+      affectedRows: result.affectedRows,
+      shouldRedirect: shouldRedirect, // 🎯 KEY ADDITION: Tell frontend whether to redirect
+      templateId: currentEvent.template_id,
+      previousStatus: currentEvent.current_status,
+      newStatus: status
     }), {
       status: 200,
       headers
@@ -732,7 +757,8 @@ export async function PATCH(request) {
     return new Response(JSON.stringify({
       success: false,
       message: 'Failed to update status',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      shouldRedirect: false
     }), {
       status: 500,
       headers

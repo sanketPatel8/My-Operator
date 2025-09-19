@@ -595,7 +595,7 @@ function ConfigurationForm({ searchParams }) {
                     </label>
                     <input
                       name="shopUrl"
-                      disabled={!edit}
+                      disabled={true}
                       value={shopUrl}
                       onChange={handleChange}
                       className="w-full border border-[#E9E9E9] rounded-[4px] bg-[#F3F5F6] px-[16px] py-[10px] text-[#1A1A1A] text-[14px]"
