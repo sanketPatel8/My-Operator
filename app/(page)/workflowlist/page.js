@@ -607,7 +607,7 @@ export default function WorkflowList() {
       icon: "/assets/cart_1.svg",
     },
     {
-      name: "Order life cycle Notification",
+      name: "Order life cycle Notifications",
       description:
         "Automate essential communications and enable direct customer interaction for key order events",
       icon: "/assets/box.svg",
