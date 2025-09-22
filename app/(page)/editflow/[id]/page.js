@@ -310,6 +310,8 @@ function Editflow() {
       "Payment Url",
       "Abandoned Cart Url",
       "Custom Link",
+      "Online Shop Url",
+      "Brand Name",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -375,6 +377,8 @@ function Editflow() {
       "Payment Url",
       "Abandoned Cart Url",
       "Custom Link",
+      "Online Shop Url",
+      "Brand Name",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -1667,23 +1671,25 @@ function Editflow() {
                           )}
                         </button>
                       </div>
-                      <div className="bg-orange-50 p-3 rounded-md text-[14px] text-[#4275D6] flex items-start md:items-center">
-                        <Image
-                          src="/assets/question-circle.svg"
-                          alt="question mark"
-                          height={100}
-                          width={100}
-                          className="h-[14px] w-[14px] mr-1"
-                        />
-                        <span className="text-[14px]">
-                          <p
-                            className="text-black text-[12px]"
-                            dangerouslySetInnerHTML={{
-                              __html: Note,
-                            }}
+                      {Note && (
+                        <div className="bg-orange-50 p-3 rounded-md text-[14px] text-[#4275D6] flex items-start md:items-center">
+                          <Image
+                            src="/assets/question-circle.svg"
+                            alt="question mark"
+                            height={100}
+                            width={100}
+                            className="h-[14px] w-[14px] mr-1"
                           />
-                        </span>
-                      </div>
+                          <span className="text-[14px]">
+                            <p
+                              className="text-black text-[12px]"
+                              dangerouslySetInnerHTML={{
+                                __html: Note,
+                              }}
+                            />
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
