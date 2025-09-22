@@ -182,6 +182,21 @@ export async function POST(request) {
       }
     }
 
+    const updateCategoryEventQuery = `
+      UPDATE category_event 
+      SET 
+        status = ?,
+        updated_at = NOW()
+      WHERE category_event_id = ?
+    `;
+
+    const [updateCategoryEventResult] = await connection.execute(updateCategoryEventQuery, [
+      1,        // e.g., 1
+      categoryEventId     // e.g., the ID of the category_event row to update
+    ]);
+
+    console.log("status update", updateCategoryEventResult);
+
     await connection.commit();
 
     const headers = new Headers();

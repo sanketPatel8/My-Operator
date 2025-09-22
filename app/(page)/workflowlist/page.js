@@ -1,21 +1,20 @@
 "use client";
 import DashboardHeaader from "@/component/DashboardHeaader";
 import Sidebar from "@/component/Sidebar";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import DropDown from "@/component/DropDown";
 import { useRouter } from "next/navigation";
 import { FiEye, FiMoreVertical } from "react-icons/fi";
 import { useWorkflow } from "@/component/WorkflowContext";
 import { useToastContext } from "@/component/Toast";
 import ChatPreviewPopup from "@/component/ChatPreviewPopup";
-import CustomWorkflowDeleteModal from "@/component/CustomWorkflowDeleteModal ";
 import { useModal } from "@/hook/useModel";
 import CustomModal from "@/component/CustomModal";
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
-  const { success, error } = useToastContext();
+  const { success, error: showError } = useToastContext();
   const { ModelIsOpen, openModal, closeModal } = useModal();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
@@ -28,14 +27,21 @@ export default function WorkflowList() {
   const [workflows, setWorkflows] = useState([]);
   const [customWorkflowCount, setCustomWorkflowCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error1, setError] = useState(null);
+  const [apiError, setApiError] = useState(null);
   const [loadingToggles, setLoadingToggles] = useState([]);
-
   const [deleteLoading, setDeleteLoading] = useState(null);
 
   const hasFetched = useRef(false);
   const workflowsFetched = useRef(false);
   const { fetched, setFetched } = useWorkflow();
+
+  // Helper function to safely get localStorage
+  const getStoreToken = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem("storeToken");
+    }
+    return null;
+  }, []);
 
   // Initialize workflow data on first load
   useEffect(() => {
@@ -44,14 +50,16 @@ export default function WorkflowList() {
 
     const initializeWorkflows = async () => {
       try {
-        const storeToken = localStorage.getItem("storeToken");
+        const storeToken = getStoreToken();
 
         if (!storeToken) {
           console.log("⚠️ No store token found in localStorage");
           setIsRedirecting(true);
           console.log("redirecttion::", process.env.NEXT_PUBLIC_REDIRECT_URL);
 
-          window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
+          if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_REDIRECT_URL) {
+            window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
+          }
           return;
         }
 
@@ -71,56 +79,67 @@ export default function WorkflowList() {
         console.log("status post api:::", initRes);
 
         // ✅ Then fetch the updated workflows
-        const updatedRes = await fetch(
-          `/api/category?storeToken=${storeToken}`,
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            signal: AbortSignal.timeout(30000),
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+        try {
+          const updatedRes = await fetch(
+            `/api/category?storeToken=${storeToken}`,
+            {
+              method: "GET",
+              headers: {
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              signal: controller.signal,
+            }
+          );
+          
+          clearTimeout(timeoutId);
+          
+          if (!updatedRes.ok) {
+            throw new Error(
+              `Failed to fetch categories after POST: ${updatedRes.status}`
+            );
           }
-        );
-        if (!updatedRes.ok) {
-          throw new Error(
-            `Failed to fetch categories after POST: ${updatedRes.status}`
-          );
-        }
 
-        const updatedData = await updatedRes.json();
+          const updatedData = await updatedRes.json();
 
-        console.log("✅ Updated workflow data:", updatedData);
+          console.log("✅ Updated workflow data:", updatedData);
 
-        if (updatedData.success) {
-          setWorkflows(updatedData.categories);
+          if (updatedData.success) {
+            setWorkflows(updatedData.categories);
 
-          // Count custom workflows (category_id = 61)
-          const customWorkflows = updatedData.categories.find(
-            (cat) => cat.category_id === 61
-          );
-          const customCount = customWorkflows
-            ? customWorkflows.events.length
-            : 0;
-          setCustomWorkflowCount(customCount);
+            // Count custom workflows (category_id = 61)
+            const customWorkflows = updatedData.categories.find(
+              (cat) => cat.category_id === 61
+            );
+            const customCount = customWorkflows
+              ? customWorkflows.events.length
+              : 0;
+            setCustomWorkflowCount(customCount);
 
-          workflowsFetched.current = true;
-          setFetched(true);
-          hasFetched.current = true;
+            workflowsFetched.current = true;
+            setFetched(true);
+            hasFetched.current = true;
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
         }
       } catch (err) {
         console.error("❌ Error with workflows:", err);
-        setError(err.message);
+        setApiError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
     initializeWorkflows();
-  }, []);
+  }, [getStoreToken, setFetched]);
 
   // Helper function to check if a toggle should be disabled
-  const isToggleDisabled = (workflowData, eventTitle) => {
+  const isToggleDisabled = useCallback((workflowData, eventTitle) => {
     if (!workflowData || !workflowData.events) return false;
 
     // Only disable "Convert COD to Paid" if "COD Order Confirmation or Cancel" is off
@@ -132,10 +151,10 @@ export default function WorkflowList() {
     }
 
     return false;
-  };
+  }, []);
 
   // Transform workflow data to match DropDown component format
-  const transformWorkflowToReminders = (workflow) => {
+  const transformWorkflowToReminders = useCallback((workflow) => {
     if (!workflow || !workflow.events) return [];
 
     return workflow.events.map((event, index) => ({
@@ -149,36 +168,191 @@ export default function WorkflowList() {
       categoryName: workflow.categoryName,
       category_event_id: event.category_event_id,
     }));
-  };
+  }, [isToggleDisabled]);
 
-  
+  // Updated handleToggle function with better template checking
+  const handleToggle = useCallback(async (workflowId, reminderId) => {
+    if (!workflowId || !reminderId) return;
 
-// Updated handleToggle function with better template checking
-const handleToggle = async (workflowId, reminderId) => {
-  if (!workflowId || !reminderId) return;
-
-  const toggleKey = `${workflowId}:${reminderId}`;
-  const storeToken = localStorage.getItem("storeToken");
-  
-  // Find current workflow and reminder
-  const currentWorkflow = workflows.find(wf => wf.category_id === workflowId);
-  const currentReminder = currentWorkflow?.events.find(ev => ev.category_event_id === reminderId);
-
-  if (!currentReminder) return;
-
-  // Check if this toggle is disabled
-  if (isToggleDisabled(currentWorkflow, currentReminder.title)) {
-    error('Please enable "COD Order Confirmation or Cancel" first to enable this option.');
-    return;
-  }
-
-  const currentStatus = currentReminder?.status ?? 0;
-  const newStatus = currentStatus === 1 ? 0 : 1;
-
-  // 🚀 TURNING ON LOGIC (status 0 -> 1) - Same logic but with instant UI
-  if (currentStatus === 0 && newStatus === 1) {
+    const toggleKey = `${workflowId}:${reminderId}`;
+    const storeToken = getStoreToken();
     
-    // 🎯 INSTANT UI UPDATE: Show toggle as ON immediately on click
+    // Find current workflow and reminder
+    const currentWorkflow = workflows.find(wf => wf.category_id === workflowId);
+    const currentReminder = currentWorkflow?.events.find(ev => ev.category_event_id === reminderId);
+
+    if (!currentReminder) return;
+
+    // Check if this toggle is disabled
+    if (isToggleDisabled(currentWorkflow, currentReminder.title)) {
+      showError('Please enable "COD Order Confirmation or Cancel" first to enable this option.');
+      return;
+    }
+
+    const currentStatus = currentReminder?.status ?? 0;
+    const newStatus = currentStatus === 1 ? 0 : 1;
+
+    // 🚀 TURNING ON LOGIC (status 0 -> 1) - Same logic but with instant UI
+    if (currentStatus === 0 && newStatus === 1) {
+      
+      // 🎯 INSTANT UI UPDATE: Show toggle as ON immediately on click
+      setWorkflows((prev) =>
+        prev.map((workflow) => {
+          if (workflow.category_id === workflowId) {
+            return {
+              ...workflow,
+              events: workflow.events.map((event) => {
+                if (event.category_event_id === reminderId) {
+                  return { ...event, status: 1 };
+                }
+                return event;
+              })
+            };
+          }
+          return workflow;
+        })
+      );
+
+      try {
+        // Add loading state (but UI already shows ON)
+        setLoadingToggles((prev) => [...prev, toggleKey]);
+
+        // Use existing PATCH API to check template_id with checkOnly flag
+        const validateResponse = await fetch('/api/category', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeToken: storeToken,
+            category_event_id: reminderId,
+            status: 1,
+            checkOnly: true, // Flag to just check template_id without updating
+          }),
+        });
+
+        const validateResult = await validateResponse.json();
+
+        if (!validateResponse.ok || !validateResult.success) {
+          throw new Error(validateResult.message || 'Failed to validate template');
+        }
+
+        // If template_id is null, redirect to edit flow instead of turning toggle ON
+        if (!validateResult.templateId || validateResult.templateId === null) {
+          console.log("🔄 No template found, redirecting to edit flow");
+
+          // 🔄 REVERT UI: Toggle back to OFF before redirecting
+          setWorkflows((prev) =>
+            prev.map((workflow) => {
+              if (workflow.category_id === workflowId) {
+                return {
+                  ...workflow,
+                  events: workflow.events.map((event) => {
+                    if (event.category_event_id === reminderId) {
+                      return { ...event, status: currentStatus };
+                    }
+                    return event;
+                  })
+                };
+              }
+              return workflow;
+            })
+          );
+
+          // Create reminder object for navigation
+          const reminderForNavigation = {
+            category_id: workflowId,
+            categoryName: currentWorkflow.categoryName || 'Unknown Category',
+            category_event_id: reminderId,
+            title: currentReminder.title || 'Untitled Event',
+            text: currentReminder.subtitle || '',
+            footerText: currentReminder.delay ? `Send after ${currentReminder.delay}` : 'Send after 1 hour'
+          };
+
+          // Navigate to edit flow
+          const delayText = reminderForNavigation.footerText || '';
+          const cleanDelay = delayText.replace('Send after ', '').trim() || '1 hour';
+          
+          const queryParams = new URLSearchParams({
+            category_id: reminderForNavigation.category_id,
+            categoryName: reminderForNavigation.categoryName,
+            category_event_id: String(reminderForNavigation.category_event_id),
+            eventTitle: reminderForNavigation.title,
+            eventSubtitle: reminderForNavigation.text,
+            eventDelay: cleanDelay
+          });
+          
+          // Redirect to edit flow
+          router.push(`/editflow/${queryParams.get("category_event_id")}`);
+          return;
+        }
+
+        // If template_id exists, proceed with turning the toggle ON
+        const updateResponse = await fetch('/api/category', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeToken: storeToken,
+            category_event_id: reminderId,
+            status: 1,
+          }),
+        });
+
+        const updateResult = await updateResponse.json();
+
+        if (!updateResponse.ok || !updateResult.success) {
+          throw new Error(updateResult.message || 'Failed to update status');
+        }
+
+        console.log("✅ Toggle enabled successfully (template exists)");
+        // UI is already ON, no need to update again
+
+      } catch (error) {
+        console.error('❌ Error enabling workflow:', error.message);
+        
+        // 🔄 ROLLBACK: Revert UI to original state on error
+        setWorkflows((prev) =>
+          prev.map((workflow) => {
+            if (workflow.category_id === workflowId) {
+              return {
+                ...workflow,
+                events: workflow.events.map((event) => {
+                  if (event.category_event_id === reminderId) {
+                    return { ...event, status: currentStatus }; // Revert to original status
+                  }
+                  return event;
+                })
+              };
+            }
+            return workflow;
+          })
+        );
+        
+        showError('Failed to enable workflow. Please try again.');
+      } finally {
+        // Remove loading state
+        setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
+      }
+
+      return; // Exit early for status 0 -> 1 case
+    }
+
+    // 🚀 TURNING OFF LOGIC (status 1 -> 0) - remains the same
+    const isCodConfirmBeingTurnedOff = 
+      currentReminder.title === "COD Order Confirmation or Cancel" && newStatus === 0;
+
+    let additionalUpdates = [];
+    if (isCodConfirmBeingTurnedOff) {
+      const convertCodEvent = currentWorkflow.events.find(
+        event => event.title === "Convert COD to Paid"
+      );
+      if (convertCodEvent && convertCodEvent.status === 1) {
+        additionalUpdates.push({
+          category_event_id: convertCodEvent.category_event_id,
+          status: 0
+        });
+      }
+    }
+
+    // Optimistic update for turning OFF
     setWorkflows((prev) =>
       prev.map((workflow) => {
         if (workflow.category_id === workflowId) {
@@ -186,7 +360,10 @@ const handleToggle = async (workflowId, reminderId) => {
             ...workflow,
             events: workflow.events.map((event) => {
               if (event.category_event_id === reminderId) {
-                return { ...event, status: 1 };
+                return { ...event, status: newStatus };
+              }
+              if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
+                return { ...event, status: 0 };
               }
               return event;
             })
@@ -196,102 +373,54 @@ const handleToggle = async (workflowId, reminderId) => {
       })
     );
 
+    setLoadingToggles((prev) => [...prev, toggleKey]);
+
     try {
-      // Add loading state (but UI already shows ON)
-      setLoadingToggles((prev) => [...prev, toggleKey]);
-
-      // Use existing PATCH API to check template_id with checkOnly flag
-      const validateResponse = await fetch('/api/category', {
+      // Update the primary toggle
+      const res = await fetch('/api/category', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storeToken: storeToken,
           category_event_id: reminderId,
-          status: 1,
-          checkOnly: true, // Flag to just check template_id without updating
+          status: newStatus,
         }),
       });
 
-      const validateResult = await validateResponse.json();
+      const result = await res.json();
 
-      if (!validateResponse.ok || !validateResult.success) {
-        throw new Error(validateResult.message || 'Failed to validate template');
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || 'Failed to update status');
       }
 
-      // If template_id is null, redirect to edit flow instead of turning toggle ON
-      if (!validateResult.templateId || validateResult.templateId === null) {
-        console.log("🔄 No template found, redirecting to edit flow");
-
-        // 🔄 REVERT UI: Toggle back to OFF before redirecting
-        setWorkflows((prev) =>
-          prev.map((workflow) => {
-            if (workflow.category_id === workflowId) {
-              return {
-                ...workflow,
-                events: workflow.events.map((event) => {
-                  if (event.category_event_id === reminderId) {
-                    return { ...event, status: currentStatus };
-                  }
-                  return event;
-                })
-              };
-            }
-            return workflow;
-          })
-        );
-
-        // Create reminder object for navigation
-        const reminderForNavigation = {
-          category_id: workflowId,
-          categoryName: currentWorkflow.categoryName || 'Unknown Category',
-          category_event_id: reminderId,
-          title: currentReminder.title || 'Untitled Event',
-          text: currentReminder.subtitle || '',
-          footerText: currentReminder.delay ? `Send after ${currentReminder.delay}` : 'Send after 1 hour'
-        };
-
-        // Navigate to edit flow
-        const delayText = reminderForNavigation.footerText || '';
-        const cleanDelay = delayText.replace('Send after ', '').trim() || '1 hour';
-        
-        const queryParams = new URLSearchParams({
-          category_id: reminderForNavigation.category_id,
-          categoryName: reminderForNavigation.categoryName,
-          category_event_id: String(reminderForNavigation.category_event_id),
-          eventTitle: reminderForNavigation.title,
-          eventSubtitle: reminderForNavigation.text,
-          eventDelay: cleanDelay
+      // Update additional dependent toggles
+      for (const update of additionalUpdates) {
+        const additionalRes = await fetch('/api/category', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeToken: storeToken,
+            category_event_id: update.category_event_id,
+            status: update.status,
+          }),
         });
-        
-        // Redirect to edit flow
-        router.push(`/editflow/${queryParams.get("category_event_id")}`);
-        return;
+
+        const additionalResult = await additionalRes.json();
+        if (!additionalRes.ok || !additionalResult.success) {
+          console.error('❌ Failed to update dependent toggle:', additionalResult.message);
+        }
       }
 
-      // If template_id exists, proceed with turning the toggle ON
-      const updateResponse = await fetch('/api/category', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storeToken: storeToken,
-          category_event_id: reminderId,
-          status: 1,
-        }),
-      });
-
-      const updateResult = await updateResponse.json();
-
-      if (!updateResponse.ok || !updateResult.success) {
-        throw new Error(updateResult.message || 'Failed to update status');
-      }
-
-      console.log("✅ Toggle enabled successfully (template exists)");
-      // UI is already ON, no need to update again
-
-    } catch (error) {
-      console.error('❌ Error enabling workflow:', error.message);
+      console.log('✅ Toggle updated successfully:', result);
       
-      // 🔄 ROLLBACK: Revert UI to original state on error
+      if (isCodConfirmBeingTurnedOff && additionalUpdates.length > 0) {
+        success('COD Order Confirmation disabled. Convert COD to Paid has been automatically disabled as well.');
+      } 
+      
+    } catch (error) {
+      console.error('❌ Error updating toggle status:', error.message);
+      
+      // Rollback optimistic update on error
       setWorkflows((prev) =>
         prev.map((workflow) => {
           if (workflow.category_id === workflowId) {
@@ -299,7 +428,13 @@ const handleToggle = async (workflowId, reminderId) => {
               ...workflow,
               events: workflow.events.map((event) => {
                 if (event.category_event_id === reminderId) {
-                  return { ...event, status: currentStatus }; // Revert to original status
+                  return { ...event, status: currentStatus };
+                }
+                if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
+                  const originalConvertStatus = currentWorkflow.events.find(
+                    e => e.title === "Convert COD to Paid"
+                  )?.status ?? 0;
+                  return { ...event, status: originalConvertStatus };
                 }
                 return event;
               })
@@ -309,132 +444,14 @@ const handleToggle = async (workflowId, reminderId) => {
         })
       );
       
-      error('Failed to enable workflow. Please try again.');
+      showError('Failed to update toggle status. Please try again.');
+      
     } finally {
-      // Remove loading state
       setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
     }
+  }, [workflows, getStoreToken, isToggleDisabled, showError, success, router]);
 
-    return; // Exit early for status 0 -> 1 case
-  }
-
-  // 🚀 TURNING OFF LOGIC (status 1 -> 0) - remains the same
-  const isCodConfirmBeingTurnedOff = 
-    currentReminder.title === "COD Order Confirmation or Cancel" && newStatus === 0;
-
-  let additionalUpdates = [];
-  if (isCodConfirmBeingTurnedOff) {
-    const convertCodEvent = currentWorkflow.events.find(
-      event => event.title === "Convert COD to Paid"
-    );
-    if (convertCodEvent && convertCodEvent.status === 1) {
-      additionalUpdates.push({
-        category_event_id: convertCodEvent.category_event_id,
-        status: 0
-      });
-    }
-  }
-
-  // Optimistic update for turning OFF
-  setWorkflows((prev) =>
-    prev.map((workflow) => {
-      if (workflow.category_id === workflowId) {
-        return {
-          ...workflow,
-          events: workflow.events.map((event) => {
-            if (event.category_event_id === reminderId) {
-              return { ...event, status: newStatus };
-            }
-            if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
-              return { ...event, status: 0 };
-            }
-            return event;
-          })
-        };
-      }
-      return workflow;
-    })
-  );
-
-  setLoadingToggles((prev) => [...prev, toggleKey]);
-
-  try {
-    // Update the primary toggle
-    const res = await fetch('/api/category', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        storeToken: storeToken,
-        category_event_id: reminderId,
-        status: newStatus,
-      }),
-    });
-
-    const result = await res.json();
-
-    if (!res.ok || !result.success) {
-      throw new Error(result.message || 'Failed to update status');
-    }
-
-    // Update additional dependent toggles
-    for (const update of additionalUpdates) {
-      const additionalRes = await fetch('/api/category', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          storeToken: storeToken,
-          category_event_id: update.category_event_id,
-          status: update.status,
-        }),
-      });
-
-      const additionalResult = await additionalRes.json();
-      if (!additionalRes.ok || !additionalResult.success) {
-        console.error('❌ Failed to update dependent toggle:', additionalResult.message);
-      }
-    }
-
-    console.log('✅ Toggle updated successfully:', result);
-    
-    if (isCodConfirmBeingTurnedOff && additionalUpdates.length > 0) {
-      success('COD Order Confirmation disabled. Convert COD to Paid has been automatically disabled as well.');
-    } 
-    
-  } catch (error) {
-    console.error('❌ Error updating toggle status:', error.message);
-    
-    // Rollback optimistic update on error
-    setWorkflows((prev) =>
-      prev.map((workflow) => {
-        if (workflow.category_id === workflowId) {
-          return {
-            ...workflow,
-            events: workflow.events.map((event) => {
-              if (event.category_event_id === reminderId) {
-                return { ...event, status: currentStatus };
-              }
-              if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
-                const originalConvertStatus = currentWorkflow.events.find(
-                  e => e.title === "Convert COD to Paid"
-                )?.status ?? 0;
-                return { ...event, status: originalConvertStatus };
-              }
-              return event;
-            })
-          };
-        }
-        return workflow;
-      })
-    );
-    
-    error('Failed to update toggle status. Please try again.');
-    
-  } finally {
-    setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
-  }
-};
-
-  const handleEyeClick = (reminder) => {
+  const handleEyeClick = useCallback((reminder) => {
     console.log("=== EYE CLICK DEBUG ===");
     console.log("Full reminder object:", reminder);
     console.log("reminder.category_event_id:", reminder.category_event_id);
@@ -444,7 +461,7 @@ const handleToggle = async (workflowId, reminderId) => {
     // Check if reminder has required data for preview
     if (!reminder.category_event_id) {
       console.error("❌ No category_event_id found in reminder:", reminder);
-      error(
+      showError(
         "Unable to preview: Missing event data. Please ensure the workflow is properly configured."
       );
       return;
@@ -461,12 +478,10 @@ const handleToggle = async (workflowId, reminderId) => {
       categoryEventId: reminder.category_event_id,
       reminderTitle: reminder.title,
     });
-  };
-
-  
+  }, [showError]);
 
   // Replace your existing handleDeleteFlow function with this:
-  const handleDeleteFlow = async (reminder) => {
+  const handleDeleteFlow = useCallback((reminder) => {
     console.log("Delete flow for reminder:", reminder);
     
     // Store the reminder data for use in handleDelete
@@ -474,18 +489,18 @@ const handleToggle = async (workflowId, reminderId) => {
     
     // Open the modal
     openModal();
-  };
+  }, [openModal]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     console.log("Delete flow for reminder:", selectedReminder);
 
     if (!selectedReminder || !selectedReminder.category_event_id) {
-      error("Unable to delete: Missing workflow identifier");
+      showError("Unable to delete: Missing workflow identifier");
       closeModal(); // Close modal on error
       return;
     }
 
-    const storeToken = localStorage.getItem("storeToken");
+    const storeToken = getStoreToken();
 
     try {
       setDeleteLoading(selectedReminder.category_event_id);
@@ -538,102 +553,29 @@ const handleToggle = async (workflowId, reminderId) => {
       }
     } catch (error) {
       console.error("❌ Error deleting workflow:", error);
-      error(`Failed to delete workflow: ${error.message}`);
+      showError(`Failed to delete workflow: ${error.message}`);
     } finally {
       setDeleteLoading(null);
     }
-  };
+  }, [selectedReminder, getStoreToken, success, showError, closeModal]);
 
   // Add this before the closing </div> of your main component:
 
   // 4. ADD THIS NEW FUNCTION (place it after handleEyeClick)
-  const closePreviewPopup = () => {
+  const closePreviewPopup = useCallback(() => {
     setPreviewPopup({
       isOpen: false,
       categoryEventId: null,
       reminderTitle: "",
     });
-  };
+  }, []);
 
-  const handleMoreClick = (reminder) => {
+  const handleMoreClick = useCallback((reminder) => {
     console.log("More clicked:", reminder);
-  };
-
-  // // Handle delete flow - NEW FUNCTION
-  // const handleDeleteFlow = async (reminder) => {
-  //   const storeToken = localStorage.getItem("storeToken");
-  //   console.log("Delete flow for reminder:", reminder);
-
-  //   if (!reminder.category_event_id) {
-  //     console.error('No category_event_id found for deletion');
-  //     return;
-  //   }
-
-  //   // Confirm deletion
-  //   const confirmed = window.confirm(
-  //     `Are you sure you want to delete the template data for "${reminder.title}"?\n\nThis will remove all template configurations but keep the workflow event.`
-  //   );
-
-  //   if (!confirmed) return;
-
-  //   try {
-  //     setDeleteLoading(reminder.category_event_id);
-
-  //     const response = await fetch('/api/category', {
-  //       method: 'DELETE',
-  //       headers: {
-  //         'Content-Type': 'application/json',
-  //       },
-  //       body: JSON.stringify({
-  //         storeToken: storeToken,
-  //         category_event_id: reminder.category_event_id
-  //       })
-  //     });
-
-  //     const result = await response.json();
-
-  //     if (result.success) {
-  //       console.log('✅ Template data deleted successfully');
-
-  //       // Update the local state to reflect the changes
-  //       setWorkflows((prev) =>
-  //         prev.map((workflow) => {
-  //           if (workflow.category_id === reminder.category_id) {
-  //             return {
-  //               ...workflow,
-  //               events: workflow.events.map((event) =>
-  //                 event.category_event_id === reminder.category_event_id
-  //                   ? {
-  //                       ...event,
-  //                       template_id: null,
-  //                       template_data_id: null,
-  //                       template_variable_id: null
-  //                     }
-  //                   : event
-  //               )
-  //             };
-  //           }
-  //           return workflow;
-  //         })
-  //       );
-
-  //       // Show success message
-  //       success('Template data deleted successfully!');
-
-  //     } else {
-  //       console.error('❌ Failed to delete template data:', result.message);
-  //       error(`Failed to delete template data: ${result.message}`);
-  //     }
-  //   } catch (error) {
-  //     console.error('❌ Error deleting template data:', error);
-  //     error('An error occurred while deleting template data. Please try again.');
-  //   } finally {
-  //     setDeleteLoading(null);
-  //   }
-  // };
+  }, []);
 
   // Handle edit flow navigation with specific event data
-  const handleEditFlow = (reminder) => {
+  const handleEditFlow = useCallback((reminder) => {
     console.log("Edit flow for reminder:", reminder);
 
     const delayText = reminder.footerText || "";
@@ -655,7 +597,7 @@ const handleToggle = async (workflowId, reminderId) => {
     );
 
     router.push(`/editflow/${queryParams.get("category_event_id")}`);
-  };
+  }, [router]);
 
   // Static workflow configurations for display
   const workflowConfigs = [
@@ -691,7 +633,7 @@ const handleToggle = async (workflowId, reminderId) => {
       onClickButton:
         customWorkflowCount >= 3
           ? () =>
-              error(
+              showError(
                 "Maximum 3 custom workflows allowed. Please delete an existing workflow to create a new one."
               )
           : () => router.push("/createflow"),
@@ -730,7 +672,7 @@ const handleToggle = async (workflowId, reminderId) => {
     );
   }
 
-  if (error1) {
+  if (apiError) {
     return (
       <div className="font-source-sans flex flex-col min-h-screen">
         <DashboardHeaader />
@@ -740,7 +682,7 @@ const handleToggle = async (workflowId, reminderId) => {
             <div className="text-center">
               <div className="text-red-600 mb-4">
                 <p className="text-lg font-semibold">Error loading workflows</p>
-                <p className="text-sm">{error1}</p>
+                <p className="text-sm">{apiError}</p>
               </div>
               <button
                 onClick={() => window.location.reload()}
@@ -834,12 +776,12 @@ const handleToggle = async (workflowId, reminderId) => {
             width="400px"
             height="200px"
           >
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <h3 className="font-medium text-black text-md mb-4">
+            <div className="flex flex-col items-center justify-center h-[100px] text-center">
+              <h3 className="font-medium text-black text-md mb-4 mt-[24px]">
                 Are you sure you want to delete "{selectedReminder?.title || 'this workflow'}"?
               </h3>
 
-              <div className="flex justify-center gap-4 mt-6">
+              <div className="flex justify-center gap-4 mt-6 mb-[12px]">
                 <button
                   onClick={() => {
                     closeModal();
@@ -866,7 +808,7 @@ const handleToggle = async (workflowId, reminderId) => {
         isOpen={previewPopup.isOpen}
         onClose={closePreviewPopup}
         categoryEventId={previewPopup.categoryEventId}
-        storeToken={localStorage.getItem("storeToken")}
+        storeToken={getStoreToken()}
       />
     </div>
   );
