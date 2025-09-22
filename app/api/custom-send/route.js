@@ -72,10 +72,6 @@ async function sendWhatsAppMessage(
           buttons: templateContent.buttons || [], // Use dynamic buttons array
         },
       },
-      "reply_to": null,
-      "trail": {
-            "name": trail
-        }
     };
 
     console.log(
