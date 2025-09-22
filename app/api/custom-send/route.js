@@ -69,7 +69,7 @@ async function sendWhatsAppMessage(
           language: "en",
           header: templateContent.header || {},
           body: templateContent.body.example || {},
-          buttons: templateContent.buttons || [], // Use dynamic buttons array
+          buttons: templateContent.buttons || [], 
         },
       },
     };
@@ -245,7 +245,7 @@ export async function POST(req) {
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data, eventTitle, storeData) {
+    function buildTemplateContent(templateRows, data, eventTitle, storeData, image_id) {
       const templateContent = {
         header: null,
         body: null,
@@ -268,8 +268,8 @@ export async function POST(req) {
             const media = value.media_id;
             console.log("Media ID:", media);
             
-            if (row.tamplate_image != null) {
-              templateContent.header = { media_id: row.tamplate_image };
+            if (image_id != null) {
+              templateContent.header = { media_id: image_id };
             } else {
               templateContent.header = { media_id: media };
             }
@@ -352,10 +352,20 @@ export async function POST(req) {
           continue;
         }
 
+        const [templateimage] = await connection.execute(
+          "SELECT tamplate_image FROM template_variable WHERE template_data_id = ?",
+          [template_data_id]
+        );
+
+        console.log("template image row", templateimage);
+
+        const image_id = templateimage[0]?.tamplate_image;
+
         console.log(`📄 Template data fetched (${template_name}): ${templateRows.length} rows`);
+        console.log("First template image:", image_id);
 
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data, eventTitle, storeData);
+        const templateContent = buildTemplateContent(templateRows, data, eventTitle, storeData, image_id);
 
         if (!templateContent) {
           console.log(`⚠️ Failed to build template content for: ${template_name}`);
