@@ -774,14 +774,14 @@ export default function WorkflowList() {
             }}
             title="Delete Confirmation"
             width="400px"
-            height="200px"
+            height="225px"
           >
-            <div className="flex flex-col items-center justify-center h-[100px] text-center">
-              <h3 className="font-medium text-black text-md mb-4 mt-[24px]">
-                Are you sure you want to delete "{selectedReminder?.title || 'this workflow'}"?
+            <div className="flex flex-col justify-center h-[100px] text-center">
+              <h3 className="font-medium text-black text-md mt-[48px]">
+                Are you sure you want to delete &quot;{selectedReminder?.title || 'this workflow'}&quot;?
               </h3>
 
-              <div className="flex justify-center gap-4 mt-6 mb-[12px]">
+              <div className="flex justify-center gap-4 mt-[48px]">
                 <button
                   onClick={() => {
                     closeModal();
