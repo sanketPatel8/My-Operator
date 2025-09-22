@@ -171,10 +171,29 @@ const handleToggle = async (workflowId, reminderId) => {
   const currentStatus = currentReminder?.status ?? 0;
   const newStatus = currentStatus === 1 ? 0 : 1;
 
-  // 🚀 TURNING ON LOGIC (status 0 -> 1) - Check template_id first
+  // 🚀 TURNING ON LOGIC (status 0 -> 1) - Same logic but with instant UI
   if (currentStatus === 0 && newStatus === 1) {
+    
+    // 🎯 INSTANT UI UPDATE: Show toggle as ON immediately on click
+    setWorkflows((prev) =>
+      prev.map((workflow) => {
+        if (workflow.category_id === workflowId) {
+          return {
+            ...workflow,
+            events: workflow.events.map((event) => {
+              if (event.category_event_id === reminderId) {
+                return { ...event, status: 1 };
+              }
+              return event;
+            })
+          };
+        }
+        return workflow;
+      })
+    );
+
     try {
-      // Add loading state
+      // Add loading state (but UI already shows ON)
       setLoadingToggles((prev) => [...prev, toggleKey]);
 
       // Use existing PATCH API to check template_id with checkOnly flag
@@ -198,6 +217,24 @@ const handleToggle = async (workflowId, reminderId) => {
       // If template_id is null, redirect to edit flow instead of turning toggle ON
       if (!validateResult.templateId || validateResult.templateId === null) {
         console.log("🔄 No template found, redirecting to edit flow");
+
+        // 🔄 REVERT UI: Toggle back to OFF before redirecting
+        setWorkflows((prev) =>
+          prev.map((workflow) => {
+            if (workflow.category_id === workflowId) {
+              return {
+                ...workflow,
+                events: workflow.events.map((event) => {
+                  if (event.category_event_id === reminderId) {
+                    return { ...event, status: currentStatus };
+                  }
+                  return event;
+                })
+              };
+            }
+            return workflow;
+          })
+        );
 
         // Create reminder object for navigation
         const reminderForNavigation = {
@@ -227,24 +264,6 @@ const handleToggle = async (workflowId, reminderId) => {
         return;
       }
 
-      // 🎯 OPTIMISTIC UPDATE: Immediately show toggle as ON while API call happens
-      setWorkflows((prev) =>
-        prev.map((workflow) => {
-          if (workflow.category_id === workflowId) {
-            return {
-              ...workflow,
-              events: workflow.events.map((event) => {
-                if (event.category_event_id === reminderId) {
-                  return { ...event, status: 1 };
-                }
-                return event;
-              })
-            };
-          }
-          return workflow;
-        })
-      );
-
       // If template_id exists, proceed with turning the toggle ON
       const updateResponse = await fetch('/api/category', {
         method: 'PATCH',
@@ -263,12 +282,12 @@ const handleToggle = async (workflowId, reminderId) => {
       }
 
       console.log("✅ Toggle enabled successfully (template exists)");
-      
+      // UI is already ON, no need to update again
 
     } catch (error) {
       console.error('❌ Error enabling workflow:', error.message);
       
-      // 🔄 ROLLBACK: Revert optimistic update on error
+      // 🔄 ROLLBACK: Revert UI to original state on error
       setWorkflows((prev) =>
         prev.map((workflow) => {
           if (workflow.category_id === workflowId) {
