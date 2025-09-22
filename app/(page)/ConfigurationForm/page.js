@@ -577,7 +577,7 @@ function ConfigurationForm({ searchParams }) {
 
                   <div>
                     <label className="text-[12px] text-[#555555] block mb-[4px]">
-                      Public shop Url
+                      Online Shop Url
                     </label>
                     <input
                       name="publicUrl"
@@ -585,13 +585,13 @@ function ConfigurationForm({ searchParams }) {
                       value={publicUrl}
                       onChange={(e) => setPublicUrl(e.target.value)}
                       className="w-full border border-[#E9E9E9] rounded-[4px] bg-[#F3F5F6] px-[16px] py-[10px] text-[#1A1A1A] text-[14px]"
-                      placeholder="Public shop URL"
+                      placeholder="Online Shop URL"
                     />
                   </div>
 
                   <div>
                     <label className="text-[12px] text-[#555555] block mb-[4px]">
-                      Shop Url
+                      Shopify Shop Url
                     </label>
                     <input
                       name="shopUrl"
@@ -599,7 +599,7 @@ function ConfigurationForm({ searchParams }) {
                       value={shopUrl}
                       onChange={handleChange}
                       className="w-full border border-[#E9E9E9] rounded-[4px] bg-[#F3F5F6] px-[16px] py-[10px] text-[#1A1A1A] text-[14px]"
-                      placeholder="Shop URL"
+                      placeholder="Shopify Shop URL"
                     />
                   </div>
 
@@ -670,13 +670,13 @@ function ConfigurationForm({ searchParams }) {
                   <>
                     <button
                       onClick={() => setEdit(false)}
-                      className="px-[24px] py-[10px] font-semibold text-sm text-[#343E55] cursor-pointer border border-[#E4E4E4] rounded-[4px] mr-[16px]"
+                      className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={handleSaveChanges}
-                      className="px-[24px] py-[10px] text-[14px] font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
+                      className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
                     >
                       {loading1 ? (
                         <div className="flex items-center justify-center gap-2">
@@ -691,7 +691,7 @@ function ConfigurationForm({ searchParams }) {
                 ) : (
                   <button
                     onClick={handleEditInfo}
-                    className="px-[24px] py-[10px] text-[14px]  font-semibold bg-[#343E55] text-[#FFFFFF] rounded-[4px] cursor-pointer"
+                    className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
                   >
                     Edit information
                   </button>
@@ -713,14 +713,14 @@ function ConfigurationForm({ searchParams }) {
                   <div className="flex justify-center gap-4 mt-6">
                     <button
                       onClick={closeModal} // Cancel
-                      className="px-6 py-2 bg-gray-200 rounded text-black text-sm font-semibold hover:bg-gray-300"
+                      className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
                     >
                       No
                     </button>
 
                     <button
                       onClick={handleDelete} // Confirm delete
-                      className="px-6 py-2 bg-[#343E55] rounded text-white text-sm font-semibold "
+                      className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
                     >
                       Yes
                     </button>

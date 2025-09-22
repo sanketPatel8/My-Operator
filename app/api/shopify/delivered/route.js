@@ -57,7 +57,7 @@ function parseDelayToMinutes(delayValue) {
 }
 
 // 🔹 Map dynamic values (updated for order_delivered structure)
-function getMappedValue(field, data, bestUrl) {
+function getMappedValue(field, data, bestUrl, storeData) {
   switch (field) {
     case "Name":
       return data.customer_first_name || "Customer";
@@ -71,6 +71,10 @@ function getMappedValue(field, data, bestUrl) {
       return String(data.total_price || "00");
     case "Custom Link":
       return bestUrl || "0";
+    case "Online Shop Url":
+      return storeData?.public_shop_url || "https://your-store.myshopify.com";
+    case "Brand Name":
+      return storeData?.brand_name || "Brand";
     default:
       return "";
   }
@@ -78,7 +82,7 @@ function getMappedValue(field, data, bestUrl) {
 
 
 
-function buildTemplateContent(templateRows, data, image_id) {
+function buildTemplateContent(templateRows, data, image_id, storeData) {
   const templateContent = { header: null, body: null, footer: null, buttons: [] };
   const bodyExample = {};
 
@@ -140,7 +144,8 @@ function buildTemplateContent(templateRows, data, image_id) {
           const mappedValue = getMappedValue(
             row.mapping_field,
             data,
-            bestUrl // This will be null if no valid URL found, or the actual URL
+            bestUrl,
+            storeData 
           );
           
           // Only add to bodyExample if we have a valid mapped value
@@ -388,7 +393,8 @@ async function processReminder(order, reminderType, storeData) {
     const templateContent = buildTemplateContent(
       templateVariableRows,
       order,
-      image_id
+      image_id,
+      storeData
     );
     if (!templateContent) {
       console.log(`❌ Failed to build template templateContent for order ${order.id}`);

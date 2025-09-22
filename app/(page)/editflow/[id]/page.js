@@ -1042,7 +1042,7 @@ function Editflow() {
     if (missingFallbacks.length > 0) {
       return (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50"
+          className="font-source-sans fixed inset-0 flex items-center justify-center z-50"
           style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
           onClick={() => setShowTestPopup(false)}
         >
@@ -1051,7 +1051,7 @@ function Editflow() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-[16px] font-semibold text-[#353535]">
                 Missing Fallback Values
               </h3>
               <button
@@ -1106,7 +1106,7 @@ function Editflow() {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowTestPopup(false)}
-                className="px-4 py-2 bg-[#343E55] text-white rounded-md hover:bg-[#1f2a44]"
+                className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44]"
               >
                 Go Back and Add Fallback Values
               </button>
@@ -1118,7 +1118,7 @@ function Editflow() {
 
     return (
       <div
-        className="fixed inset-0 flex items-center justify-center z-50"
+        className="font-source-sans fixed inset-0 flex items-center justify-center z-50"
         style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
         onClick={handleBackdropClick}
         onKeyDown={handleKeyDown}
@@ -1130,7 +1130,7 @@ function Editflow() {
         >
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-[16px] font-semibold text-[#353535]">
               Send Test Message
             </h3>
             <button
@@ -1255,11 +1255,7 @@ function Editflow() {
           <div className="flex justify-end space-x-3">
             <button
               onClick={handleCloseAttempt}
-              className={`px-4 py-2 border border-gray-300 rounded-md transition-colors ${
-                !isPhoneNumberComplete && testPhoneNumber.length > 0
-                  ? "text-gray-400 bg-gray-100 cursor-not-allowed opacity-50"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100`}
               disabled={!isPhoneNumberComplete && testPhoneNumber.length > 0}
               title={
                 !isPhoneNumberComplete && testPhoneNumber.length > 0
@@ -1272,7 +1268,7 @@ function Editflow() {
             <button
               onClick={handleSendTestMessage}
               disabled={testLoading || !isPhoneNumberComplete}
-              className={`px-4 py-2 rounded-md flex items-center space-x-2 transition-colors ${
+              className={`px-[24px] py-[10px] rounded-[4px] font-semibold text-[14px] flex items-center space-x-2 transition-colors ${
                 testLoading || !isPhoneNumberComplete
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                   : "bg-[#343E55] text-white hover:bg-[#1f2a44]"

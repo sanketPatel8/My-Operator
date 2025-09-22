@@ -87,7 +87,7 @@ async function sendWhatsAppMessage(phoneNumber, selectedTemplate, templateConten
 }
 
 // ✅ Updated function to build template content with simplified button payload
-function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues, image_id, data = {}) {
+function buildTemplateContentWithUserFallbacks(templateRows, userFallbackValues, image_id, storeData, data = {}) {
   const templateContent = {
     header: null,
     body: null,
@@ -336,7 +336,7 @@ export async function POST(req) {
     console.log(`📄 Template structure fetched: ${templateRows} variables`);
 
     // ✅ 5. Build template content using USER-ENTERED fallback values
-    const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues, image_id);
+    const templateContent = buildTemplateContentWithUserFallbacks(templateRows, fallbackValues, image_id, storeData);
 
     
 

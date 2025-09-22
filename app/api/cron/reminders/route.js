@@ -63,7 +63,7 @@ function parseDelayToMinutes(delayValue) {
 
 
 // 🔹 Map dynamic values
-function getMappedValue(field, data, customerData, abandoned_checkout_url) {
+function getMappedValue(field, data, customerData, abandoned_checkout_url, storeData) {
 
 
   switch (field) {
@@ -83,13 +83,17 @@ function getMappedValue(field, data, customerData, abandoned_checkout_url) {
       return data?.total_price || "00";
     case "Abandoned Cart Url":
       return abandoned_checkout_url || "00";
+    case "Online Shop Url":
+      return storeData?.public_shop_url || "https://your-store.myshopify.com";
+    case "Brand Name":
+      return storeData?.brand_name || "Brand";
     default:
       return "Here";
   }
 }
 
 // 🔹 Build template content
-function buildTemplateContent(templateRows, data, abandoned_checkout_url, customerData, image_id) {
+function buildTemplateContent(templateRows, data, abandoned_checkout_url, customerData, image_id, storeData) {
   const content = {
     header: null,
     body: null,
@@ -122,7 +126,8 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
             row.mapping_field,
             data,
             customerData,
-            abandoned_checkout_url
+            abandoned_checkout_url,
+            storeData
           );
         }
         break;
@@ -313,7 +318,7 @@ async function processReminder(checkout, reminderType, storeData) {
     console.log("First template image:", image_id);
 
     const reminderColumn = reminderType.toLowerCase().replace(" ", "_");
-    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url, customerData, image_id);
+    const templateContent = buildTemplateContent(templateVars, checkoutData, abandoned_checkout_url, customerData, image_id, storeData);
     
     await sendWhatsAppMessage(
       phonenumber,

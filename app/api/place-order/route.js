@@ -151,7 +151,8 @@ export async function POST(req) {
         mappingField,
         data,
         customerData,
-        line_items_data
+        line_items_data,
+        storeData
       ) {
         switch (mappingField) {
           case "Name":
@@ -166,6 +167,10 @@ export async function POST(req) {
             return line_items_data.current_quantity;
           case "Total price":
             return line_items_data.price || "00";
+          case "Online Shop Url":
+            return storeData?.public_shop_url || "https://your-store.myshopify.com";
+          case "Brand Name":
+            return storeData?.brand_name || "Brand";
           default:
             return "";
         }
@@ -177,7 +182,8 @@ export async function POST(req) {
         data,
         customerData,
         line_items_data,
-        image_id
+        image_id,
+        storeData
       ) {
         const templateContent = {
           header: null,
@@ -219,7 +225,8 @@ export async function POST(req) {
                   row.mapping_field,
                   data,
                   customerData,
-                  line_items_data
+                  line_items_data,
+                  storeData
                 );
               }
               break;
@@ -435,7 +442,8 @@ export async function POST(req) {
             data,
             customerData,
             line_items_data,
-            image_id
+            image_id,
+            storeData
           );
 
           if (!templateContent) {

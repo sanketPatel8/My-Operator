@@ -454,7 +454,7 @@ export async function POST(req) {
     console.log("Event titles:", eventTitles);
 
     // ✅ 1. Helper to map values from DB fields to dynamic data
-    function getMappedValue(mappingField, data) {
+    function getMappedValue(mappingField, data, storeData) {
       switch (mappingField) {
         case "Name":
           return (
@@ -480,14 +480,18 @@ export async function POST(req) {
           return "0";
 
         case "Total price":
-          return data?.total_price || "00";
+          return storeData?.total_price || "00";
+        case "Online Shop Url":
+          return storeData?.public_shop_url || "https://your-store.myshopify.com";
+        case "Brand Name":
+          return storeData?.brand_name || "Brand";
         default:
           return "Here";
       }
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data, id, image_id) {
+    function buildTemplateContent(templateRows, data, id, image_id, storeData) {
       const templateContent = {
         header: null,
         body: null,
@@ -525,7 +529,8 @@ export async function POST(req) {
             if (row.mapping_field && row.variable_name) {
               bodyExample[row.variable_name] = getMappedValue(
                 row.mapping_field,
-                data
+                data,
+                storeData
               );
             }
             break;
@@ -710,7 +715,8 @@ export async function POST(req) {
           templateRows,
           data,
           id,
-          image_id
+          image_id,
+          storeData
         );
 
         if (!templateContent) {
