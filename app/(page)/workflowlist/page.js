@@ -222,12 +222,28 @@ const handleToggle = async (workflowId, reminderId) => {
           eventDelay: cleanDelay
         });
         
-        
-        
         // Redirect to edit flow
         router.push(`/editflow/${queryParams.get("category_event_id")}`);
         return;
       }
+
+      // 🎯 OPTIMISTIC UPDATE: Immediately show toggle as ON while API call happens
+      setWorkflows((prev) =>
+        prev.map((workflow) => {
+          if (workflow.category_id === workflowId) {
+            return {
+              ...workflow,
+              events: workflow.events.map((event) => {
+                if (event.category_event_id === reminderId) {
+                  return { ...event, status: 1 };
+                }
+                return event;
+              })
+            };
+          }
+          return workflow;
+        })
+      );
 
       // If template_id exists, proceed with turning the toggle ON
       const updateResponse = await fetch('/api/category', {
@@ -246,7 +262,13 @@ const handleToggle = async (workflowId, reminderId) => {
         throw new Error(updateResult.message || 'Failed to update status');
       }
 
-      // ✅ SUCCESS: Update UI to show toggle as ON
+      console.log("✅ Toggle enabled successfully (template exists)");
+      
+
+    } catch (error) {
+      console.error('❌ Error enabling workflow:', error.message);
+      
+      // 🔄 ROLLBACK: Revert optimistic update on error
       setWorkflows((prev) =>
         prev.map((workflow) => {
           if (workflow.category_id === workflowId) {
@@ -254,7 +276,7 @@ const handleToggle = async (workflowId, reminderId) => {
               ...workflow,
               events: workflow.events.map((event) => {
                 if (event.category_event_id === reminderId) {
-                  return { ...event, status: 1 };
+                  return { ...event, status: currentStatus }; // Revert to original status
                 }
                 return event;
               })
@@ -263,12 +285,7 @@ const handleToggle = async (workflowId, reminderId) => {
           return workflow;
         })
       );
-
-      console.log("✅ Toggle enabled successfully (template exists)");
       
-
-    } catch (error) {
-      console.error('❌ Error enabling workflow:', error.message);
       error('Failed to enable workflow. Please try again.');
     } finally {
       // Remove loading state
