@@ -123,22 +123,7 @@ export async function POST(req) {
       JSON.stringify(data, null, 2)
     );
 
-    function getISTDateTime() {
-      const now = new Date();
-      const ist = new Date(
-        now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" })
-      );
-      const year = ist.getFullYear();
-      const month = String(ist.getMonth() + 1).padStart(2, "0");
-      const day = String(ist.getDate()).padStart(2, "0");
-      const hours = String(ist.getHours()).padStart(2, "0");
-      const minutes = String(ist.getMinutes()).padStart(2, "0");
-      const seconds = String(ist.getSeconds()).padStart(2, "0");
-      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-    }
-
-    const createdAt = getISTDateTime();
-    const updatedAt = getISTDateTime();
+    
 
     // Store order in memory
     const orderRecord = {
@@ -228,7 +213,7 @@ export async function POST(req) {
     console.log(`✅ Found ${matchingEvents.length} matching event(s):`, matchingEvents);
 
     // ✅ Helper to map values from DB fields to dynamic data
-    function getMappedValue(mappingField, data) {
+    function getMappedValue(mappingField, data, storeData) {
       switch (mappingField) {
         case "Name":
           return (
@@ -254,13 +239,17 @@ export async function POST(req) {
           return "0";
         case "Total price":
           return data?.total_price || "00";
+        case "Online Shop Url":
+          return storeData?.public_shop_url || "https://your-store.myshopify.com";
+        case "Brand Name":
+          return storeData?.brand_name || "Brand";
         default:
           return "Here";
       }
     }
 
     // Updated buildTemplateContent function to handle dynamic buttons
-    function buildTemplateContent(templateRows, data, eventTitle) {
+    function buildTemplateContent(templateRows, data, eventTitle, storeData) {
       const templateContent = {
         header: null,
         body: null,
@@ -297,7 +286,8 @@ export async function POST(req) {
             if (row.mapping_field && row.variable_name) {
               bodyExample[row.variable_name] = getMappedValue(
                 row.mapping_field,
-                data
+                data,
+                storeData
               );
             }
             break;
@@ -369,7 +359,7 @@ export async function POST(req) {
         console.log(`📄 Template data fetched (${template_name}): ${templateRows.length} rows`);
 
         // ✅ Build template content with mapped data
-        const templateContent = buildTemplateContent(templateRows, data, eventTitle);
+        const templateContent = buildTemplateContent(templateRows, data, eventTitle, storeData);
 
         if (!templateContent) {
           console.log(`⚠️ Failed to build template content for: ${template_name}`);

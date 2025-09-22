@@ -1441,17 +1441,7 @@ function Editflow() {
                           </div>
                         )}
 
-                        {/* Button Variables */}
-                        {templateVariables.buttons.length > 0 && (
-                          <div className="mb-[24px]">
-                            <h3 className="text-[14px] font-semibold text-[#848688] mb-[6px]">
-                              Button
-                            </h3>
-                            {templateVariables.buttons.map((variable) =>
-                              renderVariableRow(variable, "buttons")
-                            )}
-                          </div>
-                        )}
+                        
 
                         {/* No Variables Message */}
                         {templateVariables.header.length === 0 &&

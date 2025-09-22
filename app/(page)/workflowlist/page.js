@@ -9,12 +9,16 @@ import { useWorkflow } from "@/component/WorkflowContext";
 import { useToastContext } from "@/component/Toast";
 import ChatPreviewPopup from "@/component/ChatPreviewPopup";
 import CustomWorkflowDeleteModal from "@/component/CustomWorkflowDeleteModal ";
+import { useModal } from "@/hook/useModel";
+import CustomModal from "@/component/CustomModal";
 
 export default function WorkflowList() {
   const [activeTab, setActiveTab] = useState("/workflowlist");
   const router = useRouter();
   const { success, error } = useToastContext();
+  const { ModelIsOpen, openModal, closeModal } = useModal();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [selectedReminder, setSelectedReminder] = useState(null);
   const [previewPopup, setPreviewPopup] = useState({
     isOpen: false,
     categoryEventId: null,
@@ -459,25 +463,32 @@ const handleToggle = async (workflowId, reminderId) => {
     });
   };
 
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedReminderForDelete, setSelectedReminderForDelete] =
-    useState(null);
+  
 
+  // Replace your existing handleDeleteFlow function with this:
   const handleDeleteFlow = async (reminder) => {
     console.log("Delete flow for reminder:", reminder);
+    
+    // Store the reminder data for use in handleDelete
+    setSelectedReminder(reminder);
+    
+    // Open the modal
+    openModal();
+  };
 
-    if (!reminder.category_event_id) {
+  const handleDelete = async () => {
+    console.log("Delete flow for reminder:", selectedReminder);
+
+    if (!selectedReminder || !selectedReminder.category_event_id) {
       error("Unable to delete: Missing workflow identifier");
+      closeModal(); // Close modal on error
       return;
     }
-
-    // Enhanced confirmation dialog
-    const confirmMessage = `Are you sure you want to delete "${reminder.title}"?\n\nThis action cannot be undone and will remove:\n• The workflow configuration\n• All template mappings\n• Variable settings\n\nClick "DELETE" to confirm:`;
 
     const storeToken = localStorage.getItem("storeToken");
 
     try {
-      setDeleteLoading(reminder.category_event_id);
+      setDeleteLoading(selectedReminder.category_event_id);
 
       const response = await fetch("/api/custom-workflow", {
         method: "DELETE",
@@ -486,7 +497,7 @@ const handleToggle = async (workflowId, reminderId) => {
         },
         body: JSON.stringify({
           storeToken: storeToken,
-          category_event_id: reminder.category_event_id,
+          category_event_id: selectedReminder.category_event_id,
         }),
       });
 
@@ -498,12 +509,12 @@ const handleToggle = async (workflowId, reminderId) => {
         // Update the local state - remove the deleted workflow
         setWorkflows((prev) =>
           prev.map((workflow) => {
-            if (workflow.category_id === reminder.category_id) {
+            if (workflow.category_id === selectedReminder.category_id) {
               return {
                 ...workflow,
                 events: workflow.events.filter(
                   (event) =>
-                    event.category_event_id !== reminder.category_event_id
+                    event.category_event_id !== selectedReminder.category_event_id
                 ),
               };
             }
@@ -511,11 +522,17 @@ const handleToggle = async (workflowId, reminderId) => {
           })
         );
 
-        if (reminder.category_id === 61) {
+        // Update custom workflow count if needed
+        if (selectedReminder.category_id === 61) {
           setCustomWorkflowCount((prev) => prev - 1);
         }
 
-        success(`Workflow "${reminder.title}" deleted successfully!`);
+        success(`Workflow "${selectedReminder.title}" deleted successfully!`);
+        
+        // Close modal and clear selected reminder
+        closeModal();
+        setSelectedReminder(null);
+        
       } else {
         throw new Error(result.message || "Failed to delete workflow");
       }
@@ -807,6 +824,42 @@ const handleToggle = async (workflowId, reminderId) => {
               );
             })}
           </div>
+          <CustomModal
+            isOpen={ModelIsOpen}
+            closeModal={() => {
+              closeModal();
+              setSelectedReminder(null); // Clear selected reminder when closing
+            }}
+            title="Delete Confirmation"
+            width="400px"
+            height="200px"
+          >
+            <div className="flex flex-col items-center justify-center h-full text-center">
+              <h3 className="font-medium text-black text-md mb-4">
+                Are you sure you want to delete "{selectedReminder?.title || 'this workflow'}"?
+              </h3>
+
+              <div className="flex justify-center gap-4 mt-6">
+                <button
+                  onClick={() => {
+                    closeModal();
+                    setSelectedReminder(null);
+                  }}
+                  className="px-[24px] py-[10px] border border-[#E4E4E4] rounded-[4px] text-[#343E55] text-[14px] font-semibold hover:bg-gray-100"
+                >
+                  No
+                </button>
+
+                <button
+                  onClick={handleDelete}
+                  disabled={deleteLoading === selectedReminder?.category_event_id}
+                  className="px-[24px] py-[10px] bg-[#343E55] rounded-[4px] text-[#FFFFFF] text-[14px] font-semibold hover:bg-[#1f2a44] disabled:opacity-50"
+                >
+                  {deleteLoading === selectedReminder?.category_event_id ? "Deleting..." : "Yes"}
+                </button>
+              </div>
+            </div>
+          </CustomModal>
         </main>
       </div>
       <ChatPreviewPopup
