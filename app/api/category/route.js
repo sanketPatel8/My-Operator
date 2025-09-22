@@ -429,6 +429,23 @@ export async function PUT(request) {
       eventData.template_variables_details = updatedVariables;
     }
 
+    const updateCategoryEventQuery = `
+      UPDATE category_event 
+      SET 
+        status = ?,
+        updated_at = NOW()
+      WHERE category_event_id = ?
+    `;
+
+    const [updateCategoryEventResult] = await connection.execute(updateCategoryEventQuery, [
+      1,        // e.g., 1
+      category_event_id     // e.g., the ID of the category_event row to update
+    ]);
+
+    console.log("status update", updateCategoryEventResult);
+    
+
+
     await connection.commit();
 
     const headers = new Headers();
@@ -672,7 +689,7 @@ export async function PATCH(request) {
 
   try {
     const body = await request.json();
-    const { storeToken, category_event_id, status } = body;
+    const { storeToken, category_event_id, status, checkOnly } = body;
 
     if (!storeToken) {
       return NextResponse.json({ message: 'Store token is required' }, { status: 400 });
@@ -718,13 +735,33 @@ export async function PATCH(request) {
     }
 
     const currentEvent = eventRows[0];
+    
+    // 🚀 NEW: Handle checkOnly parameter - just return template status without updating
+    if (checkOnly === true) {
+      const headers = new Headers();
+      setCORSHeaders(headers);
+
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Template validation completed',
+        templateId: currentEvent.template_id,
+        currentStatus: currentEvent.current_status,
+        shouldRedirect: currentEvent.template_id === null,
+        checkOnly: true
+      }), {
+        status: 200,
+        headers
+      });
+    }
+
+    // 🔍 NORMAL UPDATE LOGIC - check for redirect decision
     const shouldRedirect = (
       currentEvent.current_status === 0 && 
       status === 1 && 
       currentEvent.template_id === null
     );
 
-    // Update the status
+    // Update the status (only if not checkOnly)
     const [result] = await connection.execute(
       `UPDATE category_event 
        SET status = ?, updated_at = NOW() 

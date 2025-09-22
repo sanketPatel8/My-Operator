@@ -147,7 +147,10 @@ export default function WorkflowList() {
     }));
   };
 
-  const handleToggle = async (workflowId, reminderId) => {
+  
+
+// Updated handleToggle function with better template checking
+const handleToggle = async (workflowId, reminderId) => {
   if (!workflowId || !reminderId) return;
 
   const toggleKey = `${workflowId}:${reminderId}`;
@@ -168,46 +171,34 @@ export default function WorkflowList() {
   const currentStatus = currentReminder?.status ?? 0;
   const newStatus = currentStatus === 1 ? 0 : 1;
 
-  // 🚀 CONDITIONAL REDIRECT: Only if current status is 0 AND template_id will be null
-  if (currentStatus === 0) {
-    // First, optimistically update UI to show toggle as ON
-    setWorkflows((prev) =>
-      prev.map((workflow) => {
-        if (workflow.category_id === workflowId) {
-          return {
-            ...workflow,
-            events: workflow.events.map((event) => {
-              if (event.category_event_id === reminderId) {
-                return { ...event, status: 1 };
-              }
-              return event;
-            })
-          };
-        }
-        return workflow;
-      })
-    );
-
-    // Make API call to update status to 1 and check template_id
+  // 🚀 TURNING ON LOGIC (status 0 -> 1) - Check template_id first
+  if (currentStatus === 0 && newStatus === 1) {
     try {
-      const response = await fetch('/api/category', {
+      // Add loading state
+      setLoadingToggles((prev) => [...prev, toggleKey]);
+
+      // Use existing PATCH API to check template_id with checkOnly flag
+      const validateResponse = await fetch('/api/category', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           storeToken: storeToken,
           category_event_id: reminderId,
           status: 1,
+          checkOnly: true, // Flag to just check template_id without updating
         }),
       });
 
-      const result = await response.json();
+      const validateResult = await validateResponse.json();
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to update status');
+      if (!validateResponse.ok || !validateResult.success) {
+        throw new Error(validateResult.message || 'Failed to validate template');
       }
 
-      // ✅ REDIRECT ONLY IF template_id IS NULL
-      if (result.shouldRedirect === true) {
+      // If template_id is null, redirect to edit flow instead of turning toggle ON
+      if (!validateResult.templateId || validateResult.templateId === null) {
+        console.log("🔄 No template found, redirecting to edit flow");
+
         // Create reminder object for navigation
         const reminderForNavigation = {
           category_id: workflowId,
@@ -231,17 +222,31 @@ export default function WorkflowList() {
           eventDelay: cleanDelay
         });
         
-        console.log("🔄 Redirecting to edit flow (template_id is null):", queryParams.get("category_event_id"));
+        
         
         // Redirect to edit flow
         router.push(`/editflow/${queryParams.get("category_event_id")}`);
-      } else {
-        console.log("✅ Toggle updated successfully, no redirect needed (template_id exists)");
+        return;
       }
 
-    } catch (error) {
-      console.error('❌ Error updating toggle status:', error.message);
-      // Revert UI on error
+      // If template_id exists, proceed with turning the toggle ON
+      const updateResponse = await fetch('/api/category', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          storeToken: storeToken,
+          category_event_id: reminderId,
+          status: 1,
+        }),
+      });
+
+      const updateResult = await updateResponse.json();
+
+      if (!updateResponse.ok || !updateResult.success) {
+        throw new Error(updateResult.message || 'Failed to update status');
+      }
+
+      // ✅ SUCCESS: Update UI to show toggle as ON
       setWorkflows((prev) =>
         prev.map((workflow) => {
           if (workflow.category_id === workflowId) {
@@ -249,7 +254,7 @@ export default function WorkflowList() {
               ...workflow,
               events: workflow.events.map((event) => {
                 if (event.category_event_id === reminderId) {
-                  return { ...event, status: 0 };
+                  return { ...event, status: 1 };
                 }
                 return event;
               })
@@ -258,17 +263,25 @@ export default function WorkflowList() {
           return workflow;
         })
       );
-      error('Failed to update toggle status. Please try again.');
+
+      console.log("✅ Toggle enabled successfully (template exists)");
+      
+
+    } catch (error) {
+      console.error('❌ Error enabling workflow:', error.message);
+      error('Failed to enable workflow. Please try again.');
+    } finally {
+      // Remove loading state
+      setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
     }
 
     return; // Exit early for status 0 -> 1 case
   }
 
-  // Check if this is "COD Order Confirmation or Cancel" being turned off
+  // 🚀 TURNING OFF LOGIC (status 1 -> 0) - remains the same
   const isCodConfirmBeingTurnedOff = 
     currentReminder.title === "COD Order Confirmation or Cancel" && newStatus === 0;
 
-  // If COD Confirm is being turned off, also turn off "Convert COD to Paid"
   let additionalUpdates = [];
   if (isCodConfirmBeingTurnedOff) {
     const convertCodEvent = currentWorkflow.events.find(
@@ -282,18 +295,16 @@ export default function WorkflowList() {
     }
   }
 
-  // 🚀 OPTIMISTIC UPDATE: Update UI immediately (for turning OFF only)
+  // Optimistic update for turning OFF
   setWorkflows((prev) =>
     prev.map((workflow) => {
       if (workflow.category_id === workflowId) {
         return {
           ...workflow,
           events: workflow.events.map((event) => {
-            // Update the primary toggle
             if (event.category_event_id === reminderId) {
               return { ...event, status: newStatus };
             }
-            // Update dependent toggle if COD Confirm is being turned off
             if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
               return { ...event, status: 0 };
             }
@@ -305,7 +316,6 @@ export default function WorkflowList() {
     })
   );
 
-  // Add loading state for visual feedback
   setLoadingToggles((prev) => [...prev, toggleKey]);
 
   try {
@@ -326,7 +336,7 @@ export default function WorkflowList() {
       throw new Error(result.message || 'Failed to update status');
     }
 
-    // Update additional dependent toggles if needed
+    // Update additional dependent toggles
     for (const update of additionalUpdates) {
       const additionalRes = await fetch('/api/category', {
         method: 'PATCH',
@@ -344,17 +354,16 @@ export default function WorkflowList() {
       }
     }
 
-    // ✅ Success - UI is already updated, just log or show success feedback
     console.log('✅ Toggle updated successfully:', result);
     
     if (isCodConfirmBeingTurnedOff && additionalUpdates.length > 0) {
       success('COD Order Confirmation disabled. Convert COD to Paid has been automatically disabled as well.');
-    }
+    } 
     
   } catch (error) {
     console.error('❌ Error updating toggle status:', error.message);
     
-    // 🔄 ROLLBACK: Revert the optimistic update on error (only for turning OFF)
+    // Rollback optimistic update on error
     setWorkflows((prev) =>
       prev.map((workflow) => {
         if (workflow.category_id === workflowId) {
@@ -362,9 +371,8 @@ export default function WorkflowList() {
             ...workflow,
             events: workflow.events.map((event) => {
               if (event.category_event_id === reminderId) {
-                return { ...event, status: currentStatus }; // Revert to original status
+                return { ...event, status: currentStatus };
               }
-              // Revert dependent toggle if it was changed
               if (isCodConfirmBeingTurnedOff && event.title === "Convert COD to Paid") {
                 const originalConvertStatus = currentWorkflow.events.find(
                   e => e.title === "Convert COD to Paid"
@@ -379,11 +387,9 @@ export default function WorkflowList() {
       })
     );
     
-    // Show error message to user
     error('Failed to update toggle status. Please try again.');
     
   } finally {
-    // Remove loading state
     setLoadingToggles((prev) => prev.filter((key) => key !== toggleKey));
   }
 };
