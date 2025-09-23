@@ -204,63 +204,72 @@ function ConnectShopify() {
   // };
 
   const getCompanyStore = async (companyId) => {
-    try {
-      setLoading(true); // ✅ start loader
+  try {
+    setLoading(true); // ✅ start loader
 
-      const response = await fetch("/api/company-store", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ companyId }),
-      });
+    const response = await fetch("/api/company-store", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ companyId }),
+    });
 
-      const data = await response.json();
+    const data = await response.json();
 
-      if (response.ok) {
-        console.log("Store validated successfully:", data);
+    if (response.ok) {
+      console.log("Store validated successfully:", data);
 
-        // Encrypt store
-        const encryptResponse = await fetch(
-          `/api/encrypt-store-id?shop=${data.shop}`
-        );
-        const encryptData = await encryptResponse.json();
+      // Encrypt store
+      const encryptResponse = await fetch(
+        `/api/encrypt-store-id?shop=${data.shop}`
+      );
+      const encryptData = await encryptResponse.json();
 
-        if (encryptData.encryptedId) {
-          localStorage.setItem("storeToken", encryptData.encryptedId);
-          console.log("Encrypted store id saved to localStorage ✅");
-        } else {
-          console.warn("No encrypted id returned:", encryptData);
-        }
-
-        // ✅ Don't redirect immediately, just set state
-        if (data.phonenumber) {
-          setRedirectPath("/workflowlist");
-        } else {
-          setRedirectPath("/ConnectWhatsApp");
-        }
-      }
-
-      if (response.ok && data.shop) {
-        setStoreName(data.shop);
-        setIsStoreReadonly(true);
-        console.log("Company store found:", data.shop);
-      } else if (response.status === 404 && data.redirectUrl) {
-        console.log("Company not found, redirecting to:", data.redirectUrl);
-        setIsRedirecting(true);
-        setRedirectPath(data.redirectUrl, true); // true = full page reload
+      if (encryptData.encryptedId) {
+        localStorage.setItem("storeToken", encryptData.encryptedId);
+        console.log("Encrypted store id saved to localStorage ✅");
       } else {
-        setIsStoreReadonly(false);
-        console.log("No store found for company, field remains editable");
+        console.warn("No encrypted id returned:", encryptData);
       }
-    } catch (error) {
-      console.error("Error fetching company store:", error);
-      setIsStoreReadonly(false);
-    } finally {
-      setLoading(false); // ✅ stop loader
-      setSecondLogin(false);
+
+      // ✅ Set redirect path and keep loading state for smooth transition
+      if (data.phonenumber) {
+        setRedirectPath("/workflowlist");
+        setIsRedirecting(true); // Keep showing loading state
+        return; // Don't continue to set loading: false
+      } else {
+        setRedirectPath("/ConnectWhatsApp");
+        setIsRedirecting(true); // Keep showing loading state
+        return; // Don't continue to set loading: false
+      }
     }
-  };
+
+    if (response.ok && data.shop) {
+      setStoreName(data.shop);
+      setIsStoreReadonly(true);
+      console.log("Company store found:", data.shop);
+    } else if (response.status === 404 && data.redirectUrl) {
+      console.log("Company not found, redirecting to:", data.redirectUrl);
+      setIsRedirecting(true);
+      setRedirectPath(data.redirectUrl);
+      setIsExternalRedirect(true);
+      return; // Don't continue to set loading: false
+    } else {
+      setIsStoreReadonly(false);
+      console.log("No store found for company, field remains editable");
+    }
+  } catch (error) {
+    console.error("Error fetching company store:", error);
+    setIsStoreReadonly(false);
+  } finally {
+    // Only set loading to false if we're not redirecting
+    if (!redirectPath) {
+      setLoading(false);
+    }
+    setSecondLogin(false);
+  }
+};
 
   // Validate store exists in database and handle routing logic
   const handleConnectStore = async () => {
