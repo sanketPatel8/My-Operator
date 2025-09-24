@@ -480,7 +480,7 @@ export async function POST(req) {
           return "0";
 
         case "Total price":
-          return storeData?.total_price || "00";
+          return data?.total_price || "00";
         case "Online Shop Url":
           return storeData?.public_shop_url || "https://your-store.myshopify.com";
         case "Brand Name":
