@@ -49,6 +49,49 @@ function extractPhoneDetails(orderData) {
   }
 }
 
+export async function createContact(storeData, data, phoneNumber) {
+  
+
+  try {
+
+    const payload = {
+      "name": data?.first_name,
+      "country_code": "+91",
+      "phone_number": phoneNumber,
+      "email_id": data?.email,
+      "marketing_opt_in": true,
+    }
+
+    console.log(
+      "Contact payload:",
+      JSON.stringify(payload, null, 2)
+    );
+
+
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASEURL}/contacts`, {
+      method: 'POST',
+      headers: {
+        'X-MYOP-COMPANY-ID': `${storeData.company_id}`,
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${storeData.whatsapp_api_key}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`API error: ${response.status} - ${error}`);
+    }
+
+    const res = await response.json();
+    return res;
+
+  } catch (error) {
+    console.error('Failed to create contact:', error.message);
+    throw error;
+  }
+};
+
 // Helper function to send WhatsApp message
 async function sendWhatsAppMessage(
   phoneNumber,
@@ -775,6 +818,11 @@ export async function POST(req) {
             result: messageResult,
           });
           sentMessages.push(templateName);
+
+          if(topic == "customers/create"){
+           await createContact(storeData, data, phoneDetails.phone);
+          }
+
         } catch (messageError) {
           console.error(
             `❌ Failed to send WhatsApp message for "${templateName}":`,
