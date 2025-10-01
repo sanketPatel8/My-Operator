@@ -138,7 +138,7 @@ export default function OrderConfirmationClient() {
       const response = await fetch("/api/place-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: order_id, status: statusValue }),
+        body: JSON.stringify({ orderId: order_id, status: confirmed }),
       });
 
       if (!response.ok) throw new Error("API failed");
@@ -150,7 +150,11 @@ export default function OrderConfirmationClient() {
         window.close();
       } else {
         // ❌ Failure → show error
-        setStatus("Order failed ❌");
+        if (data.data == "helo") {
+          setStatus(`${data.message} ❌`);
+        } else {
+          setStatus("Order failed ❌");
+        }
       }
     } catch (error) {
       console.error(error);
@@ -196,13 +200,15 @@ export default function OrderConfirmationClient() {
       {isModalOpen && !loading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
           <div className="bg-white p-6 rounded shadow-md w-80 text-center">
-            <h3 className="text-lg text-black font-bold mb-4">{modalMessage}</h3>
+            <h3 className="text-lg text-black font-bold mb-4">
+              {modalMessage}
+            </h3>
             <div className="flex justify-center gap-4">
               {/* Yes → call API */}
               <button
                 onClick={() => {
                   setIsModalOpen(false);
-                  sendConfirmation("yes");
+                  sendConfirmation();
                 }}
                 className="bg-[#343E55] hover:bg-[#1f2a44] text-white px-4 py-2 rounded"
               >

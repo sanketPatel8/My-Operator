@@ -61,10 +61,10 @@ export async function POST(req) {
               buttons: templateContent.buttons || [],
             },
           },
-          "reply_to": null,
-          "trail": {
-                "name": "Shopify_cod_paid"
-            }
+          reply_to: null,
+          trail: {
+            name: "Shopify_cod_paid",
+          },
         };
 
         console.log(
@@ -146,8 +146,43 @@ export async function POST(req) {
 
     console.log(rows, "Fetched order and store details");
 
+    // Query the table for the given id where confirmation_status is NOT 0
+    const [confirmation_status] = await pool.query(
+      "SELECT confirmation_status FROM placed_code_order WHERE id = ? AND confirmation_status != 0",
+      [orderId]
+    );
+
+    console.log(status, "status");
+
+    // Check if any record exists
+    if (confirmation_status.length > 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Your Reply has already been Submitted",
+          data: "helo",
+        },
+        { status: 200 }
+      );
+    }
+
     if (status == "yes") {
       const eventTitles = ["Convert COD to Paid"];
+
+      const [result] = await pool.execute(
+        "UPDATE placed_code_order SET confirmation_status = ? WHERE id = ?",
+        [1, orderId]
+      );
+
+      console.log("Update result:", result);
+
+      if (result.affectedRows === 0) {
+        console.warn(
+          `⚠️ No order updated. Check if order_id ${order_id} exists.`
+        );
+      } else {
+        console.log(`✅ Order ${order_id} updated successfully.`);
+      }
 
       function getMappedValue(
         mappingField,
@@ -172,7 +207,9 @@ export async function POST(req) {
           case "Tracking Order Link":
             return data.order_status_url || "no url";
           case "Online Shop Url":
-            return storeData?.public_shop_url || "https://your-store.myshopify.com";
+            return (
+              storeData?.public_shop_url || "https://your-store.myshopify.com"
+            );
           case "Brand Name":
             return storeData?.brand_name || "Brand";
           default:
@@ -520,6 +557,21 @@ export async function POST(req) {
         }
       }
     } else {
+      const [result] = await pool.execute(
+        "UPDATE placed_code_order SET confirmation_status = ? WHERE id = ?",
+        [2, orderId]
+      );
+
+      console.log("Update result:", result);
+
+      if (result.affectedRows === 0) {
+        console.warn(
+          `⚠️ No order updated. Check if order_id ${order_id} exists.`
+        );
+      } else {
+        console.log(`✅ Order ${order_id} updated successfully.`);
+      }
+
       // 2️⃣ Call Shopify API to cancel the order
       const shopifyUrl = `https://${shop}/admin/api/2025-07/orders/${order_id}/cancel.json`;
 
@@ -559,7 +611,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           success: true,
-          message: "Order cancelled successfully and deleted from DB",
+          message: "Order cancelled successfully",
           data: cancelData,
         },
         { status: 200 }
