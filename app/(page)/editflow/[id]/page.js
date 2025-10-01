@@ -5,13 +5,12 @@ import { useEffect, useState, useRef } from "react";
 import DashboardHeaader from "@/component/DashboardHeaader";
 import Sidebar from "@/component/Sidebar";
 import Image from "next/image";
-import { FiChevronDown, PiWarningCircleFill } from "react-icons/fi";
+import { FiChevronDown } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
 import { useToastContext } from "@/component/Toast";
 import { POST } from "@/utils/api";
-// import CustomModal from "@/component/CustomModal";
 import React from "react";
-// import { useModal } from "@/Hook/useModel";
+import { PiWarningCircleFill } from "react-icons/pi";
 
 function Editflow() {
   const router = useRouter();
@@ -1671,16 +1670,14 @@ function Editflow() {
                           )}
                         </button>
                       </div>
+                      <br></br>
                       {Note && (
-                        <div className="bg-orange-50 p-3 rounded-md text-[14px] text-[#4275D6] flex items-start md:items-center">
-                          <Image
-                            src="/assets/question-circle.svg"
-                            alt="question mark"
-                            height={100}
-                            width={100}
-                            className="h-[14px] w-[14px] mr-1"
-                          />
+                        <div className="bg-orange-50 p-3 rounded-md text-[14px] text-[#4275D6] flex items-start gap-2 border border-[#B98901]">
+                          <PiWarningCircleFill size={20} color="#B98901" />
                           <span className="text-[14px]">
+                            <h6 className="text-black">
+                              <b>Notes</b>
+                            </h6>
                             <p
                               className="text-black text-[12px]"
                               dangerouslySetInnerHTML={{
