@@ -57,7 +57,7 @@ function parseDelayToMinutes(delayValue) {
 }
 
 // 🔹 Map dynamic values (updated for order_delivered structure)
-function getMappedValue(field, data, bestUrl, storeData) {
+function getMappedValue(field, data, bestUrl, storeData, fallbackValue) {
   switch (field) {
     case "Name":
       return data.customer_first_name || "Customer";
@@ -75,6 +75,8 @@ function getMappedValue(field, data, bestUrl, storeData) {
       return storeData?.public_shop_url || "https://your-store.myshopify.com";
     case "Brand Name":
       return storeData?.brand_name || "Brand";
+    case "Custom Value":
+      return fallbackValue || "No value";
     default:
       return "";
   }
@@ -145,7 +147,8 @@ function buildTemplateContent(templateRows, data, image_id, storeData) {
             row.mapping_field,
             data,
             bestUrl,
-            storeData 
+            storeData,
+            row.fallback_value 
           );
           
           // Only add to bodyExample if we have a valid mapped value

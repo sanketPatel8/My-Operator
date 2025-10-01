@@ -5,7 +5,7 @@ import { useEffect, useState, useRef } from "react";
 import DashboardHeaader from "@/component/DashboardHeaader";
 import Sidebar from "@/component/Sidebar";
 import Image from "next/image";
-import { FiChevronDown } from "react-icons/fi";
+import { FiChevronDown, PiWarningCircleFill } from "react-icons/fi";
 import { Listbox } from "@headlessui/react";
 import { useToastContext } from "@/component/Toast";
 import { POST } from "@/utils/api";
@@ -313,6 +313,7 @@ function Editflow() {
       "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
+      "Custom Value",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -381,6 +382,7 @@ function Editflow() {
       "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
+      "Custom Value",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),

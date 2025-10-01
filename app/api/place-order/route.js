@@ -189,7 +189,8 @@ export async function POST(req) {
         data,
         customerData,
         line_items_data,
-        storeData
+        storeData,
+        fallbackValue
       ) {
         switch (mappingField) {
           case "Name":
@@ -212,6 +213,8 @@ export async function POST(req) {
             );
           case "Brand Name":
             return storeData?.brand_name || "Brand";
+          case "Custom Value":
+            return fallbackValue || "No value";
           default:
             return "";
         }
@@ -267,7 +270,8 @@ export async function POST(req) {
                   data,
                   customerData,
                   line_items_data,
-                  storeData
+                  storeData,
+                  row.fallback_value
                 );
               }
               break;

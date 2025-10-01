@@ -63,7 +63,7 @@ function parseDelayToMinutes(delayValue) {
 
 
 // 🔹 Map dynamic values
-function getMappedValue(field, data, customerData, abandoned_checkout_url, storeData) {
+function getMappedValue(field, data, customerData, abandoned_checkout_url, storeData, fallbackValue) {
 
 
   switch (field) {
@@ -87,6 +87,8 @@ function getMappedValue(field, data, customerData, abandoned_checkout_url, store
       return storeData?.public_shop_url || "https://your-store.myshopify.com";
     case "Brand Name":
       return storeData?.brand_name || "Brand";
+    case "Custom Value":
+      return fallbackValue || "No value";
     default:
       return "Here";
   }
@@ -127,7 +129,8 @@ function buildTemplateContent(templateRows, data, abandoned_checkout_url, custom
             data,
             customerData,
             abandoned_checkout_url,
-            storeData
+            storeData,
+            row.fallback_value
           );
         }
         break;

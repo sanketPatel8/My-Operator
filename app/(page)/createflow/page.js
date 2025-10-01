@@ -247,6 +247,7 @@ function Editflow() {
       "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
+      "Custom Value",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -316,6 +317,7 @@ function Editflow() {
       "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
+      "Custom Value",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),

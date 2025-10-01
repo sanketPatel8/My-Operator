@@ -497,7 +497,7 @@ export async function POST(req) {
     console.log("Event titles:", eventTitles);
 
     // ✅ 1. Helper to map values from DB fields to dynamic data
-    function getMappedValue(mappingField, data, storeData) {
+    function getMappedValue(mappingField, data, storeData, fallbackValue) {
       switch (mappingField) {
         case "Name":
           return (
@@ -521,7 +521,6 @@ export async function POST(req) {
             return String(totalQuantity);
           }
           return "0";
-
         case "Total price":
           return data?.total_price || "00";
         case "Tracking Order Link":
@@ -530,6 +529,8 @@ export async function POST(req) {
           return storeData?.public_shop_url || "https://your-store.myshopify.com";
         case "Brand Name":
           return storeData?.brand_name || "Brand";
+        case "Custom Value":
+          return fallbackValue || "No value";
         default:
           return "Here";
       }
@@ -575,7 +576,8 @@ export async function POST(req) {
               bodyExample[row.variable_name] = getMappedValue(
                 row.mapping_field,
                 data,
-                storeData
+                storeData,
+                row.fallback_value
               );
             }
             break;
