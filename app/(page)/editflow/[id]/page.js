@@ -310,6 +310,7 @@ function Editflow() {
       "Payment Url",
       "Abandoned Cart Url",
       "Custom Link",
+      "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
     ];
@@ -377,6 +378,7 @@ function Editflow() {
       "Payment Url",
       "Abandoned Cart Url",
       "Custom Link",
+      "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
     ];

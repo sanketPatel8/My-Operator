@@ -524,6 +524,8 @@ export async function POST(req) {
 
         case "Total price":
           return data?.total_price || "00";
+        case "Tracking Order Link":
+          return data.order_status_url || "no url";
         case "Online Shop Url":
           return storeData?.public_shop_url || "https://your-store.myshopify.com";
         case "Brand Name":

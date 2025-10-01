@@ -110,6 +110,7 @@ export async function POST(req) {
           pco.customer,
           pco.line_items,
           pco.order_number,
+          pco.total_price,
           s.access_token
        FROM placed_code_order pco
        JOIN stores s ON s.shop = pco.shop
@@ -133,6 +134,7 @@ export async function POST(req) {
       customer,
       line_items,
       order_number,
+      total_price,
       access_token,
     } = rows[0];
 
@@ -166,7 +168,9 @@ export async function POST(req) {
           case "Quantity":
             return line_items_data.current_quantity;
           case "Total price":
-            return line_items_data.price || "00";
+            return data.total_price || "00";
+          case "Tracking Order Link":
+            return data.order_status_url || "no url";
           case "Online Shop Url":
             return storeData?.public_shop_url || "https://your-store.myshopify.com";
           case "Brand Name":

@@ -244,6 +244,9 @@ function Editflow() {
       "Payment Url",
       "Abandoned Cart Url",
       "Custom Link",
+      "Tracking Order Link",
+      "Online Shop Url",
+      "Brand Name",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
@@ -310,6 +313,9 @@ function Editflow() {
       "Payment Url",
       "Abandoned Cart Url",
       "Custom Link",
+      "Tracking Order Link",
+      "Online Shop Url",
+      "Brand Name",
     ];
     const combinedOptions = [
       ...new Set([...defaultOptions, ...mappingOptions]),
