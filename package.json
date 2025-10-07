@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.7",
+    "@shopify/app-bridge": "^3.7.10",
+    "@shopify/app-bridge-react": "^4.2.4",
     "@shopify/shopify-api": "^11.14.1",
     "@shopify/shopify-app-express": "^5.0.20",
     "@shopify/shopify-app-session-storage-memory": "^4.0.20",
