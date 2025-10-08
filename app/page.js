@@ -302,9 +302,19 @@ function ConnectShopify() {
 
         if (response.ok) {
           console.log("Store validated successfully:", data);
-          router.push("/ConfigureWhatsApp");
+          
+          // Conditional routing based on database values
+          if (!data.company_id) {
+            router.push("/ConfigureWhatsApp");
+          } else if (!data.phone_number_id) {
+            router.push("/ConnectWhatsApp");
+          } else {
+            router.push("/WorkflowList");
+          }
+        } else {
+          setErrorMessage(data.message || "Failed to validate store");
         }
-        return; // Important: return here to avoid executing tokenParam logic
+        return;
       }
     } catch (error) {
       console.error("Error validating store:", error);
