@@ -76,7 +76,10 @@ function ConnectShopify() {
         } catch (err) {
           console.error("Init error:", err);
         } finally {
-          setLoading(false);
+          // Don't set loading to false if shopParam exists (will be handled by validateStoreAndRoute)
+          if (!shopParam) {
+            setLoading(false);
+          }
         }
       }
     };
@@ -100,7 +103,7 @@ function ConnectShopify() {
   // NEW: Handle shopParam store validation and routing
   useEffect(() => {
     const validateStoreAndRoute = async () => {
-      if (shopParam && !loading && !isRedirecting) {
+      if (shopParam && !isRedirecting) {
         try {
           const storeToken = localStorage.getItem("storeToken");
 
@@ -127,6 +130,9 @@ function ConnectShopify() {
             console.log("Store validated successfully:", data);
             
             setIsRedirecting(true);
+            // Keep loading true to prevent screen from showing
+            setLoading(true);
+            
             // Conditional routing based on database values
             if (!data.company_id) {
               setRedirectPath("/ConfigureWhatsApp");
@@ -150,7 +156,7 @@ function ConnectShopify() {
     };
 
     validateStoreAndRoute();
-  }, [shopParam, loading, isRedirecting]);
+  }, [shopParam, isRedirecting]);
 
   // Function to verify JWT token
   const verifyToken = async (token) => {
@@ -277,29 +283,14 @@ function ConnectShopify() {
     }
   };
 
-  if (isRedirecting) {
+  if (isRedirecting || loading) {
     return (
       <div className="font-source-sans flex flex-col min-h-screen">
         <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
           <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Redirecting...</p>
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="font-source-sans flex flex-col min-h-screen">
-        <div className="p-[16px] flex flex-col md:flex-row flex-1 bg-[#E9E9E9]">
-          <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading...</p>
+              <p className="text-gray-600">{isRedirecting ? "Redirecting..." : "Loading..."}</p>
             </div>
           </main>
         </div>
