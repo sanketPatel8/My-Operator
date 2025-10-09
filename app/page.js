@@ -37,12 +37,12 @@ function ConnectShopify() {
   useEffect(() => {
     if (!loading && redirectPath) {
       if (isExternalRedirect) {
-        window.location.href = redirectPath; // external URL
+        window.location.href = redirectPath;
       } else {
-        router.push(redirectPath); // internal route
+        router.push(redirectPath);
       }
     }
-  }, [loading, redirectPath, isExternalRedirect]);
+  }, [loading, redirectPath, isExternalRedirect, router]);
 
   // Get token from URL and verify it
   useEffect(() => {
@@ -82,9 +82,9 @@ function ConnectShopify() {
     };
 
     init();
-  }, []);
+  }, [tokenParam, shopParam]);
 
-  // Get company store after companyId is set - THIS WAS MISSING!
+  // Get company store after companyId is set
   useEffect(() => {
     const fetchStore = async () => {
       if (companyId && isTokenValid) {
@@ -96,6 +96,61 @@ function ConnectShopify() {
     };
     fetchStore();
   }, [companyId, isTokenValid]);
+
+  // NEW: Handle shopParam store validation and routing
+  useEffect(() => {
+    const validateStoreAndRoute = async () => {
+      if (shopParam && !loading && !isRedirecting) {
+        try {
+          const storeToken = localStorage.getItem("storeToken");
+
+          if (!storeToken) {
+            console.warn("⚠️ No store token found in localStorage");
+            setIsRedirecting(true);
+            setRedirectPath(process.env.NEXT_PUBLIC_REDIRECT_URL);
+            setIsExternalRedirect(true);
+            return;
+          }
+
+          // Call the validation API
+          const response = await fetch("/api/store-phone", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ storeToken }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            console.log("Store validated successfully:", data);
+            
+            setIsRedirecting(true);
+            // Conditional routing based on database values
+            if (!data.company_id) {
+              setRedirectPath("/ConfigureWhatsApp");
+            } else if (!data.phone_number_id) {
+              setRedirectPath("/ConnectWhatsApp");
+            } else {
+              setRedirectPath("/workflowlist");
+            }
+          } else {
+            setErrorMessage(data.message || "Failed to validate store");
+            setLoading(false);
+          }
+        } catch (error) {
+          console.error("Error validating store:", error);
+          setErrorMessage(
+            "Network error. Please check your connection and try again."
+          );
+          setLoading(false);
+        }
+      }
+    };
+
+    validateStoreAndRoute();
+  }, [shopParam, loading, isRedirecting]);
 
   // Function to verify JWT token
   const verifyToken = async (token) => {
@@ -134,193 +189,89 @@ function ConnectShopify() {
     }
   };
 
-  // Function to get company's shop URL
-  // const getCompanyStore = async (companyId) => {
-  //   try {
-  //     const response = await fetch("/api/company-store", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({ companyId }),
-  //     });
-
-  //     const data = await response.json();
-
-  //     if (response.ok) {
-  //       // Store exists and validation successful
-  //       console.log("Store validated successfully:", data);
-
-  //       // Create and save the encrypted store token
-  //       const encryptResponse = await fetch(
-  //         `/api/encrypt-store-id?shop=${data.shop}`
-  //       );
-  //       const encryptData = await encryptResponse.json();
-
-  //       if (encryptData.encryptedId) {
-  //         localStorage.setItem("storeToken", encryptData.encryptedId);
-  //         console.log("Encrypted store id saved to localStorage ✅");
-  //       } else {
-  //         console.warn("No encrypted id returned:", encryptData);
-  //       }
-
-  //       // Route based on phone number availability
-  //       if (data.phonenumber) {
-  //         // Phone number exists, redirect to configuration page
-  //         router.push("/workflowlist");
-  //       } else {
-  //         // No phone number, redirect to connect WhatsApp page
-  //         router.push("/ConnectWhatsApp");
-  //         // setSecondLogin(false);
-  //       }
-  //     }
-
-  //     if (response.ok && data.shop) {
-  //       // Auto-populate the store name and make it readonly
-  //       setStoreName(data.shop);
-
-  //       setIsStoreReadonly(true);
-  //       setLoading(false);
-  //       console.log("Company store found:", data.shop);
-  //     } else if (response.status === 404 && data.redirectUrl) {
-  //       // Company not found, redirect to the provided URL
-  //       console.log("Company not found, redirecting to:", data.redirectUrl);
-  //       setIsRedirecting(true);
-  //       window.location.href = data.redirectUrl;
-  //       return;
-  //     } else {
-  //       // Company exists but no store found, keep field editable
-  //       setIsStoreReadonly(false);
-  //       console.log("No store found for company, field remains editable");
-  //       setLoading(false);
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching company store:", error);
-  //     // Keep field editable on error
-  //     setIsStoreReadonly(false);
-  //   } finally {
-  //     setSecondLogin(false);
-  //   }
-  // };
-
   const getCompanyStore = async (companyId) => {
-  try {
-    setLoading(true); // ✅ start loader
-
-    const response = await fetch("/api/company-store", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ companyId }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      console.log("Store validated successfully:", data);
-
-      // Encrypt store
-      const encryptResponse = await fetch(
-        `/api/encrypt-store-id?shop=${data.shop}`
-      );
-      const encryptData = await encryptResponse.json();
-
-      if (encryptData.encryptedId) {
-        localStorage.setItem("storeToken", encryptData.encryptedId);
-        console.log("Encrypted store id saved to localStorage ✅");
-      } else {
-        console.warn("No encrypted id returned:", encryptData);
-      }
-
-      // ✅ Set redirect path and keep loading state for smooth transition
-      if (data.phonenumber) {
-        setRedirectPath("/workflowlist");
-        setIsRedirecting(true); // Keep showing loading state
-        return; // Don't continue to set loading: false
-      } else {
-        setRedirectPath("/ConnectWhatsApp");
-        setIsRedirecting(true); // Keep showing loading state
-        return; // Don't continue to set loading: false
-      }
-    }
-
-    if (response.ok && data.shop) {
-      setStoreName(data.shop);
-      setIsStoreReadonly(true);
-      console.log("Company store found:", data.shop);
-    } else if (response.status === 404 && data.redirectUrl) {
-      console.log("Company not found, redirecting to:", data.redirectUrl);
-      setIsRedirecting(true);
-      setRedirectPath(data.redirectUrl);
-      setIsExternalRedirect(true);
-      return; // Don't continue to set loading: false
-    } else {
-      setIsStoreReadonly(false);
-      console.log("No store found for company, field remains editable");
-    }
-  } catch (error) {
-    console.error("Error fetching company store:", error);
-    setIsStoreReadonly(false);
-  } finally {
-    // Only set loading to false if we're not redirecting
-    if (!redirectPath) {
-      setLoading(false);
-    }
-    setSecondLogin(false);
-  }
-};
-
-  // Validate store exists in database and handle routing logic
-  const handleConnectStore = async () => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const tokenParam = params.get("token");
-      const shopParam = params.get("shop");
+      setLoading(true);
 
-      // Handle shopParam flow (direct store connection)
-      if (shopParam) {
-        const storeToken = localStorage.getItem("storeToken");
+      const response = await fetch("/api/company-store", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ companyId }),
+      });
 
-        if (!storeToken) {
-          console.warn("⚠️ No store token found in localStorage");
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Store validated successfully:", data);
+
+        // Encrypt store
+        const encryptResponse = await fetch(
+          `/api/encrypt-store-id?shop=${data.shop}`
+        );
+        const encryptData = await encryptResponse.json();
+
+        if (encryptData.encryptedId) {
+          localStorage.setItem("storeToken", encryptData.encryptedId);
+          console.log("Encrypted store id saved to localStorage ✅");
+        } else {
+          console.warn("No encrypted id returned:", encryptData);
+        }
+
+        // Set redirect path and keep loading state for smooth transition
+        if (data.phonenumber) {
+          setRedirectPath("/workflowlist");
           setIsRedirecting(true);
-          window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
+          return;
+        } else {
+          setRedirectPath("/ConnectWhatsApp");
+          setIsRedirecting(true);
           return;
         }
+      }
 
-        // Call the validation API
-        const response = await fetch("/api/store-phone", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ storeToken }),
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-          console.log("Store validated successfully:", data);
-          
-          // Conditional routing based on database values
-          if (!data.company_id) {
-            router.push("/ConfigureWhatsApp");
-          } else if (!data.phone_number_id) {
-            router.push("/ConnectWhatsApp");
-          } else {
-            router.push("/WorkflowList");
-          }
-        } else {
-          setErrorMessage(data.message || "Failed to validate store");
-        }
+      if (response.ok && data.shop) {
+        setStoreName(data.shop);
+        setIsStoreReadonly(true);
+        console.log("Company store found:", data.shop);
+      } else if (response.status === 404 && data.redirectUrl) {
+        console.log("Company not found, redirecting to:", data.redirectUrl);
+        setIsRedirecting(true);
+        setRedirectPath(data.redirectUrl);
+        setIsExternalRedirect(true);
         return;
+      } else {
+        setIsStoreReadonly(false);
+        console.log("No store found for company, field remains editable");
       }
     } catch (error) {
-      console.error("Error validating store:", error);
-      setErrorMessage(
-        "Network error. Please check your connection and try again."
-      );
+      console.error("Error fetching company store:", error);
+      setIsStoreReadonly(false);
+    } finally {
+      // Only set loading to false if we're not redirecting
+      if (!redirectPath) {
+        setLoading(false);
+      }
+      setSecondLogin(false);
+    }
+  };
+
+  // Simplified handleConnectStore - now only for manual button clicks (no shopParam)
+  const handleConnectStore = async () => {
+    if (shopParam) {
+      // If shopParam exists, the useEffect will handle routing
+      return;
+    }
+
+    // Handle manual store connection (no shopParam flow)
+    setIsLoading(true);
+    try {
+      // Add your manual connection logic here if needed
+      console.log("Manual store connection:", StoreName);
+    } catch (error) {
+      console.error("Error connecting store:", error);
+      setErrorMessage("Failed to connect store");
     } finally {
       setIsLoading(false);
     }
@@ -333,7 +284,7 @@ function ConnectShopify() {
           <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading...</p>
+              <p className="text-gray-600">Redirecting...</p>
             </div>
           </main>
         </div>
@@ -373,8 +324,6 @@ function ConnectShopify() {
       </div>
     );
   }
-
-  console.log(SecondLogin, "SecondLogin");
 
   return (
     <>
