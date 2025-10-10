@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import { getISTDateTime, getISTDateTimeString } from "@/lib/time";
+import cron from "node-cron";
 
 // Database connection configuration
 const dbConfig = {
@@ -560,6 +561,51 @@ export async function GET() {
     await conn.end();
   }
 }
+
+cron.schedule("*/2 * * * *", async () => {
+  // Current time
+  console.log("this is reminder send delivered cron");
+  console.log("currentTime", getCurrentTime());
+
+
+  try {
+    await checkRemindersForAllDeliveredOrders();
+
+    const [pendingReminders] = await conn.execute(`
+      SELECT 
+        id,
+        shop_url,
+        customer_first_name,
+        customer_email,
+        customer_phone,
+        updated_at,
+        reorder_reminder,
+        created_at,
+        updated_at,
+        order_feedback
+      FROM order_delivered 
+      WHERE reorder_reminder = 0 OR order_feedback = 0
+      ORDER BY updated_at DESC
+      LIMIT 50
+    `);
+
+    return NextResponse.json({
+      status: "success",
+      pendingReminders,
+      totalPending: pendingReminders.length,
+      cronStatus: "active",
+      lastRun: getISTDateTimeString(),
+    });
+  } catch (error) {
+    return NextResponse.json({
+      status: "error",
+      message: error.message,
+    });
+  } finally {
+    await conn.end();
+  }
+ 
+});
 
 // Export the main cron function for external use
 export { checkRemindersForAllDeliveredOrders };
