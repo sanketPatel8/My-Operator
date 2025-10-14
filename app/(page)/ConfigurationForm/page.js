@@ -603,7 +603,7 @@ function ConfigurationForm({ searchParams }) {
                     />
                   </div>
 
-                  <div className="w-full " ref={dropdownRef}>
+                  <div className="w-full" ref={dropdownRef}>
                     <label className="block text-[12px] text-[#555555] mb-[4px]">
                       WhatsApp number
                     </label>
@@ -622,11 +622,11 @@ function ConfigurationForm({ searchParams }) {
                         }
                         onClick={() => edit && setIsOpen(!isOpen)}
                         onChange={(e) => {
-                          const rawValue = e.target.value.replace(/^\+/, ""); // Remove + to store clean value
+                          const rawValue = e.target.value.replace(/^\+/, "");
                           setSearchTerm(rawValue);
                         }}
                         placeholder="Select or search number"
-                        className="w-full bg-[#F3F5F6] border border-[#E9E9E9] rounded-[4px]  px-[16px] py-[10px] text-[14px] text-[#333333] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full bg-[#F3F5F6] border border-[#E9E9E9] rounded-[4px] px-[16px] py-[10px] text-[14px] text-[#333333] cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       {/* Right border line */}
                       <div className="pointer-events-none absolute top-2.5 right-8 h-5 border-r-[0.5px] border-[#999999]"></div>
@@ -635,8 +635,10 @@ function ConfigurationForm({ searchParams }) {
 
                       {/* Dropdown list */}
                       {isOpen && (
-                        <ul className="absolute  w-full  rounded-md border border-[#D1D5DB] bg-white shadow-lg text-sm text-[#1A1A1A] z-10">
-                          {filteredNumbers.length > 0 ? (
+                        <ul className="absolute w-full rounded-md border border-[#D1D5DB] bg-white shadow-lg text-sm text-[#1A1A1A] z-10">
+                          {isLoading ? (
+                            <li className="px-4 py-2 text-gray-400">Loading...</li>
+                          ) : filteredNumbers.length > 0 ? (
                             filteredNumbers.map((item, idx) => (
                               <li
                                 key={`${item.countryCode}-${item.number}-${idx}`}
@@ -647,9 +649,7 @@ function ConfigurationForm({ searchParams }) {
                               </li>
                             ))
                           ) : (
-                            <li className="px-4 py-2 text-gray-400">
-                              No numbers found
-                            </li>
+                            <li className="px-4 py-2 text-gray-400">No numbers found</li>
                           )}
                         </ul>
                       )}

@@ -302,13 +302,12 @@ function Editflow() {
 
     const defaultOptions = [
       "Name",
-      "Phone number",
+      "Customer Number",
       "Order id",
       "Quantity",
       "Total price",
       "Payment Url",
       "Abandoned Cart Url",
-      "Custom Link",
       "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",
@@ -371,13 +370,12 @@ function Editflow() {
 
     const defaultOptions = [
       "Name",
-      "Phone number",
+      "Customer Number",
       "Order id",
       "Quantity",
       "Total price",
       "Payment Url",
       "Abandoned Cart Url",
-      "Custom Link",
       "Tracking Order Link",
       "Online Shop Url",
       "Brand Name",

@@ -63,7 +63,7 @@ function getMappedValue(field, data, bestUrl, storeData, fallbackValue) {
       return data.customer_first_name || "Customer";
     case "Order id":
       return String(data?.id || data?.order_number || "123456");
-    case "Phone number":
+    case "Customer Number":
       return data.customer_phone || "0000000000";
     case "Quantity":
       return String(data.quantity || "1"); // assuming quantity is stored in order_delivered

@@ -197,7 +197,7 @@ export async function POST(req) {
             return customerData.first_name || "Customer";
           case "Order id":
             return String(data.order_id);
-          case "Phone number":
+          case "Customer Number":
             return data.phone;
           case "Payment Url":
             return data.order_status_url;

@@ -217,7 +217,7 @@ export async function POST(req) {
           );
         case "Order id":
           return String(data?.id || "123456");
-        case "Phone number":
+        case "Customer Number":
           return data.customer?.phone || "0000000000";
         case "Payment Url":
           return data.order_status_url || "no url";

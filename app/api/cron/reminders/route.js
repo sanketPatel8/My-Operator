@@ -71,7 +71,7 @@ function getMappedValue(field, data, customerData, abandoned_checkout_url, store
       return customerData.first_name || "Customer";
     case "Order id":
       return String(data?.id || data?.token || "123456");
-    case "Phone number":
+    case "Customer Number":
       return customerData.phone || "0000000000";
     case "Quantity":
       return Array.isArray(data.line_items)

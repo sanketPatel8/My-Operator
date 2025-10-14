@@ -40,9 +40,9 @@ const abandonedCartData = {
   category_name: 'Abandoned Cart Recovery',
   category_desc: 'Recover potentially lost sales by sending automated reminders.',
   events: [
-    { title: 'Reminder 1', subtitle: 'Friendly reminder about items left in cart', delay: '1 hours' },
-    { title: 'Reminder 2', subtitle: 'Friendly reminder about items left in cart', delay: '4 hours' },
-    { title: 'Reminder 3', subtitle: 'Friendly reminder about items left in cart', delay: '4 hours' }
+    { title: 'Reminder 1', subtitle: 'Friendly reminder about items left in cart'},
+    { title: 'Reminder 2', subtitle: 'Friendly reminder about items left in cart'},
+    { title: 'Reminder 3', subtitle: 'Friendly reminder about items left in cart'}
   ]
 };
 
