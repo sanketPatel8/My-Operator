@@ -21,6 +21,8 @@ function ConnectShopify() {
 
   const [redirectPath, setRedirectPath] = useState(null);
   const [isExternalRedirect, setIsExternalRedirect] = useState(false);
+  const [GenratedStoreToken, setGenratedStoreToken] = useState(null);
+  const [TokenUpdated, setTokenUpdated] = useState(false);
   const searchParams = useSearchParams();
 
   const tokenParam = searchParams.get("token");
@@ -35,57 +37,130 @@ function ConnectShopify() {
   }, [tokenParam, shopParam]);
 
   useEffect(() => {
-    if (!loading && redirectPath) {
+    if (loading && redirectPath) {
       if (isExternalRedirect) {
         window.location.href = redirectPath;
+        setIsLoading(false);
       } else {
         router.push(redirectPath);
+        setIsLoading(false);
       }
     }
   }, [loading, redirectPath, isExternalRedirect, router]);
 
   // Get token from URL and verify it
-  useEffect(() => {
-    const init = async () => {
-      if (typeof window !== "undefined") {
-        try {
-          console.log(tokenParam, shopParam, "prms");
 
-          if (tokenParam) {
-            const isValid = await verifyToken(tokenParam);
-            if (!isValid) {
-              setErrorMessage("Invalid or expired token. Please try again.");
-            }
-          }
+  const init = async (Token) => {
+    if (typeof window !== "undefined") {
+      try {
+        console.log(tokenParam, shopParam, "prms");
 
-          if (shopParam == null) {
-            setSecondLogin(true);
-          }
-
-          if (shopParam) {
-            setStoreName(shopParam);
-            const res = await fetch(`/api/encrypt-store-id?shop=${shopParam}`);
-            const data = await res.json();
-            if (data.encryptedId) {
-              localStorage.setItem("storeToken", data.encryptedId);
-              console.log("Encrypted store id saved to localStorage ✅");
-            } else {
-              console.warn("No encrypted id returned:", data);
-            }
-          }
-        } catch (err) {
-          console.error("Init error:", err);
-        } finally {
-          // Don't set loading to false if shopParam exists (will be handled by validateStoreAndRoute)
-          if (!shopParam) {
-            setLoading(false);
+        if (tokenParam) {
+          const isValid = await verifyToken(tokenParam);
+          if (!isValid) {
+            setErrorMessage("Invalid or expired token. Please try again.");
           }
         }
-      }
-    };
 
-    init();
-  }, [tokenParam, shopParam]);
+        if (shopParam == null) {
+          setSecondLogin(true);
+        }
+
+        if (shopParam) {
+          setStoreName(shopParam);
+          const res = await fetch(`/api/encrypt-store-id?shop=${shopParam}`);
+          const data = await res.json();
+
+          if (data.encryptedId) {
+            setGenratedStoreToken(data.encryptedId);
+            localStorage.setItem("storeToken", data.encryptedId);
+            console.log(
+              "Encrypted store id saved to localStorage ✅ : ",
+              data.encryptedId
+            );
+            setTokenUpdated(true);
+          } else {
+            console.warn("No encrypted id returned:", data);
+          }
+        }
+      } catch (err) {
+        console.error("Init error:", err);
+      } finally {
+        // Don't set loading to false if shopParam exists (will be handled by validateStoreAndRoute)
+        if (!shopParam) {
+          setLoading(false);
+        }
+      }
+    }
+  };
+
+  const getCompanyStore = async (companyId) => {
+    try {
+      setLoading(true);
+
+      const response = await fetch("/api/company-store", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ companyId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log("Store validated successfully:", data);
+
+        // Encrypt store
+        const encryptResponse = await fetch(
+          `/api/encrypt-store-id?shop=${data.shop}`
+        );
+        const encryptData = await encryptResponse.json();
+
+        if (encryptData.encryptedId) {
+          localStorage.setItem("storeToken", encryptData.encryptedId);
+          console.log("Encrypted store id saved to localStorage ✅");
+        } else {
+          console.warn("No encrypted id returned:", encryptData);
+        }
+
+        // Set redirect path and keep loading state for smooth transition
+        if (data.phonenumber) {
+          router.push("/workflowlist");
+          setIsRedirecting(true);
+          return;
+        } else {
+          router.push("/ConnectWhatsApp");
+          setIsRedirecting(true);
+          return;
+        }
+      }
+
+      if (response.ok && data.shop) {
+        setStoreName(data.shop);
+        setIsStoreReadonly(true);
+        console.log("Company store found:", data.shop);
+      } else if (response.status === 404 && data.redirectUrl) {
+        console.log("Company not found, redirecting to:", data.redirectUrl);
+        setIsRedirecting(true);
+        window.location.href = data.redirectUrl;
+        setIsExternalRedirect(true);
+        return;
+      } else {
+        setIsStoreReadonly(false);
+        console.log("No store found for company, field remains editable");
+      }
+    } catch (error) {
+      console.error("Error fetching company store:", error);
+      setIsStoreReadonly(false);
+    } finally {
+      // Only set loading to false if we're not redirecting
+      if (!redirectPath) {
+        setLoading(false);
+      }
+      setSecondLogin(false);
+    }
+  };
 
   // Get company store after companyId is set
   useEffect(() => {
@@ -100,63 +175,83 @@ function ConnectShopify() {
     fetchStore();
   }, [companyId, isTokenValid]);
 
-  // NEW: Handle shopParam store validation and routing
-  useEffect(() => {
-    const validateStoreAndRoute = async () => {
-      if (shopParam && !isRedirecting) {
-        try {
-          const storeToken = localStorage.getItem("storeToken");
+  const validateStoreAndRoute = async () => {
+    if (shopParam && !isRedirecting) {
+      try {
+        // const storeToken = localStorage.getItem("storeToken");
+        const storeToken = GenratedStoreToken;
 
-          if (!storeToken) {
-            console.warn("⚠️ No store token found in localStorage");
-            setIsRedirecting(true);
-            setRedirectPath(process.env.NEXT_PUBLIC_REDIRECT_URL);
-            setIsExternalRedirect(true);
-            return;
-          }
+        if (!storeToken) {
+          console.warn("⚠️ No store token found in localStorage");
+          setIsRedirecting(true);
+          setRedirectPath(process.env.NEXT_PUBLIC_REDIRECT_URL);
+          setIsExternalRedirect(true);
+          return;
+        }
 
-          // Call the validation API
-          const response = await fetch("/api/store-phone", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ storeToken }),
-          });
+        // Call the validation API
+        const response = await fetch("/api/store-phone", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ storeToken }),
+        });
 
-          const data = await response.json();
+        const data = await response.json();
 
-          if (response.ok) {
-            console.log("Store validated successfully:", data);
-            
-            setIsRedirecting(true);
-            // Keep loading true to prevent screen from showing
-            setLoading(true);
-            
-            // Conditional routing based on database values
-            if (!data.company_id) {
-              setRedirectPath("/ConfigureWhatsApp");
-            } else if (!data.phone_number_id) {
-              setRedirectPath("/ConnectWhatsApp");
-            } else {
-              setRedirectPath("/workflowlist");
-            }
-          } else {
-            setErrorMessage(data.message || "Failed to validate store");
-            setLoading(false);
-          }
-        } catch (error) {
-          console.error("Error validating store:", error);
-          setErrorMessage(
-            "Network error. Please check your connection and try again."
+        if (response.ok) {
+          console.log("Store validated successfully:", data);
+
+          console.log(GenratedStoreToken, "GenratedStoreToken");
+          console.log(storeToken, "storeToken");
+
+          setIsRedirecting(true);
+          // Keep loading true to prevent screen from showing
+          setLoading(true);
+
+          const validCompnyID = !data.company_id;
+          const validPhoneNumber = !data.phone_number_id;
+
+          console.log(
+            validCompnyID,
+            "validCompnyID",
+            ":",
+            validPhoneNumber,
+            "validPhoneNumber"
           );
+
+          if (validCompnyID && validPhoneNumber) {
+            // setRedirectPath("/");
+            setIsRedirecting(false);
+            setLoading(false);
+          } else if (!validCompnyID && !validPhoneNumber) {
+            setRedirectPath("/workflowlist");
+          } else if (!validCompnyID && validPhoneNumber) {
+            setRedirectPath("/ConnectWhatsApp");
+          } else if (validCompnyID && !validPhoneNumber) {
+            console.log("Redirect to ConnectWhatsApp Page");
+          }
+        } else {
+          setErrorMessage(data.message || "Failed to validate store");
           setLoading(false);
         }
+      } catch (error) {
+        console.error("Error validating store:", error);
+        setErrorMessage(
+          "Network error. Please check your connection and try again."
+        );
+        setLoading(false);
       }
-    };
+    }
+  };
 
-    validateStoreAndRoute();
-  }, [shopParam, isRedirecting]);
+  // NEW: Handle shopParam store validation and routing
+  useEffect(() => {
+    if (GenratedStoreToken) {
+      validateStoreAndRoute();
+    }
+  }, [shopParam, isRedirecting, GenratedStoreToken]);
 
   // Function to verify JWT token
   const verifyToken = async (token) => {
@@ -195,93 +290,30 @@ function ConnectShopify() {
     }
   };
 
-  const getCompanyStore = async (companyId) => {
-    try {
-      setLoading(true);
-
-      const response = await fetch("/api/company-store", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ companyId }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        console.log("Store validated successfully:", data);
-
-        // Encrypt store
-        const encryptResponse = await fetch(
-          `/api/encrypt-store-id?shop=${data.shop}`
-        );
-        const encryptData = await encryptResponse.json();
-
-        if (encryptData.encryptedId) {
-          localStorage.setItem("storeToken", encryptData.encryptedId);
-          console.log("Encrypted store id saved to localStorage ✅");
-        } else {
-          console.warn("No encrypted id returned:", encryptData);
-        }
-
-        // Set redirect path and keep loading state for smooth transition
-        if (data.phonenumber) {
-          setRedirectPath("/workflowlist");
-          setIsRedirecting(true);
-          return;
-        } else {
-          setRedirectPath("/ConnectWhatsApp");
-          setIsRedirecting(true);
-          return;
-        }
-      }
-
-      if (response.ok && data.shop) {
-        setStoreName(data.shop);
-        setIsStoreReadonly(true);
-        console.log("Company store found:", data.shop);
-      } else if (response.status === 404 && data.redirectUrl) {
-        console.log("Company not found, redirecting to:", data.redirectUrl);
-        setIsRedirecting(true);
-        setRedirectPath(data.redirectUrl);
-        setIsExternalRedirect(true);
-        return;
-      } else {
-        setIsStoreReadonly(false);
-        console.log("No store found for company, field remains editable");
-      }
-    } catch (error) {
-      console.error("Error fetching company store:", error);
-      setIsStoreReadonly(false);
-    } finally {
-      // Only set loading to false if we're not redirecting
-      if (!redirectPath) {
-        setLoading(false);
-      }
-      setSecondLogin(false);
-    }
-  };
-
   // Simplified handleConnectStore - now only for manual button clicks (no shopParam)
   const handleConnectStore = async () => {
-    if (shopParam) {
-      // If shopParam exists, the useEffect will handle routing
-      return;
-    }
-
     // Handle manual store connection (no shopParam flow)
-    setIsLoading(true);
+
+    setLoading(true);
+
     try {
-      // Add your manual connection logic here if needed
+      router.push("/ConfigureWhatsApp");
       console.log("Manual store connection:", StoreName);
     } catch (error) {
       console.error("Error connecting store:", error);
       setErrorMessage("Failed to connect store");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!TokenUpdated && !GenratedStoreToken) {
+      init();
+    }
+
+    console.log(GenratedStoreToken, "GenratedStoreToken");
+  }, [tokenParam, shopParam, TokenUpdated, GenratedStoreToken]);
 
   if (isRedirecting || loading) {
     return (
@@ -290,7 +322,9 @@ function ConnectShopify() {
           <main className="flex-1 bg-white border-l border-[#E9E9E9] flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">{isRedirecting ? "Redirecting..." : "Loading..."}</p>
+              <p className="text-gray-600">
+                {isRedirecting ? "Redirecting..." : "Loading..."}
+              </p>
             </div>
           </main>
         </div>
