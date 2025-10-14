@@ -35,6 +35,7 @@ function ConfigurationForm({ searchParams }) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loading1, setLoading1] = useState(false);
+  const [loadingNumbers, setLoadingNumbers] = useState(false);
   const dropdownRef = useRef(null);
   const [shopUrl, setShopUrl] = useState("");
 
@@ -213,6 +214,7 @@ function ConfigurationForm({ searchParams }) {
 
   // Main function to fetch and extract WhatsApp phone numbers
   const fetchWhatsAppPhoneNumbers = async () => {
+    setLoadingNumbers(true);
     try {
       console.log("🔄 Fetching WhatsApp numbers...");
 
@@ -237,7 +239,9 @@ function ConfigurationForm({ searchParams }) {
       // ✅ Show error toast
       error("Failed to fetch WhatsApp numbers");
       return;
-    }
+    }finally {
+    setLoadingNumbers(false); 
+  }
   };
 
   // Fetch the stored WhatsApp number from database
@@ -642,8 +646,13 @@ function ConfigurationForm({ searchParams }) {
 
                       {/* Dropdown list */}
                       {isOpen && (
-                        <ul className="absolute  w-full  rounded-md border border-[#D1D5DB] bg-white shadow-lg text-sm text-[#1A1A1A] z-10">
-                          {filteredNumbers.length > 0 ? (
+                        <ul className="absolute w-full rounded-md border border-[#D1D5DB] bg-white shadow-lg text-sm text-[#1A1A1A] z-10">
+                          {loadingNumbers ? (
+                            <li className="px-4 py-2 flex items-center justify-center gap-2">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                              <span className="text-gray-600">Loading numbers...</span>
+                            </li>
+                          ) : filteredNumbers.length > 0 ? (
                             filteredNumbers.map((item, idx) => (
                               <li
                                 key={`${item.countryCode}-${item.number}-${idx}`}
@@ -651,17 +660,13 @@ function ConfigurationForm({ searchParams }) {
                                 className="cursor-pointer px-4 py-2 hover:bg-blue-100"
                               >
                                 <p>
-                                  {item.displayName != null
-                                    ? item.displayName
-                                    : "unknown"}
+                                  {item.displayName != null ? item.displayName : "unknown"}
                                 </p>
                                 <p>{`+${item.countryCode} ${item.number}`}</p>
                               </li>
                             ))
                           ) : (
-                            <li className="px-4 py-2 text-gray-400">
-                              No numbers found
-                            </li>
+                            <li className="px-4 py-2 text-gray-400">No numbers found</li>
                           )}
                         </ul>
                       )}
