@@ -12,7 +12,8 @@ export async function GET(request) {
         countrycode,
         phonenumber,
         brand_name,
-        public_shop_url
+        public_shop_url,
+        company_id
       FROM stores
     `;
 

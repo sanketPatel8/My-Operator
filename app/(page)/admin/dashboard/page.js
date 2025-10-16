@@ -1,15 +1,19 @@
 "use client";
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import DataTable from 'react-data-table-component';
 
 // Simple in-memory storage that persists during session
 const AuthStorage = {
   token: null,
-  setToken: (token) => {
+  user: null,
+  setAuth: (token, user) => {
     AuthStorage.token = token;
+    AuthStorage.user = user;
     // Also store in sessionStorage for page refresh persistence
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('auth_token', token);
+      sessionStorage.setItem('auth_user', JSON.stringify(user));
     }
   },
   getToken: () => {
@@ -18,10 +22,19 @@ const AuthStorage = {
     }
     return AuthStorage.token;
   },
-  clearToken: () => {
+  getUser: () => {
+    if (!AuthStorage.user && typeof window !== 'undefined') {
+      const userStr = sessionStorage.getItem('auth_user');
+      AuthStorage.user = userStr ? JSON.parse(userStr) : null;
+    }
+    return AuthStorage.user;
+  },
+  clearAuth: () => {
     AuthStorage.token = null;
+    AuthStorage.user = null;
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('auth_token');
+      sessionStorage.removeItem('auth_user');
     }
   }
 };
@@ -38,22 +51,36 @@ function Login({ onLogin }) {
     setError('');
     setLoading(true);
 
-    // Fixed credentials
-    const FIXED_EMAIL = 'admin@gmail.com';
-    const FIXED_PASSWORD = 'admin123';
+    try {
+      // Call the login API
+      const response = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+      const result = await response.json();
 
-    if (email === FIXED_EMAIL && password === FIXED_PASSWORD) {
-      // Generate a mock token
-      const token = 'mock_token_' + Date.now();
+      if (!response.ok) {
+        // Handle error responses
+        setError(result.error || 'Login failed');
+        setLoading(false);
+        return;
+      }
+
+      // Login successful
+      // Generate a mock token (in real scenario, backend should provide JWT token)
+      const token = 'auth_token_' + Date.now();
       
-      // Store token
-      AuthStorage.setToken(token);
-      onLogin(token);
-    } else {
-      setError('Invalid email or password');
+      // Store token and user info
+      AuthStorage.setAuth(token, { email: result.email });
+      onLogin(token, { email: result.email });
+
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Network error. Please try again.');
       setLoading(false);
     }
   };
@@ -77,7 +104,7 @@ function Login({ onLogin }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
-              className="w-full px-4 py-3 border text-black border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="admin@example.com"
             />
           </div>
@@ -92,9 +119,14 @@ function Login({ onLogin }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleSubmit(e)}
-              className="w-full px-4 py-3 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md text-black text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your password"
             />
+          </div>
+          <div>
+            <Link href="/admin/forgot-password" className="block text-sm font-medium text-[#343E55] mb-2 hover:underline">
+              Reset Password?
+            </Link>
           </div>
 
           {error && (
@@ -106,20 +138,18 @@ function Login({ onLogin }) {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#343E55] text-white py-2 rounded-md hover:bg-gray-800 transition text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </div>
-
-        
       </div>
     </div>
   );
 }
 
 // Dashboard Component
-function Dashboard({ token, onLogout }) {
+function Dashboard({ token, user, onLogout }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -133,7 +163,6 @@ function Dashboard({ token, onLogout }) {
       setLoading(true);
       setError('');
       
-      // Replace with your actual API URL
       const response = await fetch('/api/admin-info', {
         method: 'GET',
         headers: {
@@ -157,7 +186,7 @@ function Dashboard({ token, onLogout }) {
   };
 
   const handleLogout = () => {
-    AuthStorage.clearToken();
+    AuthStorage.clearAuth();
     onLogout();
   };
 
@@ -187,10 +216,26 @@ function Dashboard({ token, onLogout }) {
       wrap: true,
     },
     {
+      name: 'Company ID',
+      selector: row => row.company_id,
+      sortable: true,
+      wrap: true,
+    },
+    {
       name: 'Shop URL',
       selector: row => row.public_shop_url,
       sortable: true,
       wrap: true,
+      cell: row => (
+        <Link 
+          href={row.public_shop_url || "#"} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          {row.public_shop_url}
+        </Link>
+      ),
     },
   ];
 
@@ -228,10 +273,13 @@ function Dashboard({ token, onLogout }) {
       {/* Header */}
       <div className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
+            {user && <p className="text-sm text-gray-600 mt-1">Welcome, {user.email}</p>}
+          </div>
           <button
             onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition duration-200"
+            className="px-[24px] py-[10px] text-[14px] mr-[16px]  font-semibold bg-red-700 hover:bg-red-800 text-[#FFFFFF] rounded-[4px] cursor-pointer"
           >
             Logout
           </button>
@@ -240,7 +288,7 @@ function Dashboard({ token, onLogout }) {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="bg-white rounded-lg  overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
@@ -289,44 +337,31 @@ function Dashboard({ token, onLogout }) {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Check for existing token on mount
   useEffect(() => {
     const existingToken = AuthStorage.getToken();
-    if (existingToken) {
-      // Verify token is valid (in real app, make API call to verify)
-      verifyToken(existingToken);
-    } else {
-      setIsCheckingAuth(false);
+    const existingUser = AuthStorage.getUser();
+    
+    if (existingToken && existingUser) {
+      setToken(existingToken);
+      setUser(existingUser);
+      setIsAuthenticated(true);
     }
+    setIsCheckingAuth(false);
   }, []);
 
-  const verifyToken = async (authToken) => {
-    try {
-      // Simulate token verification API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // In a real app, you'd make an API call here to verify the token
-      // For this demo, we'll assume the token is valid if it exists
-      setToken(authToken);
-      setIsAuthenticated(true);
-    } catch (error) {
-      // If token is invalid, clear it
-      AuthStorage.clearToken();
-      setIsAuthenticated(false);
-    } finally {
-      setIsCheckingAuth(false);
-    }
-  };
-
-  const handleLogin = (authToken) => {
+  const handleLogin = (authToken, userData) => {
     setToken(authToken);
+    setUser(userData);
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
     setToken(null);
+    setUser(null);
     setIsAuthenticated(false);
   };
 
@@ -345,7 +380,7 @@ export default function App() {
   return (
     <>
       {isAuthenticated ? (
-        <Dashboard token={token} onLogout={handleLogout} />
+        <Dashboard token={token} user={user} onLogout={handleLogout} />
       ) : (
         <Login onLogin={handleLogin} />
       )}
