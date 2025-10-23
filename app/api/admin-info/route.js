@@ -1,7 +1,7 @@
 // File: app/api/admin-info/route.js
 
-import { NextResponse } from 'next/server';
-import db from '@/lib/db'; // Adjust the path to your database configuration
+import { NextResponse } from "next/server";
+import db from "@/lib/db"; // Adjust the path to your database configuration
 
 export async function GET(request) {
   try {
@@ -13,7 +13,9 @@ export async function GET(request) {
         phonenumber,
         brand_name,
         public_shop_url,
-        company_id
+        company_id,
+        installed_at,
+        updated_at
       FROM stores
     `;
 
@@ -23,9 +25,9 @@ export async function GET(request) {
     // Return the data as JSON
     return NextResponse.json(rows, { status: 200 });
   } catch (error) {
-    console.error('Error fetching stores:', error);
+    console.error("Error fetching stores:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch stores' },
+      { error: "Failed to fetch stores" },
       { status: 500 }
     );
   }

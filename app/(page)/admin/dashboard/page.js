@@ -165,6 +165,46 @@ function Dashboard({ token, user, onLogout }) {
   const [error, setError] = useState("");
   const [searchText, setSearchText] = useState("");
 
+  function convertToIST(utcDateString) {
+    if (!utcDateString) return { date: "-", time: "-" }; // handle null values
+
+    const istDate = new Date(
+      new Date(utcDateString).toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata",
+      })
+    );
+
+    const date = istDate.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    const time = istDate.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+
+    return { date, time };
+  }
+
+  function formatShopData(data) {
+    return data.map((item) => {
+      const installedIST = convertToIST(item.installed_at);
+      const updatedIST = convertToIST(item.updated_at);
+
+      return {
+        ...item,
+        installed_date: installedIST.date,
+        installed_time: installedIST.time,
+        updated_date: updatedIST.date,
+        updated_time: updatedIST.time,
+      };
+    });
+  }
+
   useEffect(() => {
     fetchStores();
   }, []);
@@ -187,7 +227,8 @@ function Dashboard({ token, user, onLogout }) {
       }
 
       const result = await response.json();
-      setData(result || []);
+      const formatted = formatShopData(result);
+      setData(formatted || []);
     } catch (err) {
       setError(err.message);
       console.error("Error fetching stores:", err);
@@ -209,14 +250,11 @@ function Dashboard({ token, user, onLogout }) {
       wrap: true,
     },
     {
-      name: "Country Code",
-      selector: (row) => row.countrycode,
-      sortable: true,
-      width: "120px",
-    },
-    {
       name: "Phone Number",
-      selector: (row) => row.phonenumber,
+      selector: (row) =>
+        row.countrycode && row.phonenumber
+          ? `+${row.countrycode} ${row.phonenumber}`
+          : "",
       sortable: true,
       wrap: true,
     },
@@ -247,6 +285,18 @@ function Dashboard({ token, user, onLogout }) {
           {row.public_shop_url}
         </Link>
       ),
+    },
+    {
+      name: "Installed Date",
+      selector: (row) => row.installed_date,
+      sortable: true,
+      wrap: true,
+    },
+    {
+      name: "Installed Time",
+      selector: (row) => row.installed_time,
+      sortable: true,
+      wrap: true,
     },
   ];
 
@@ -289,9 +339,9 @@ function Dashboard({ token, user, onLogout }) {
   const subHeaderComponent = (
     <div className="flex justify-between items-center w-full my-3">
       <div>
-        <h2 className="text-[30px] mt-3 text-[#1A1A1A] my-0">
-          Store Information
-        </h2>
+        <h4 className="text-[20px] mt-3 text-[#1A1A1A] my-0">
+          Total {data?.length || 0} Stores have installed this app
+        </h4>
       </div>
       <div>
         <input
@@ -304,6 +354,8 @@ function Dashboard({ token, user, onLogout }) {
       </div>
     </div>
   );
+
+  console.log(data, "data");
 
   return (
     <div className="min-h-screen ">
@@ -351,25 +403,32 @@ function Dashboard({ token, user, onLogout }) {
               </button>
             </div>
           ) : (
-            <DataTable
-              // title="Store Information"
-              columns={columns}
-              data={filteredData}
-              pagination
-              paginationPerPage={10}
-              paginationRowsPerPageOptions={[10, 20, 30, 50]}
-              highlightOnHover
-              customStyles={customStyles}
-              responsive
-              noDataComponent={
-                <div className="py-12 text-center text-gray-500">
-                  No stores found
-                </div>
-              }
-              subHeader
-              subHeaderComponent={subHeaderComponent} // ✅ Add search inside header
-              persistTableHead
-            />
+            <>
+              <div>
+                <h2 className="text-[30px] mt-3 text-[#1A1A1A] my-0 text-center">
+                  Store Information
+                </h2>
+              </div>
+              <DataTable
+                // title="Store Information"
+                columns={columns}
+                data={filteredData}
+                pagination
+                paginationPerPage={10}
+                paginationRowsPerPageOptions={[10, 20, 30, 50]}
+                highlightOnHover
+                customStyles={customStyles}
+                responsive
+                noDataComponent={
+                  <div className="py-12 text-center text-gray-500">
+                    No stores found
+                  </div>
+                }
+                subHeader
+                subHeaderComponent={subHeaderComponent} // ✅ Add search inside header
+                persistTableHead
+              />
+            </>
           )}
         </div>
       </div>
