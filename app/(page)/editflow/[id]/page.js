@@ -89,7 +89,6 @@ function Editflow() {
         setNote(uploadResponse.data.work_flow_note || "No note found");
       }
 
-      console.log(uploadResponse, "uploadResponse");
 
       return uploadResponse; // if you want to use it outside
     } catch (error) {
@@ -183,7 +182,6 @@ function Editflow() {
         throw new Error("Failed to fetch all templates");
 
       const templateData = await templateResponse.json();
-      console.log("All templates data:", templateData);
 
       if (templateData.templates && templateData.templates.length > 0) {
         setTemplateOptions(templateData.templates.map((t) => t.template_name));
@@ -200,7 +198,6 @@ function Editflow() {
 
           if (response.ok) {
             const data = await response.json();
-            console.log("Category template data fetched once:", data);
 
             if (data.success && data.templates && data.templates.length > 0) {
               const templateGroup = data.templates[0];
@@ -218,7 +215,6 @@ function Editflow() {
                   component_type: v.component_type,
                 })) || [];
 
-              console.log("mapping variables::::::::::", mappingVariables);
 
               SetMatchingMapVab(mappingVariables || []);
             }
@@ -269,7 +265,6 @@ function Editflow() {
 
     // Check if we have category-specific data
     if (categoryData && categoryData.template_name === templateName) {
-      console.log("Processing category-specific template data:", categoryData);
       setSelectedTemplateData(categoryData);
       selectedTemplateObj = categoryData;
 
@@ -279,7 +274,6 @@ function Editflow() {
       contentBlocks = content;
       mappingVariables = vars;
     } else {
-      console.log("Processing general template data");
       setSelectedTemplateData(null);
       selectedTemplateObj = allTemplates.find(
         (template) => template.template_name === templateName
@@ -335,10 +329,6 @@ function Editflow() {
       categoryTemplateData &&
       categoryTemplateData.template_name === selectedTemplate
     ) {
-      console.log(
-        "Using category-specific template data:",
-        categoryTemplateData
-      );
       setSelectedTemplateData(categoryTemplateData);
 
       const { content, mappingVariables: vars } = normalizeTemplateData(
@@ -347,7 +337,6 @@ function Editflow() {
       contentBlocks = content;
       mappingVariables = vars;
     } else {
-      console.log("Using general template data");
       setSelectedTemplateData(null);
       selectedTemplateObj = allTemplatesData.find(
         (template) => template.template_name === selectedTemplate
@@ -487,7 +476,6 @@ function Editflow() {
             };
           }
 
-          console.log("section to remove ::::::", currentWorkflowData);
         }
       }
     );
@@ -634,7 +622,6 @@ function Editflow() {
             setSelectedTemplate(newTemplateNames[0]);
           }
 
-          console.log(`Reloaded ${templateData.templates.length} templates`);
         }
       }
     } catch (error) {
@@ -703,7 +690,6 @@ function Editflow() {
 
       // Use category-specific data if available, otherwise use general template data
       if (selectedTemplateData && selectedTemplateData.hasSpecificData) {
-        console.log("Using category-specific data for update");
         selectedTemplateObj = selectedTemplateData;
         templateDataObj = selectedTemplateData?.data;
 
@@ -714,7 +700,6 @@ function Editflow() {
           allTemplateVariableIds = variableIds.filter((id) => id && id.trim());
         }
       } else {
-        console.log("Using general template data for update");
         selectedTemplateObj = allTemplatesData.find(
           (template) => template.template_name === selectedTemplate
         );
@@ -768,7 +753,6 @@ function Editflow() {
         template_variable_id: templateVariableIdsString,
       };
 
-      console.log("Updating workflow with data:", updateData);
 
       const formData = new FormData();
 
@@ -962,7 +946,6 @@ function Editflow() {
         storeToken: storeToken, // ✅ Send complete variable settings
       };
 
-      console.log("Sending test message with payload:", testPayload);
 
       const response = await fetch("/api/test-template", {
         method: "POST",
@@ -1331,13 +1314,11 @@ function Editflow() {
   };
 
   const delteTemImage = async (id) => {
-    console.log(id, "id");
     const data = {
       id: id,
     };
     const uploadResponse = await POST("/delete-team-image", data);
 
-    console.log(uploadResponse, "uploadResponse");
     if (uploadResponse.success === true) {
       success(uploadResponse.message);
       loadAllData();
@@ -1351,8 +1332,6 @@ function Editflow() {
   const hasImage =
     variable?.tamplate_image && variable?.tamplate_image.trim() !== "";
 
-  console.log(categoryTemplateData, "categoryTemplateData");
-  console.log(hasImage, "hasImage");
 
   return (
     <>
@@ -1754,12 +1733,7 @@ function Editflow() {
 
                       {/* Body Text */}
                       {(() => {
-                        console.log(
-                          "Template message for display:",
-                          templateMessage
-                        );
                         const contentBlocks = getTemplateContentBlocks();
-                        console.log("content block:::", contentBlocks);
 
                         if (templateMessage) {
                           return (
@@ -1782,12 +1756,10 @@ function Editflow() {
 
                         // If no templateMessage, try to get it directly from content blocks
 
-                        console.log("content block:::", contentBlocks);
 
                         const bodyBlock = contentBlocks.find(
                           (block) => block.type === "BODY"
                         );
-                        console.log("Body block found:", bodyBlock);
 
                         if (bodyBlock?.text) {
                           return (

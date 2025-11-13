@@ -17,7 +17,6 @@ const CustomModal = ({
   width,
   height,
 }) => {
-  console.log(width, height, "isOpen in custom modal");
   return (
     <Modal
       isOpen={isOpen}

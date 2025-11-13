@@ -32,15 +32,12 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
     setError(null);
     
     try {
-      console.log('Fetching template data for categoryEventId:', categoryEventId);
       const response = await fetch(`/api/category-template?storeToken=${storeToken}&category_event_id=${categoryEventId}`);
       const result = await response.json();
 
-      console.log('API Response:', result);
 
       if (result.success && result.templates.length > 0) {
-        setTemplateData(result.templates[0]); // Use the first template
-        console.log('Template data set:', result.templates[0]);
+        setTemplateData(result.templates[0]); 
       } else {
         const errorMsg = 'No template found. Please set up a template first to preview.';
         setError(errorMsg);
@@ -84,19 +81,15 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
   }, [isOpen, onClose]);
 
   const getTemplateContentBlocks = () => {
-    console.log('Template data structure:', templateData);
     
     if (!templateData || !templateData.data || templateData.data.length === 0) {
-      console.log('No template data available');
       return [];
     }
 
     const firstTemplateData = templateData.data[0];
-    console.log('First template data:', firstTemplateData);
     
     // Based on your data structure, content is directly an array
     if (firstTemplateData && Array.isArray(firstTemplateData.content)) {
-      console.log('Content blocks found:', firstTemplateData.content);
       return firstTemplateData.content;
     }
     
@@ -105,7 +98,6 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
       return firstTemplateData.content.components;
     }
 
-    console.log('No content blocks found');
     return [];
   };
 
@@ -117,7 +109,6 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
     const firstTemplateData = templateData.data[0];
     const variableMap = {};
 
-    console.log('Processing variables for mapping:', firstTemplateData.variables);
 
     // Extract variables from the template data
     if (firstTemplateData && firstTemplateData.variables && Array.isArray(firstTemplateData.variables)) {
@@ -126,7 +117,6 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
         const variableId = variable.template_variable_id;
         const variablePosition = variable.variable_name; // This should be "1", "2", "4" etc.
         
-        console.log(`Processing variable:`, variable);
         
         // Prioritize fallback_value for preview, then mapping_field, then a default
         let displayValue = variable.fallback_value || 
@@ -149,7 +139,6 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
         // Map by variable_name (which seems to be the position: "1", "2", "4")
         if (variable.variable_name) {
           variableMap[variable.variable_name] = displayValue;
-          console.log(`Mapped variable ${variable.variable_name} to: ${displayValue}`);
         }
         
         // Also map by template_variable_id as backup
@@ -159,7 +148,6 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
       });
     }
 
-    console.log('Final variable mappings:', variableMap);
     return variableMap;
   };
 
@@ -173,27 +161,20 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
       let message = bodyBlock.text;
       const variableMappings = getVariableMappings();
       
-      console.log('Original message:', message);
-      console.log('Available variable mappings:', variableMappings);
       
       // Replace variable placeholders with mapped values
       // Handle {{1}}, {{2}}, {{4}}, etc. format (based on your API structure)
       message = message.replace(/\{\{(\w+)\}\}/g, (match, varName) => {
-        console.log(`Looking for replacement for: ${match} (varName: ${varName})`);
         
         // Check if we have a mapping for this variable
         if (variableMappings[varName]) {
           const replacement = variableMappings[varName];
-          console.log(`Replacing ${match} with: ${replacement}`);
           return replacement;
         }
         
-        // If no mapping found, keep the original placeholder
-        console.log(`No mapping found for ${match}, keeping original`);
         return match;
       });
       
-      console.log('Final message:', message);
       return message;
     }
     
@@ -303,12 +284,7 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
 
                     {/* Body Text */}
                     {(() => {
-                      console.log(
-                        "Template message for display:",
-                        templateMessage
-                      );
                       const contentBlocks = getTemplateContentBlocks();
-                      console.log("content block:::", contentBlocks);
 
                       if (templateMessage) {
                         return (
@@ -329,13 +305,10 @@ const ChatPreviewPopup = ({ isOpen, onClose, categoryEventId, storeToken }) => {
                         );
                       }
 
-                      // If no templateMessage, try to get it directly from content blocks
-                      console.log("content block:::", contentBlocks);
 
                       const bodyBlock = contentBlocks.find(
                         (block) => block.type === "BODY"
                       );
-                      console.log("Body block found:", bodyBlock);
 
                       if (bodyBlock?.text) {
                         return (

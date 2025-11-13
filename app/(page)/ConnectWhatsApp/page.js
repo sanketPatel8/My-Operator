@@ -98,7 +98,6 @@ function ConnectWhatsApp() {
       }
 
       const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${storeToken}`;
-      console.log("Fetching from:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -109,7 +108,6 @@ function ConnectWhatsApp() {
         signal: AbortSignal.timeout(30000),
       });
 
-      console.log("Response status:", response.status);
 
       if (response.status === 403) {
         error("Company ID or  API Key is incorrect, Go back enter correct IDs");
@@ -136,7 +134,6 @@ function ConnectWhatsApp() {
       }
 
       const data = await response.json();
-      console.log("Success response:", data);
 
       if (!data || typeof data !== "object") {
         throw new Error("Invalid response format received");
@@ -150,7 +147,6 @@ function ConnectWhatsApp() {
         retryCount < maxRetries &&
         (error.name === "AbortError" || error.message.includes("fetch"))
       ) {
-        console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
         await new Promise((resolve) =>
           setTimeout(resolve, 1000 * (retryCount + 1))
         );
@@ -289,7 +285,6 @@ function ConnectWhatsApp() {
       }
 
       const data = await response.json();
-      console.log("Selected WABA ID:", selected?.wabaAccount?.wabaId);
 
       setLoading1(false);
       router.push("/ConfigurationForm");

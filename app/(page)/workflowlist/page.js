@@ -45,7 +45,6 @@ export default function WorkflowList() {
 
   // Initialize workflow data on first load
   useEffect(() => {
-    console.log("🟡 useEffect ran. fetched =", hasFetched.current);
     if (hasFetched.current) return;
 
     const initializeWorkflows = async () => {
@@ -53,9 +52,7 @@ export default function WorkflowList() {
         const storeToken = getStoreToken();
 
         if (!storeToken) {
-          console.log("⚠️ No store token found in localStorage");
           setIsRedirecting(true);
-          console.log("redirecttion::", process.env.NEXT_PUBLIC_REDIRECT_URL);
 
           if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_REDIRECT_URL) {
             window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
@@ -76,7 +73,6 @@ export default function WorkflowList() {
           throw new Error(`Failed to initialize workflows: ${initRes.status}`);
         }
 
-        console.log("status post api:::", initRes);
 
         // ✅ Then fetch the updated workflows
         const controller = new AbortController();
@@ -105,7 +101,6 @@ export default function WorkflowList() {
 
           const updatedData = await updatedRes.json();
 
-          console.log("✅ Updated workflow data:", updatedData);
 
           if (updatedData.success) {
             setWorkflows(updatedData.categories);
@@ -237,7 +232,6 @@ export default function WorkflowList() {
 
         // If template_id is null, redirect to edit flow instead of turning toggle ON
         if (!validateResult.templateId || validateResult.templateId === null) {
-          console.log("🔄 No template found, redirecting to edit flow");
 
           // 🔄 REVERT UI: Toggle back to OFF before redirecting
           setWorkflows((prev) =>
@@ -302,7 +296,6 @@ export default function WorkflowList() {
           throw new Error(updateResult.message || 'Failed to update status');
         }
 
-        console.log("✅ Toggle enabled successfully (template exists)");
         // UI is already ON, no need to update again
 
       } catch (error) {
@@ -411,7 +404,6 @@ export default function WorkflowList() {
         }
       }
 
-      console.log('✅ Toggle updated successfully:', result);
       
       if (isCodConfirmBeingTurnedOff && additionalUpdates.length > 0) {
         success('COD Order Confirmation disabled. Convert COD to Paid has been automatically disabled as well.');
@@ -452,11 +444,6 @@ export default function WorkflowList() {
   }, [workflows, getStoreToken, isToggleDisabled, showError, success, router]);
 
   const handleEyeClick = useCallback((reminder) => {
-    console.log("=== EYE CLICK DEBUG ===");
-    console.log("Full reminder object:", reminder);
-    console.log("reminder.category_event_id:", reminder.category_event_id);
-    console.log("reminder.id:", reminder.id);
-    console.log("=== END DEBUG ===");
 
     // Check if reminder has required data for preview
     if (!reminder.category_event_id) {
@@ -467,10 +454,7 @@ export default function WorkflowList() {
       return;
     }
 
-    console.log(
-      "✅ Opening preview for categoryEventId:",
-      reminder.category_event_id
-    );
+    
 
     // Open the preview popup
     setPreviewPopup({
@@ -482,7 +466,6 @@ export default function WorkflowList() {
 
   // Replace your existing handleDeleteFlow function with this:
   const handleDeleteFlow = useCallback((reminder) => {
-    console.log("Delete flow for reminder:", reminder);
     
     // Store the reminder data for use in handleDelete
     setSelectedReminder(reminder);
@@ -492,7 +475,6 @@ export default function WorkflowList() {
   }, [openModal]);
 
   const handleDelete = useCallback(async () => {
-    console.log("Delete flow for reminder:", selectedReminder);
 
     if (!selectedReminder || !selectedReminder.category_event_id) {
       showError("Unable to delete: Missing workflow identifier");
@@ -519,7 +501,6 @@ export default function WorkflowList() {
       const result = await response.json();
 
       if (result.success) {
-        console.log("✅ Workflow deleted successfully");
 
         // Update the local state - remove the deleted workflow
         setWorkflows((prev) =>
@@ -571,12 +552,10 @@ export default function WorkflowList() {
   }, []);
 
   const handleMoreClick = useCallback((reminder) => {
-    console.log("More clicked:", reminder);
   }, []);
 
   // Handle edit flow navigation with specific event data
   const handleEditFlow = useCallback((reminder) => {
-    console.log("Edit flow for reminder:", reminder);
 
     const delayText = reminder.footerText || "";
     const cleanDelay = delayText.replace("Send after ", "").trim() || "1 hour";
@@ -591,10 +570,6 @@ export default function WorkflowList() {
       eventDelay: cleanDelay,
     });
 
-    console.log(
-      "Navigating to edit flow with params:",
-      queryParams.get("category_event_id")
-    );
 
     router.push(`/editflow/${queryParams.get("category_event_id")}`);
   }, [router]);
@@ -724,19 +699,13 @@ export default function WorkflowList() {
               const workflowData = workflows.find(
                 (w) => w.categoryName === config.name
               );
-              console.log("workflows:::", workflows);
 
               // Use database data if available, otherwise fallback to empty array
               const reminders = workflowData
                 ? transformWorkflowToReminders(workflowData)
                 : [];
 
-              // Debug logging to verify data structure
-              console.log(`Workflow "${config.name}":`, {
-                workflowData,
-                reminders,
-                hasEvents: workflowData?.events?.length || 0,
-              });
+              
 
               return (
                 <div

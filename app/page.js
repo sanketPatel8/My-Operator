@@ -53,7 +53,6 @@ function ConnectShopify() {
   const init = async (Token) => {
     if (typeof window !== "undefined") {
       try {
-        console.log(tokenParam, shopParam, "prms");
 
         if (tokenParam) {
           const isValid = await verifyToken(tokenParam);
@@ -74,10 +73,6 @@ function ConnectShopify() {
           if (data.encryptedId) {
             setGenratedStoreToken(data.encryptedId);
             localStorage.setItem("storeToken", data.encryptedId);
-            console.log(
-              "Encrypted store id saved to localStorage ✅ : ",
-              data.encryptedId
-            );
             setTokenUpdated(true);
           } else {
             console.warn("No encrypted id returned:", data);
@@ -109,7 +104,6 @@ function ConnectShopify() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Store validated successfully:", data);
 
         // Encrypt store
         const encryptResponse = await fetch(
@@ -119,7 +113,6 @@ function ConnectShopify() {
 
         if (encryptData.encryptedId) {
           localStorage.setItem("storeToken", encryptData.encryptedId);
-          console.log("Encrypted store id saved to localStorage ✅");
         } else {
           console.warn("No encrypted id returned:", encryptData);
         }
@@ -139,16 +132,13 @@ function ConnectShopify() {
       if (response.ok && data.shop) {
         setStoreName(data.shop);
         setIsStoreReadonly(true);
-        console.log("Company store found:", data.shop);
       } else if (response.status === 404 && data.redirectUrl) {
-        console.log("Company not found, redirecting to:", data.redirectUrl);
         setIsRedirecting(true);
         window.location.href = data.redirectUrl;
         setIsExternalRedirect(true);
         return;
       } else {
         setIsStoreReadonly(false);
-        console.log("No store found for company, field remains editable");
       }
     } catch (error) {
       console.error("Error fetching company store:", error);
@@ -201,10 +191,6 @@ function ConnectShopify() {
         const data = await response.json();
 
         if (response.ok) {
-          console.log("Store validated successfully:", data);
-
-          console.log(GenratedStoreToken, "GenratedStoreToken");
-          console.log(storeToken, "storeToken");
 
           setIsRedirecting(true);
           // Keep loading true to prevent screen from showing
@@ -213,13 +199,6 @@ function ConnectShopify() {
           const validCompnyID = !data.company_id;
           const validPhoneNumber = !data.phone_number_id;
 
-          console.log(
-            validCompnyID,
-            "validCompnyID",
-            ":",
-            validPhoneNumber,
-            "validPhoneNumber"
-          );
 
           if (validCompnyID && validPhoneNumber) {
             // setRedirectPath("/");
@@ -230,7 +209,6 @@ function ConnectShopify() {
           } else if (!validCompnyID && validPhoneNumber) {
             setRedirectPath("/ConnectWhatsApp");
           } else if (validCompnyID && !validPhoneNumber) {
-            console.log("Redirect to ConnectWhatsApp Page");
           }
         } else {
           setErrorMessage(data.message || "Failed to validate store");
@@ -267,7 +245,6 @@ function ConnectShopify() {
       const data = await response.json();
 
       if (response.ok) {
-        console.log("Token verified successfully:", data);
         setIsTokenValid(true);
         setCompanyId(data.companyId);
         setStatusMessage(
@@ -298,7 +275,6 @@ function ConnectShopify() {
 
     try {
       router.push("/ConfigureWhatsApp");
-      console.log("Manual store connection:", StoreName);
     } catch (error) {
       console.error("Error connecting store:", error);
       setErrorMessage("Failed to connect store");
@@ -312,7 +288,6 @@ function ConnectShopify() {
       init();
     }
 
-    console.log(GenratedStoreToken, "GenratedStoreToken");
   }, [tokenParam, shopParam, TokenUpdated, GenratedStoreToken]);
 
   if (isRedirecting || loading) {

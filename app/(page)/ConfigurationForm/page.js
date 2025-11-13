@@ -57,7 +57,6 @@ function ConfigurationForm({ searchParams }) {
 
     try {
       const url = `/api/whatsapp-numbers?limit=${limit}&offset=${offset}&expand=waba_account&storeToken=${storeToken}`;
-      console.log("Fetching from:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -68,7 +67,6 @@ function ConfigurationForm({ searchParams }) {
         signal: AbortSignal.timeout(30000),
       });
 
-      console.log("Response status:", response.status);
 
       if (!response.ok) {
         let errorData = null;
@@ -91,7 +89,6 @@ function ConfigurationForm({ searchParams }) {
       }
 
       const data = await response.json();
-      console.log("Success response:", data);
 
       if (!data || typeof data !== "object") {
         throw new Error("Invalid response format received");
@@ -105,7 +102,6 @@ function ConfigurationForm({ searchParams }) {
         retryCount < maxRetries &&
         (error.name === "AbortError" || error.message.includes("fetch"))
       ) {
-        console.log(`Retrying... Attempt ${retryCount + 1}/${maxRetries}`);
         await new Promise((resolve) =>
           setTimeout(resolve, 1000 * (retryCount + 1))
         );
@@ -210,13 +206,11 @@ function ConfigurationForm({ searchParams }) {
     }));
   };
 
-  console.log(filteredNumbers, "filteredNumbers");
 
   // Main function to fetch and extract WhatsApp phone numbers
   const fetchWhatsAppPhoneNumbers = async () => {
     setLoadingNumbers(true);
     try {
-      console.log("🔄 Fetching WhatsApp numbers...");
 
       const data = await fetchWhatsAppNumbers();
       const phoneNumbers = transformApiDataToPhoneNumbers(data);
@@ -225,8 +219,6 @@ function ConfigurationForm({ searchParams }) {
       setWhatsappNumbers(phoneNumbers);
       setWhatsappAccounts(accounts);
 
-      console.log("📱 Extracted phone numbers:", phoneNumbers);
-      console.log("🏢 Extracted accounts:", accounts);
 
       if (phoneNumbers.length === 0) {
         console.warn("⚠️ No phone numbers found in API response");
@@ -257,12 +249,10 @@ function ConfigurationForm({ searchParams }) {
           console.warn("⚠️ No store token found in localStorage");
           setIsRedirecting(true);
           window.location.href = process.env.NEXT_PUBLIC_REDIRECT_URL;
-          console.log("redirection ::::", process.env.NEXT_PUBLIC_REDIRECT_URL);
 
           return;
         }
 
-        console.log("🔄 Fetching stored phone with token", storeToken);
 
         // Make POST request with store token in body
         const res = await fetch(`/api/store-phone`, {
@@ -275,12 +265,10 @@ function ConfigurationForm({ searchParams }) {
 
         if (!res.ok) {
           if (res.status === 404) {
-            console.log("📭 No stored phone number found for this store");
             setLoading(false);
             return;
           }
           if (res.status === 401) {
-            console.log("🔒 Invalid store token");
             setLoading(false);
             return;
           }
@@ -288,7 +276,6 @@ function ConfigurationForm({ searchParams }) {
         }
 
         const data = await res.json();
-        console.log("💾 Database response:", data);
 
         const countryCode = data.countrycode || "91";
         const storedPhone = data.phonenumber;
@@ -298,7 +285,6 @@ function ConfigurationForm({ searchParams }) {
         const waba_id = data.waba_id;
         const phone_number_id = data.phone_number_id;
 
-        console.log("shop url:::", shopurl);
         setShopUrl(shopurl);
         setBrandName(brand_name);
         setPublicUrl(public_shop_url);
@@ -326,7 +312,6 @@ function ConfigurationForm({ searchParams }) {
             });
           }
         } else {
-          console.log("📭 No phone number in database response");
         }
       } catch (err) {
         console.error("❌ Error fetching stored phone:", err);
@@ -377,8 +362,6 @@ function ConfigurationForm({ searchParams }) {
           account.countryCode === selectedNumber.countryCode
       );
 
-      console.log("🔍 Selected number:", selectedNumber);
-      console.log("🔍 Matched account:", matchedAccount);
 
       const payload = {
         storeToken: storeToken,
@@ -392,7 +375,6 @@ function ConfigurationForm({ searchParams }) {
           selectedNumber.waba_id || matchedAccount?.wabaAccount?.wabaId || "",
       };
 
-      console.log("📤 Sending update payload:", payload);
 
       const res = await fetch("/api/update-store", {
         method: "POST",
@@ -479,7 +461,6 @@ function ConfigurationForm({ searchParams }) {
     closeModal();
   };
 
-  console.log(shopUrl, "shopUrl");
 
   return (
     <div className="font-source-sans flex flex-col min-h-screen">

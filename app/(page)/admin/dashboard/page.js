@@ -355,7 +355,6 @@ function Dashboard({ token, user, onLogout }) {
     </div>
   );
 
-  console.log(data, "data");
 
   return (
     <div className="min-h-screen ">

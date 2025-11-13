@@ -63,7 +63,6 @@ function ConfigureWhatsApp() {
         }),
       });
 
-      console.log("✅ API response:", response.data);
       setLoading1(false);
       router.push("/ConnectWhatsApp");
     } catch (error) {
@@ -72,8 +71,6 @@ function ConfigureWhatsApp() {
     }
   };
 
-  // For debugging (can remove later)
-  console.log("Shop:", shop, "Token:", token);
 
   if (isRedirecting) {
     return (
