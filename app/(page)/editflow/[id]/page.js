@@ -61,6 +61,15 @@ function Editflow() {
   const [fallbacks, setFallbacks] = useState({});
 
   useEffect(() => {
+    async function run() {
+      const Token = localStorage.getItem("storeToken");
+      const result = await checkMyStore(Token);
+      console.log(result.data.status);
+    }
+    run();
+  }, []);
+
+  useEffect(() => {
     const regex = /{{(.*?)}}/g;
     const matches = [...customTemplateData.body.matchAll(regex)].map((m) =>
       m[1].trim()
@@ -88,7 +97,6 @@ function Editflow() {
       if (uploadResponse.data.work_flow_note) {
         setNote(uploadResponse.data.work_flow_note || "No note found");
       }
-
 
       return uploadResponse; // if you want to use it outside
     } catch (error) {
@@ -214,7 +222,6 @@ function Editflow() {
                   type: v.type,
                   component_type: v.component_type,
                 })) || [];
-
 
               SetMatchingMapVab(mappingVariables || []);
             }
@@ -475,7 +482,6 @@ function Editflow() {
                 "",
             };
           }
-
         }
       }
     );
@@ -621,7 +627,6 @@ function Editflow() {
           if (!currentTemplateExists && newTemplateNames.length > 0) {
             setSelectedTemplate(newTemplateNames[0]);
           }
-
         }
       }
     } catch (error) {
@@ -752,7 +757,6 @@ function Editflow() {
           selectedTemplateData?.template_data_id,
         template_variable_id: templateVariableIdsString,
       };
-
 
       const formData = new FormData();
 
@@ -945,7 +949,6 @@ function Editflow() {
         selectedTemplate: selectedTemplate,
         storeToken: storeToken, // ✅ Send complete variable settings
       };
-
 
       const response = await fetch("/api/test-template", {
         method: "POST",
@@ -1331,7 +1334,6 @@ function Editflow() {
 
   const hasImage =
     variable?.tamplate_image && variable?.tamplate_image.trim() !== "";
-
 
   return (
     <>
@@ -1755,7 +1757,6 @@ function Editflow() {
                         }
 
                         // If no templateMessage, try to get it directly from content blocks
-
 
                         const bodyBlock = contentBlocks.find(
                           (block) => block.type === "BODY"

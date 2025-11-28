@@ -25,6 +25,15 @@ function ConnectWhatsApp() {
     limit: 10,
   });
 
+  useEffect(() => {
+    async function run() {
+      const Token = localStorage.getItem("storeToken");
+      const result = await checkMyStore(Token);
+      console.log(result.data.status);
+    }
+    run();
+  }, []);
+
   // Transform API data to match component format
   const transformApiDataToAccounts = (apiData) => {
     if (!apiData) {
@@ -107,7 +116,6 @@ function ConnectWhatsApp() {
         },
         signal: AbortSignal.timeout(30000),
       });
-
 
       if (response.status === 403) {
         error("Company ID or  API Key is incorrect, Go back enter correct IDs");

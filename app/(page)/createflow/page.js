@@ -50,6 +50,15 @@ function Editflow() {
   const [selectedTemplateData, setSelectedTemplateData] = useState(null);
   const [mappingFieldOptions, setMappingFieldOptions] = useState([]);
 
+  useEffect(() => {
+    async function run() {
+      const Token = localStorage.getItem("storeToken");
+      const result = await checkMyStore(Token);
+      console.log(result.data.status);
+    }
+    run();
+  }, []);
+
   const note = `Note :- If the topic is COD Order Confirmation or Cancel, use this dynamic link format: 
   ${process.env.NEXT_PUBLIC_HOST}order-conformation?{{approve or cancel}} 
   If the topic is anything else, use this static redirect format: 
@@ -149,7 +158,6 @@ function Editflow() {
                   type: v.type,
                   component_type: v.component_type,
                 })) || [];
-
 
               SetMatchingMapVab(mappingVariables || []);
             }
@@ -412,7 +420,6 @@ function Editflow() {
                 "",
             };
           }
-
         }
       }
     );
@@ -558,7 +565,6 @@ function Editflow() {
           if (!currentTemplateExists && newTemplateNames.length > 0) {
             setSelectedTemplate(newTemplateNames[0]);
           }
-
         }
       }
     } catch (error) {
@@ -822,7 +828,6 @@ function Editflow() {
         variableSettings: variableSettings,
         selectedEvent: selectedEvent,
       };
-
 
       // Handle file upload if exists
       if (file) {
@@ -1212,7 +1217,6 @@ function Editflow() {
   const hasImage =
     variable?.tamplate_image && variable?.tamplate_image.trim() !== "";
 
-
   const renderTitleSubtitleFields = () => (
     <div className="flex flex-col gap-[24px] ">
       {/* Title Field */}
@@ -1428,8 +1432,6 @@ function Editflow() {
                           </div>
                         )}
 
-                        
-
                         {/* No Variables Message */}
                         {templateVariables.header.length === 0 &&
                           templateVariables.body.length === 0 &&
@@ -1519,7 +1521,6 @@ function Editflow() {
                     {/* Action Buttons */}
                     <div className="flex justify-end items-center mt-[32px] mb-[20px]">
                       {/* Note aligned to start */}
-                      
 
                       {/* Buttons aligned to end */}
                       <div className="flex space-x-[16px]">
@@ -1617,7 +1618,6 @@ function Editflow() {
                         }
 
                         // If no templateMessage, try to get it directly from content blocks
-
 
                         const bodyBlock = contentBlocks.find(
                           (block) => block.type === "BODY"

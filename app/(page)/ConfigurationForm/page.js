@@ -8,6 +8,7 @@ import { FiChevronDown } from "react-icons/fi";
 import { useToastContext } from "@/component/Toast"; // Import the toast hook
 import { useModal } from "@/hook/useModel";
 import CustomModal from "@/component/CustomModal";
+import { checkMyStore } from "@/utils/checkMyStore";
 
 function ConfigurationForm({ searchParams }) {
   const { ModelIsOpen, openModal, closeModal } = useModal();
@@ -39,6 +40,15 @@ function ConfigurationForm({ searchParams }) {
   const dropdownRef = useRef(null);
   const [shopUrl, setShopUrl] = useState("");
 
+  useEffect(() => {
+    async function run() {
+      const Token = localStorage.getItem("storeToken");
+      const result = await checkMyStore(Token);
+      console.log(result.data.status);
+    }
+    run();
+  }, []);
+
   const filteredNumbers = whatsappNumbers.filter(
     ({ countryCode, number, displayName }) =>
       `${countryCode} ${number}`
@@ -66,7 +76,6 @@ function ConfigurationForm({ searchParams }) {
         },
         signal: AbortSignal.timeout(30000),
       });
-
 
       if (!response.ok) {
         let errorData = null;
@@ -206,19 +215,16 @@ function ConfigurationForm({ searchParams }) {
     }));
   };
 
-
   // Main function to fetch and extract WhatsApp phone numbers
   const fetchWhatsAppPhoneNumbers = async () => {
     setLoadingNumbers(true);
     try {
-
       const data = await fetchWhatsAppNumbers();
       const phoneNumbers = transformApiDataToPhoneNumbers(data);
       const accounts = transformApiDataToAccounts(data);
 
       setWhatsappNumbers(phoneNumbers);
       setWhatsappAccounts(accounts);
-
 
       if (phoneNumbers.length === 0) {
         console.warn("⚠️ No phone numbers found in API response");
@@ -231,9 +237,9 @@ function ConfigurationForm({ searchParams }) {
       // ✅ Show error toast
       error("Failed to fetch WhatsApp numbers");
       return;
-    }finally {
-    setLoadingNumbers(false); 
-  }
+    } finally {
+      setLoadingNumbers(false);
+    }
   };
 
   // Fetch the stored WhatsApp number from database
@@ -252,7 +258,6 @@ function ConfigurationForm({ searchParams }) {
 
           return;
         }
-
 
         // Make POST request with store token in body
         const res = await fetch(`/api/store-phone`, {
@@ -362,7 +367,6 @@ function ConfigurationForm({ searchParams }) {
           account.countryCode === selectedNumber.countryCode
       );
 
-
       const payload = {
         storeToken: storeToken,
         brandName: brandName,
@@ -374,7 +378,6 @@ function ConfigurationForm({ searchParams }) {
         waba_id:
           selectedNumber.waba_id || matchedAccount?.wabaAccount?.wabaId || "",
       };
-
 
       const res = await fetch("/api/update-store", {
         method: "POST",
@@ -460,7 +463,6 @@ function ConfigurationForm({ searchParams }) {
     );
     closeModal();
   };
-
 
   return (
     <div className="font-source-sans flex flex-col min-h-screen">
@@ -631,7 +633,9 @@ function ConfigurationForm({ searchParams }) {
                           {loadingNumbers ? (
                             <li className="px-4 py-2 flex items-center justify-center gap-2">
                               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                              <span className="text-gray-600">Loading numbers...</span>
+                              <span className="text-gray-600">
+                                Loading numbers...
+                              </span>
                             </li>
                           ) : filteredNumbers.length > 0 ? (
                             filteredNumbers.map((item, idx) => (
@@ -641,13 +645,17 @@ function ConfigurationForm({ searchParams }) {
                                 className="cursor-pointer px-4 py-2 hover:bg-blue-100"
                               >
                                 <p>
-                                  {item.displayName != null ? item.displayName : "unknown"}
+                                  {item.displayName != null
+                                    ? item.displayName
+                                    : "unknown"}
                                 </p>
                                 <p>{`+${item.countryCode} ${item.number}`}</p>
                               </li>
                             ))
                           ) : (
-                            <li className="px-4 py-2 text-gray-400">No numbers found</li>
+                            <li className="px-4 py-2 text-gray-400">
+                              No numbers found
+                            </li>
                           )}
                         </ul>
                       )}

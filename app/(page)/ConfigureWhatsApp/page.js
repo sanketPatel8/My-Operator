@@ -8,6 +8,7 @@ import { useToastContext } from "@/component/Toast";
 
 import { Suspense } from "react";
 import axios from "axios";
+import { checkMyStore } from "@/utils/checkMyStore";
 
 function ConfigureWhatsApp() {
   const searchParams = useSearchParams();
@@ -35,6 +36,15 @@ function ConfigureWhatsApp() {
     if (shopParam) setShop(shopParam);
     if (tokenParam) setToken(tokenParam);
   }, [searchParams]);
+
+  useEffect(() => {
+    async function run() {
+      const Token = localStorage.getItem("storeToken");
+      const result = await checkMyStore(Token);
+      console.log(result.data.status);
+    }
+    run();
+  }, []);
 
   const handleVerify = async () => {
     setLoading1(true);
@@ -70,7 +80,6 @@ function ConfigureWhatsApp() {
       error("Failed to verify. Please check the inputs and try again.");
     }
   };
-
 
   if (isRedirecting) {
     return (
